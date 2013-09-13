@@ -24,6 +24,7 @@ set(NOLLI_SOURCES
     main.c
     alloc.c
     symtable.c
+    ast.c
     ${BISON_myparser_OUTPUTS}
     ${FLEX_myscanner_OUTPUTS}
 )
@@ -31,6 +32,7 @@ set(NOLLI_HEADERS
     nolli.h
     alloc.h
     symtable.h
+    ast.h
 )
 
 add_executable(${NOLLI_EXE_NAME} ${NOLLI_SOURCES})

@@ -6,10 +6,8 @@
 %{
 
 #include "parser.tab.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "nolli.h"
+#include "symtable.h"
 
 void comment(void);
 extern void yyerror(const char *msg);
@@ -18,6 +16,7 @@ extern void yyerror(const char *msg);
 char string_buffer[MAX_STR_CONST];
 char *str_buf_ptr;
 
+extern symtable_t* type_table;
 
 %}
 
@@ -83,7 +82,14 @@ not     { return TOK_NOT; }
 
 {REAL}  { return TOK_REAL_NUM; }
 
-{WORD}  { return TOK_IDENT; }
+{WORD}  {
+    if (symtable_contains(type_table, yytext)) {
+        return TOK_TYPE;
+    } else {
+        yylval.p_str_t = strdup(yytext);
+        return TOK_IDENT;
+    }
+}
 
 {OP}    { return yytext[0]; }
 {SYM}   { return yytext[0]; }

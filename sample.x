@@ -1,4 +1,4 @@
-module std
+module std;
 
 char c = 'h';
 c = 'z';

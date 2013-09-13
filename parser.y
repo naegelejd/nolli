@@ -1,7 +1,7 @@
 %{
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "nolli.h"
+#include "symtable.h"
 
 #define YYDEBUG 1
 
@@ -15,13 +15,23 @@ void yyerror(const char *msg);
 /* defined in generated lexer */
 extern int yylex();
 
+extern symtable_t* type_table;
+
 %}
 
 %error-verbose
 
+%union {
+    long p_long_t;
+    double p_real_t;
+    char* p_str_t;
+}
+
 %start module
 
-%token TOK_CHAR TOK_INT TOK_REAL TOK_STR
+%type <p_str_t> TOK_IDENT
+
+%token TOK_TYPE TOK_CHAR TOK_INT TOK_REAL TOK_STR
 %token TOK_LIST TOK_MAP TOK_FILE TOK_FUNC TOK_CLASS TOK_MODULE
 %token TOK_RETURN TOK_TYPEDEF
 
@@ -46,8 +56,8 @@ extern int yylex();
 
 module:
         /* %empty */
-    |   TOK_MODULE TOK_IDENT
-    |   TOK_MODULE TOK_IDENT statements
+    |   TOK_MODULE TOK_IDENT ';' statements
+    |   statements
     ;
 
 statements:
@@ -56,19 +66,21 @@ statements:
     ;
 
 statement:
-        TOK_TYPEDEF type TOK_IDENT
+        TOK_TYPEDEF type TOK_IDENT { symtable_add(type_table, $3, NULL); }
     |   decl ';'
-    |   expr ';'
-    |   assignment ';'
-    |   container_assignment ';'
     |   function
     |   class
+    |   call ';'
+    |   container_assignment ';'
+    |   assignment ';'
     |   ';'
     ;
 
 class:
         TOK_CLASS TOK_IDENT '=' '{' class_members '}'
+            { symtable_add(type_table, $2, NULL); }
     |   TOK_CLASS TOK_IDENT '(' type ')' '=' '{' class_members '}'
+            { symtable_add(type_table, $2, NULL); }
     ;
 
 class_members:
@@ -110,6 +122,7 @@ call:
 
 member:
       TOK_IDENT '.' TOK_IDENT
+    | member '.' TOK_IDENT
     ;
 
 list:
@@ -120,6 +133,20 @@ csvs:
         /* nothing */
     |   expr
     |   csvs ',' expr
+    ;
+
+map:
+        '{' map_items '}'
+    ;
+
+map_items:
+        /* nothing */
+    | map_keyval
+    | map_items ',' map_keyval;
+    ;
+
+map_keyval:
+        expr ':' expr
     ;
 
 assignment:
@@ -136,7 +163,8 @@ container_index:
     ;
 
 container_access:
-        expr container_index
+        TOK_IDENT container_index
+    |   call container_index
     ;
 
 expr:
@@ -149,7 +177,10 @@ expr:
     |   expr '-' expr
     |   expr '*' expr
     |   expr '/' expr
+    |   '(' expr ')'
+    |   container_access
     |   list
+    |   map
     |   call
     ;
 
@@ -158,16 +189,14 @@ decl:
     ;
 
 type:
-        TOK_CHAR
+        TOK_TYPE
+    |   TOK_CHAR
     |   TOK_INT
     |   TOK_REAL
     |   TOK_LIST '<' type '>'
     |   TOK_STR
     |   TOK_MAP '<' type ',' type '>'
     |   TOK_FILE
-    |   TOK_FUNC
-    |   TOK_CLASS
-    |   TOK_MODULE
     ;
 
 %%

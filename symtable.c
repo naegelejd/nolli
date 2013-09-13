@@ -10,9 +10,11 @@
 #define GET_INDEX(H0, H1, I, N)   ( ( (H0) + ((I) * (I)) * (H1) ) % (N) )
 
 
-/* static symtable_t *symtable_grow(symtable_t *map); */
-/* static symtable_t *symtable_shrink(symtable_t *map); */
-/* static symtable_t *symtable_resize(symtable_t *map, unsigned int new_size); */
+static symtable_t *symtable_grow(symtable_t*);
+static symtable_t *symtable_shrink(symtable_t*);
+static symtable_t *symtable_resize(symtable_t*, unsigned int);
+static unsigned int symtable_hash0(const char*);
+static unsigned int symtable_hash1(const char*);
 
 /** total number of possible hash table sizes */
 #define MAX_TABLE_SIZE_OPTIONS  28
@@ -30,6 +32,83 @@ static unsigned int table_sizes[] = {
     805306457, 1610612741, 0
 };
 
+static symtable_t *symtable_grow(symtable_t *st)
+{
+    return symtable_resize(st, st->size_idx + 1);
+}
+
+static symtable_t *symtable_shrink(symtable_t *st)
+{
+    return symtable_resize(st, st->size_idx - 1);
+}
+
+static symtable_t *symtable_resize(symtable_t *st, unsigned int new_size_idx)
+{
+    assert(st);
+
+    if (new_size_idx <= 0 || new_size_idx >= MAX_TABLE_SIZE_OPTIONS) {
+        return st;
+    }
+
+    unsigned int old_size = st->size;
+    const char** old_keys = st->keys;
+    symbol_t** old_vals = st->vals;
+
+    st->size_idx = new_size_idx;
+    st->size = table_sizes[new_size_idx];
+    st->count = 0;
+    st->collisions = 0;
+
+    st->keys = alloc(st->size * sizeof(*st->keys));
+    st->vals = alloc(st->size * sizeof(*st->vals));
+
+    unsigned int i;
+    for (i = 0; i < old_size; i++) {
+        if (old_keys[i] != NULL) {
+            symtable_add(st, old_keys[i], old_vals[i]);
+        }
+    }
+
+    free(old_keys);
+    free(old_vals);
+
+    return st;
+}
+
+/* djb2 (Daniel J. Bernstein):
+ *
+ * hash(i) = hash(i - 1) * 33 + str[i]
+ *
+ * Magic Constant 5381:
+ *  1. odd number
+ *  2. prime number
+ *  3. deficient number
+ *  4. 001/010/100/000/101 b
+ *
+ */
+static unsigned int symtable_hash0(const char* s)
+{
+    unsigned int h = 5381;
+    int c;
+
+    while ((c = *s++))
+        h = ((h << 5) + h) + c;
+    return h;
+}
+
+/* sdbm:
+ *
+ * hash(i) = hash(i - 1) * 65599 + str[i]
+ */
+static unsigned int symtable_hash1(const char* s)
+{
+    unsigned int h = 0;
+    int c;
+    while ((c = *s++))
+        h = c + (h << 6) + (h << 16) - h;
+    return h;
+}
+
 
 /** Creates and initializes a new symtable_t
  *
@@ -38,12 +117,44 @@ static unsigned int table_sizes[] = {
 symtable_t *symtable_create()
 {
     symtable_t *st = alloc(sizeof(*st));
+    st->size_idx = 0;
+    st->size = table_sizes[st->size_idx];
+
+    st->keys = alloc(st->size * sizeof(*st->keys));
+    st->vals = alloc(st->size * sizeof(*st->vals));
 
     return st;
 }
 
-void symtable_add(symtable_t* st, void* key, symbol_t* s)
+void symtable_add(symtable_t* st, const char* key, symbol_t* val)
 {
+    assert(st);
+    assert(key);
+
+    if (st->count > (st->size * 0.60)) {
+        symtable_grow(st);
+    }
+
+    uint32_t hash0 = symtable_hash0(key);
+    uint32_t hash1 = symtable_hash1(key);
+
+    unsigned int i = 0, idx = 0;
+    for (i = 0; i < st->size; i++) {
+        idx = GET_INDEX(hash0, hash1, i, st->size);
+        const char* curkey = st->keys[idx];
+
+        if (curkey == NULL) {
+            printf("Adding symbol %s\n", key);
+            st->keys[idx] = key;
+            st->vals[idx] = val;
+            st->count++;
+            break;
+        } else if (strcmp(curkey, key) == 0) {
+            st->vals[idx] = val;
+        } else {
+            st->collisions++;
+        }
+    }
 }
 
 /**
@@ -53,9 +164,58 @@ void symtable_add(symtable_t* st, void* key, symbol_t* s)
  * @param o object
  * @returns 1 if str contains k, 0 otherwise
  */
-bool symtable_contains(symtable_t *st, void *k)
+bool symtable_contains(symtable_t *st, const char *key)
 {
+    assert(st);
+    assert(key);
+
+    printf("Checking for symbol %s\n", key);
+
+    uint32_t hash0 = symtable_hash0(key);
+    uint32_t hash1 = symtable_hash1(key);
+
+    unsigned int i = 0, idx = 0;
+    for (i = 0; i < st->size; i++) {
+        idx = GET_INDEX(hash0, hash1, i, st->size);
+        const char* curkey = st->keys[idx];
+
+        if (st->keys[idx] == NULL) {
+            printf("Symbol %s not in table\n", key);
+            return false;
+        }
+
+        if (strcmp(curkey, key) == 0) {
+            printf("Symbol %s IS in table\n", key);
+            return true;
+        }
+    }
+
+    printf("Symbol %s not in table\n", key);
     return false;
+}
+
+symbol_t* symtable_get(symtable_t* st, const char* key)
+{
+    assert(st);
+    assert(key);
+
+    uint32_t hash0 = symtable_hash0(key);
+    uint32_t hash1 = symtable_hash1(key);
+
+    unsigned int i = 0, idx = 0;
+    for (i = 0; i < st->size; i++) {
+        idx = GET_INDEX(hash0, hash1, i, st->size);
+        const char* curkey = st->keys[idx];
+
+        if (st->keys[idx] == NULL) {
+            return NULL;
+        }
+
+        if (strcmp(curkey, key) == 0) {
+            return st->vals[idx];
+        }
+    }
+    return NULL;
 }
 
 /**
