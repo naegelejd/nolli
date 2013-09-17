@@ -14,8 +14,7 @@ real y = 3.14;
 
 list<int> five = [1, 2, 3, 4, 5];
 
-map<str, int> string_lengths;
-
+map<str, int> string_lengths = {"hello":"world", "five":6};
 string_lengths["hello"] = 6;
 
 file out = fopen("output.txt", "w");

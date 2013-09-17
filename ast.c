@@ -7,6 +7,7 @@ static astnode_t* create_node(ast_type_t type)
     return a;
 }
 
+
 astnode_t* make_bool_lit(bool b)
 {
     astnode_t* bn = create_node(AST_BOOL_LIT);
@@ -61,9 +62,40 @@ astnode_t* make_binexpr(expr_op_t op, astnode_t* exA, astnode_t* exB)
     return node;
 }
 
-astnode_t* make_assignment(astnode_t* id, astnode_t* expr)
+astnode_t* make_list(astnode_t* list, astnode_t* item)
+{
+    astnode_t* node = create_node(AST_LIST);
+    return node;
+}
+
+astnode_t* make_map(astnode_t* items, astnode_t* kv)
+{
+    astnode_t* node = create_node(AST_MAP);
+    return node;
+}
+
+astnode_t* make_mapkv(astnode_t* key, astnode_t* val)
+{
+    astnode_t* node = create_node(AST_MAPKV);
+    return node;
+}
+
+astnode_t* make_contaccess(astnode_t* cont, astnode_t* idx)
+{
+    astnode_t* node = create_node(AST_CONTACCESS);
+    return node;
+}
+
+astnode_t* make_assignment(astnode_t* id, assign_op_t op, astnode_t* expr)
 {
     astnode_t* node = create_node(AST_ASSIGN);
+    return node;
+}
+
+astnode_t* make_contassign(astnode_t* cont, astnode_t* idx,
+        assign_op_t op, astnode_t* item)
+{
+    astnode_t* node = create_node(AST_CONTASSIGN);
     return node;
 }
 

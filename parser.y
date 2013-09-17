@@ -22,6 +22,7 @@ extern symtable_t* class_table;
 %error-verbose
 
 %union {
+    int t;
     bool b;
     char c;
     long i;
@@ -37,8 +38,13 @@ extern symtable_t* class_table;
 %type <i> TOK_INT_NUM
 %type <r> TOK_REAL_NUM
 %type <s> TOK_IDENT TOK_INST TOK_ALIAS TOK_STR_LIT
+
+%type <t> assign
+
 %type <n> ident decl expr assignment
 %type <n> ifelse whileloop forloop
+%type <n> container_index container_access container_assignment
+%type <n> map map_items map_keyval list csvs
 %type <n> body statement statements module
 
 %token TOK_ALIAS TOK_INST TOK_BOOL TOK_CHAR TOK_INT TOK_REAL TOK_STR
@@ -160,54 +166,53 @@ member:
     ;
 
 list:
-        '[' csvs ']'
+        '[' csvs ']'    { $$ = $2; }
     ;
 
 csvs:
-        /* nothing */
-    |   expr
-    |   csvs ',' expr
+        /* nothing */   { $$ = NULL; }
+    |   expr            { $$ = make_list(NULL, $1); }
+    |   csvs ',' expr   { $$ = make_list($1, $3); }
     ;
 
 map:
-        '{' map_items '}'
+        '{' map_items '}'   { $$ = $2; }
     ;
 
 map_items:
-        /* nothing */
-    | map_keyval
-    | map_items ',' map_keyval;
+        map_keyval                  { $$ = make_map(NULL, $1); }
+    |   map_items ',' map_keyval    { $$ = make_map($1, $3); }
     ;
 
 map_keyval:
-        expr ':' expr
+        expr ':' expr       { $$ = make_mapkv($1, $3); }
     ;
 
 assignment:
-        decl assign expr    { $$ = make_assignment($1, $3); }
-    |   ident assign expr   { $$ = make_assignment($1, $3); }
+        decl assign expr    { $$ = make_assignment($1, $2, $3); }
+    |   ident assign expr   { $$ = make_assignment($1, $2, $3); }
     ;
 
 container_assignment:
-        ident container_index assign expr
+        ident container_index assign expr { $$ = make_contassign($1, $2, $3, $4); }
     ;
 
 assign:
-        '='
-    |   TOK_IADD
-    |   TOK_ISUB
-    |   TOK_IMUL
-    |   TOK_IDIV
-    |   TOK_IPOW
+        '='         { $$ = ASS_DEF; }
+    |   TOK_IADD    { $$ = ASS_ADD; }
+    |   TOK_ISUB    { $$ = ASS_SUB; }
+    |   TOK_IMUL    { $$ = ASS_DIV; }
+    |   TOK_IDIV    { $$ = ASS_DIV; }
+    |   TOK_IPOW    { $$ = ASS_POW; }
     ;
 
 container_index:
-        '[' expr ']'
+        '[' expr ']'    { $$ = $2; }
     ;
 
 container_access:
-        ident container_index
-    |   call container_index
+        ident container_index   { $$ = make_contaccess($1, $2); }
+    |   call container_index    { $$ = make_contaccess(NULL, $2); }
     ;
 
 expr:
