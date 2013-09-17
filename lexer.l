@@ -5,9 +5,8 @@
 
 %{
 
-#include "parser.tab.h"
 #include "nolli.h"
-#include "symtable.h"
+#include "parser.tab.h"
 
 void comment(void);
 extern void yyerror(const char *msg);
@@ -16,7 +15,8 @@ extern void yyerror(const char *msg);
 char string_buffer[MAX_STR_CONST];
 char *str_buf_ptr;
 
-extern symtable_t* type_table;
+extern symtable_t* alias_table;
+extern symtable_t* class_table;
 
 %}
 
@@ -30,6 +30,7 @@ WORD        [a-zA-Z_][a-zA-Z_0-9]*
 WS          [ \t\f\r\n]+
 OP          [\+\-\*\/\%\^]
 SYM         [\=\<\>\(\)\{\}\[\]\.\,\;\:\'\"]
+SEMIS       ([;]{WS}?)+
 
 %%
 
@@ -59,8 +60,7 @@ SYM         [\=\<\>\(\)\{\}\[\]\.\,\;\:\'\"]
                 }
 } /* <string> */
 
-\'.\'   { return TOK_CHAR_LIT; }
-
+bool    { return TOK_BOOL; }
 char    { return TOK_CHAR; }
 int     { return TOK_INT; }
 real    { return TOK_REAL; }
@@ -74,30 +74,56 @@ module  { return TOK_MODULE; }
 return  { return TOK_RETURN; }
 typedef { return TOK_TYPEDEF; }
 
+if      { return TOK_IF; }
+else    { return TOK_ELSE; }
+for     { return TOK_FOR; }
+in      { return TOK_IN; }
+while   { return TOK_WHILE; }
+until   { return TOK_UNTIL; }
+
+"=="    { return TOK_EQ; }
+"<="    { return TOK_LTEQ; }
+">="    { return TOK_GTEQ; }
+is      { return TOK_IS; }
 and     { return TOK_AND; }
 or      { return TOK_OR; }
 not     { return TOK_NOT; }
 
-{INTEGER}   { return TOK_INT_NUM; }
+"+="    { return TOK_IADD; }
+"-="    { return TOK_ISUB; }
+"*="    { return TOK_IMUL; }
+"/="    { return TOK_IDIV; }
+"^="    { return TOK_IPOW; }
 
-{REAL}  { return TOK_REAL_NUM; }
+true    { yylval.b = true; return TOK_BOOL_LIT; }
+false   { yylval.b = false; return TOK_BOOL_LIT; }
+
+\'.\'   { yylval.c = yytext[0]; return TOK_CHAR_LIT; }
+
+{INTEGER}   { yylval.i = strtol(yytext, NULL, 0); return TOK_INT_NUM; }
+
+{REAL}  { yylval.r = strtod(yytext, NULL); return TOK_REAL_NUM;}
 
 {WORD}  {
-    if (symtable_contains(type_table, yytext)) {
-        return TOK_TYPE;
+    yylval.s = strdup(yytext);
+    if (symtable_contains(alias_table, yytext)) {
+        return TOK_ALIAS;
+    } else if (symtable_contains(class_table, yytext)) {
+        return TOK_INST;
     } else {
-        yylval.p_str_t = strdup(yytext);
         return TOK_IDENT;
     }
 }
 
-{OP}    { return yytext[0]; }
-{SYM}   { return yytext[0]; }
-
 "/*"    { comment(); }
-#.*\n   { /* ignore one-line comments */ }
+"//".*\n    { /* ignore one-line comments */ }
 
 {WS}    { /* ignore white space */ }
+
+{SEMIS} { /* ignore extra semicolons */ return ';'; }
+
+{OP}    { return yytext[0]; }
+{SYM}   { return yytext[0]; }
 
 .       { yyerror("Invalid character\n"); }
 

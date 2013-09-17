@@ -9,5 +9,7 @@
 #include <assert.h>
 
 #include "alloc.h"
+#include "symtable.h"
+#include "ast.h"
 
 #endif /* NOLLI_H */

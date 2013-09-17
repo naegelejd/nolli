@@ -7,7 +7,8 @@ extern int yylex(void);
 extern int yydebug;
 extern int yyparse();
 
-symtable_t* type_table = NULL;
+symtable_t* alias_table = NULL;
+symtable_t* class_table = NULL;
 
 int main(void)
 {
@@ -19,9 +20,11 @@ int main(void)
     /*     printf("%d\n", y); */
     /* } */
 
-    type_table = symtable_create();
+    alias_table = symtable_create();
+    class_table = symtable_create();
     yyparse();
-    symtable_destroy(type_table);
+    symtable_destroy(alias_table);
+    symtable_destroy(class_table);
 
     return EXIT_SUCCESS;
 }

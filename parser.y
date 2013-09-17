@@ -1,7 +1,6 @@
 %{
 
 #include "nolli.h"
-#include "symtable.h"
 
 #define YYDEBUG 1
 
@@ -15,39 +14,52 @@ void yyerror(const char *msg);
 /* defined in generated lexer */
 extern int yylex();
 
-extern symtable_t* type_table;
+extern symtable_t* alias_table;
+extern symtable_t* class_table;
 
 %}
 
 %error-verbose
 
 %union {
-    long p_long_t;
-    double p_real_t;
-    char* p_str_t;
+    bool b;
+    char c;
+    long i;
+    double r;
+    char* s;
+    struct astnode* n;
 }
 
 %start module
 
-%type <p_str_t> TOK_IDENT
+%type <b> TOK_BOOL_LIT
+%type <c> TOK_CHAR_LIT
+%type <i> TOK_INT_NUM
+%type <r> TOK_REAL_NUM
+%type <s> TOK_IDENT TOK_INST TOK_ALIAS TOK_STR_LIT
+%type <n> ident decl expr assignment
+%type <n> ifelse whileloop forloop
+%type <n> body statement statements module
 
-%token TOK_TYPE TOK_CHAR TOK_INT TOK_REAL TOK_STR
+%token TOK_ALIAS TOK_INST TOK_BOOL TOK_CHAR TOK_INT TOK_REAL TOK_STR
 %token TOK_LIST TOK_MAP TOK_FILE TOK_FUNC TOK_CLASS TOK_MODULE
+%token TOK_IF TOK_ELSE TOK_FOR TOK_WHILE TOK_UNTIL
 %token TOK_RETURN TOK_TYPEDEF
-
-%token TOK_CHAR_LIT TOK_INT_NUM TOK_REAL_NUM TOK_IDENT TOK_STR_LIT
+%token TOK_IN
+%token TOK_BOOL_LIT TOK_CHAR_LIT TOK_INT_NUM TOK_REAL_NUM TOK_IDENT TOK_STR_LIT
 
 %token ',' ':'
 
 %left TOK_OR TOK_AND
-%left TOK_EQ TOK_NEQ
+%left TOK_IS TOK_EQ TOK_NEQ
 %left '<' TOK_LTEQ '>' TOK_GTEQ
 %left '+' '-'
 %left '*' '/' '%'
 %left '^'
 %right '='
+%right TOK_IADD TOK_ISUB TOK_IMUL TOK_IDIV TOK_IPOW
 %right TOK_NOT
-%right UMINUS ULGNOT
+%right UMINUS UNOT
 %left '(' ')'
 %left '[' ']'
 %left '{' '}'
@@ -55,37 +67,39 @@ extern symtable_t* type_table;
 %%
 
 module:
-        /* %empty */
-    |   TOK_MODULE TOK_IDENT ';' statements
-    |   statements
+        /* %empty */    { $$ = NULL; }
+    |   TOK_MODULE ident ';' statements     { $$ = make_module($2, $4); }
+    |   statements      { $$ = make_module(NULL, $1); }
     ;
 
 statements:
-        statement
-    |   statements statement
+        statement               { $$ = $1; }
+    |   statements statement    { $$ = make_statements($1, $2); }
     ;
 
 statement:
-        TOK_TYPEDEF type TOK_IDENT { symtable_add(type_table, $3, NULL); }
-    |   decl ';'
-    |   function
-    |   class
-    |   call ';'
-    |   container_assignment ';'
-    |   assignment ';'
-    |   ';'
+        TOK_TYPEDEF type TOK_IDENT ';' { symtable_add(alias_table, $3, NULL); $$ = NULL; }
+    |   decl ';'        { $$ = $1; }
+    |   function        { $$ = NULL; }
+    |   class           { $$ = NULL; }
+    |   ifelse          { $$ = $1; }
+    |   forloop         { $$ = $1; }
+    |   whileloop       { $$ = $1; }
+    |   call ';'        { $$ = NULL; }
+    |   container_assignment ';' { $$ = NULL; }
+    |   assignment ';'  { $$ = $1; }
     ;
 
 class:
         TOK_CLASS TOK_IDENT '=' '{' class_members '}'
-            { symtable_add(type_table, $2, NULL); }
+            { symtable_add(class_table, $2, NULL); }
     |   TOK_CLASS TOK_IDENT '(' type ')' '=' '{' class_members '}'
-            { symtable_add(type_table, $2, NULL); }
+            { symtable_add(class_table, $2, NULL); }
     ;
 
 class_members:
         class_member
-    |   class_member class_members
+    |   class_members class_member
     ;
 
 class_member:
@@ -94,9 +108,9 @@ class_member:
     ;
 
 function:
-        TOK_FUNC TOK_IDENT '=' function_definition
-    |   TOK_FUNC TOK_IDENT '(' params ')' '=' function_definition
-    |   TOK_FUNC TOK_IDENT '(' params ')' ':' type '=' function_definition
+        TOK_FUNC ident '=' function_definition
+    |   TOK_FUNC ident '(' params ')' '=' function_definition
+    |   TOK_FUNC ident '(' params ')' ':' type '=' function_definition
     ;
 
 function_definition:
@@ -111,18 +125,38 @@ function_statements:
 params:
         /* nothing */
     |   decl
-    |   decl ',' params
+    |   params ',' decl
+    ;
+
+body:
+        '{' statements '}'      { $$ = $2; }
+    ;
+
+forloop:
+        TOK_FOR ident TOK_IN expr body    { $$ = make_for($2, $4, $5); }
+    ;
+
+whileloop:
+        TOK_WHILE expr body     { $$ = make_while($2, $3); }
+    |   TOK_UNTIL expr body     { $$ = make_until($2, $3); }
+    ;
+
+ifelse:
+        TOK_IF expr body                { $$ = make_ifelse($2, $3, NULL); }
+    |   TOK_IF expr body TOK_ELSE body  { $$ = make_ifelse($2, $3, $5); }
+    |   TOK_IF expr body TOK_ELSE ifelse    { $$ = make_ifelse($2, $3, $5); }
     ;
 
 call:
-        TOK_IDENT '(' csvs ')'
+        ident '(' csvs ')'
+    |   TOK_INST '(' csvs ')'   /* constructor */
     |   container_access '(' csvs ')'
     |   member '(' csvs ')'
     ;
 
 member:
-      TOK_IDENT '.' TOK_IDENT
-    | member '.' TOK_IDENT
+      ident '.' ident
+    | member '.' ident
     ;
 
 list:
@@ -150,12 +184,21 @@ map_keyval:
     ;
 
 assignment:
-        decl '=' expr
-    |   TOK_IDENT '=' expr
+        decl assign expr    { $$ = make_assignment($1, $3); }
+    |   ident assign expr   { $$ = make_assignment($1, $3); }
     ;
 
 container_assignment:
-        TOK_IDENT container_index '=' expr
+        ident container_index assign expr
+    ;
+
+assign:
+        '='
+    |   TOK_IADD
+    |   TOK_ISUB
+    |   TOK_IMUL
+    |   TOK_IDIV
+    |   TOK_IPOW
     ;
 
 container_index:
@@ -163,38 +206,54 @@ container_index:
     ;
 
 container_access:
-        TOK_IDENT container_index
+        ident container_index
     |   call container_index
     ;
 
 expr:
-        TOK_CHAR_LIT
-    |   TOK_INT_NUM
-    |   TOK_REAL_NUM
-    |   TOK_STR_LIT
-    |   TOK_IDENT
-    |   expr '+' expr
-    |   expr '-' expr
-    |   expr '*' expr
-    |   expr '/' expr
-    |   '(' expr ')'
-    |   container_access
-    |   list
-    |   map
-    |   call
+        TOK_BOOL_LIT    { $$ = make_bool_lit($1); }
+    |   TOK_CHAR_LIT    { $$ = make_char_lit($1); }
+    |   TOK_INT_NUM     { $$ = make_int_num($1); }
+    |   TOK_REAL_NUM    { $$ = make_real_num($1); }
+    |   TOK_STR_LIT     { $$ = make_str_lit($1); }
+    |   ident           { $$ = $1; }
+    |   expr '+' expr   { $$ = make_binexpr(EXPR_ADD, $1, $3); }
+    |   expr '-' expr   { $$ = make_binexpr(EXPR_SUB, $1, $3); }
+    |   expr '*' expr   { $$ = make_binexpr(EXPR_MUL, $1, $3); }
+    |   expr '/' expr   { $$ = make_binexpr(EXPR_DIV, $1, $3); }
+    |   expr '^' expr   { $$ = make_binexpr(EXPR_POW, $1, $3); }
+    |   expr '<' expr   { $$ = make_binexpr(EXPR_LT, $1, $3); }
+    |   expr '>' expr   { $$ = make_binexpr(EXPR_GT, $1, $3); }
+    |   expr TOK_LTEQ expr   { $$ = make_binexpr(EXPR_LTEQ, $1, $3); }
+    |   expr TOK_GTEQ expr   { $$ = make_binexpr(EXPR_GTEQ, $1, $3); }
+    |   expr TOK_EQ expr   { $$ = make_binexpr(EXPR_EQ, $1, $3); }
+    |   expr TOK_IS expr   { $$ = make_binexpr(EXPR_IS, $1, $3); }
+    |   expr TOK_AND expr   { $$ = make_binexpr(EXPR_AND, $1, $3); }
+    |   expr TOK_OR expr   { $$ = make_binexpr(EXPR_OR, $1, $3); }
+    |   '-' expr %prec UMINUS   { $$ = make_unexpr(EXPR_NEG, $2); }
+    |   TOK_NOT expr %prec UNOT   { $$ = make_unexpr(EXPR_NOT, $2); }
+    |   '(' expr ')'        { $$ = $2; }
+    |   container_access    { $$ = NULL; }
+    |   list            { $$ = NULL; }
+    |   map             { $$ = NULL; }
+    |   call            { $$ = NULL; }
     ;
 
+ident: TOK_IDENT    { $$ = make_ident($1); };
+
 decl:
-    type TOK_IDENT
+    type ident      { $$ = make_decl(0, $2); }
     ;
 
 type:
-        TOK_TYPE
+        TOK_ALIAS
+    |   TOK_INST
+    |   TOK_BOOL
     |   TOK_CHAR
     |   TOK_INT
     |   TOK_REAL
-    |   TOK_LIST '<' type '>'
     |   TOK_STR
+    |   TOK_LIST '<' type '>'
     |   TOK_MAP '<' type ',' type '>'
     |   TOK_FILE
     ;
