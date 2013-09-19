@@ -4,6 +4,8 @@
 
 #define YYDEBUG 1
 
+#define YYPARSE_PARAM root
+
 #define WRITE(...) \
     do { \
         fprintf(stdout, __VA_ARGS__); \
@@ -14,20 +16,18 @@ void yyerror(const char *msg);
 /* defined in generated lexer */
 extern int yylex();
 
-extern symtable_t* alias_table;
-extern symtable_t* class_table;
-
 %}
 
 %error-verbose
 
 %union {
-    int t;
+    assign_op_t a;
     bool b;
     char c;
     long i;
     double r;
     char* s;
+    const struct type* t;
     struct astnode* n;
 }
 
@@ -37,17 +37,19 @@ extern symtable_t* class_table;
 %type <c> TOK_CHAR_LIT
 %type <i> TOK_INT_NUM
 %type <r> TOK_REAL_NUM
-%type <s> TOK_IDENT TOK_INST TOK_ALIAS TOK_STR_LIT
+%type <s> TOK_IDENT TOK_STR_LIT
 
-%type <t> assign
+%type <t> type
 
-%type <n> ident decl expr assignment
+%type <a> assign
+
+%type <n> ident typedef decl expr assignment
 %type <n> ifelse whileloop forloop
 %type <n> container_index container_access container_assignment
 %type <n> map map_items map_keyval list csvs
 %type <n> body statement statements module
 
-%token TOK_ALIAS TOK_INST TOK_BOOL TOK_CHAR TOK_INT TOK_REAL TOK_STR
+%token TOK_BOOL TOK_CHAR TOK_INT TOK_REAL TOK_STR
 %token TOK_LIST TOK_MAP TOK_FILE TOK_FUNC TOK_CLASS TOK_MODULE
 %token TOK_IF TOK_ELSE TOK_FOR TOK_WHILE TOK_UNTIL
 %token TOK_RETURN TOK_TYPEDEF
@@ -74,8 +76,8 @@ extern symtable_t* class_table;
 
 module:
         /* %empty */    { $$ = NULL; }
-    |   TOK_MODULE ident ';' statements     { $$ = make_module($2, $4); }
-    |   statements      { $$ = make_module(NULL, $1); }
+    |   TOK_MODULE ident ';' statements { (*(struct astnode**)root) = make_module($2, $4); }
+    |   statements      { (*(struct astnode**)root) = make_module(NULL, $1); }
     ;
 
 statements:
@@ -84,7 +86,7 @@ statements:
     ;
 
 statement:
-        TOK_TYPEDEF type TOK_IDENT ';' { symtable_add(alias_table, $3, NULL); $$ = NULL; }
+        typedef ';'     { $$ = $1; }
     |   decl ';'        { $$ = $1; }
     |   function        { $$ = NULL; }
     |   class           { $$ = NULL; }
@@ -96,11 +98,13 @@ statement:
     |   assignment ';'  { $$ = $1; }
     ;
 
+typedef:
+        TOK_TYPEDEF type ident { $$ = make_typedef($2, $3); }
+    ;
+
 class:
         TOK_CLASS TOK_IDENT '=' '{' class_members '}'
-            { symtable_add(class_table, $2, NULL); }
     |   TOK_CLASS TOK_IDENT '(' type ')' '=' '{' class_members '}'
-            { symtable_add(class_table, $2, NULL); }
     ;
 
 class_members:
@@ -155,7 +159,6 @@ ifelse:
 
 call:
         ident '(' csvs ')'
-    |   TOK_INST '(' csvs ')'   /* constructor */
     |   container_access '(' csvs ')'
     |   member '(' csvs ')'
     ;
@@ -247,20 +250,19 @@ expr:
 ident: TOK_IDENT    { $$ = make_ident($1); };
 
 decl:
-    type ident      { $$ = make_decl(0, $2); }
+    type ident      { $$ = make_decl($1, $2); }
     ;
 
 type:
-        TOK_ALIAS
-    |   TOK_INST
-    |   TOK_BOOL
-    |   TOK_CHAR
-    |   TOK_INT
-    |   TOK_REAL
-    |   TOK_STR
-    |   TOK_LIST '<' type '>'
-    |   TOK_MAP '<' type ',' type '>'
-    |   TOK_FILE
+        TOK_BOOL    { $$ = &bool_type; }
+    |   TOK_CHAR    { $$ = &char_type; }
+    |   TOK_INT     { $$ = &int_type; }
+    |   TOK_REAL    { $$ = &real_type; }
+    |   TOK_STR     { $$ = &str_type; }
+    |   TOK_FILE    { $$ = &file_type; }
+    |   TOK_LIST '<' type '>'           { $$ = new_list_type($3); }
+    |   TOK_MAP '<' type ',' type '>'   { $$ = new_map_type($3, $5); }
+    |   TOK_IDENT   { $$ = new_user_type($1); }
     ;
 
 %%

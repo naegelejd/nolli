@@ -9,6 +9,7 @@
 #include <assert.h>
 
 #include "alloc.h"
+#include "type.h"
 #include "symtable.h"
 #include "ast.h"
 

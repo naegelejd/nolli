@@ -15,9 +15,6 @@ extern void yyerror(const char *msg);
 char string_buffer[MAX_STR_CONST];
 char *str_buf_ptr;
 
-extern symtable_t* alias_table;
-extern symtable_t* class_table;
-
 %}
 
 D           [0-9]
@@ -104,16 +101,7 @@ false   { yylval.b = false; return TOK_BOOL_LIT; }
 
 {REAL}  { yylval.r = strtod(yytext, NULL); return TOK_REAL_NUM;}
 
-{WORD}  {
-    yylval.s = strdup(yytext);
-    if (symtable_contains(alias_table, yytext)) {
-        return TOK_ALIAS;
-    } else if (symtable_contains(class_table, yytext)) {
-        return TOK_INST;
-    } else {
-        return TOK_IDENT;
-    }
-}
+{WORD}  { yylval.s = strdup(yytext); return TOK_IDENT; }
 
 "/*"    { comment(); }
 "//".*\n    { /* ignore one-line comments */ }

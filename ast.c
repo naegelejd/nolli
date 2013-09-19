@@ -1,4 +1,4 @@
-#include "ast.h"
+#include "nolli.h"
 
 static astnode_t* create_node(ast_type_t type)
 {
@@ -44,7 +44,13 @@ astnode_t* make_ident(const char* name)
     return node;
 }
 
-astnode_t* make_decl(decl_type_t dt, astnode_t* id)
+astnode_t* make_typedef(const type_t* t, astnode_t* id)
+{
+    astnode_t* node = create_node(AST_TYPEDEF);
+    return node;
+}
+
+astnode_t* make_decl(const type_t* t, astnode_t* id)
 {
     astnode_t* dn = create_node(AST_DECL);
     return dn;

@@ -23,6 +23,7 @@ ADD_FLEX_BISON_DEPENDENCY(myscanner myparser)
 set(NOLLI_SOURCES
     main.c
     alloc.c
+    type.c
     symtable.c
     ast.c
     ${BISON_myparser_OUTPUTS}

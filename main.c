@@ -22,7 +22,17 @@ int main(void)
 
     alias_table = symtable_create();
     class_table = symtable_create();
-    yyparse();
+
+    astnode_t* root = NULL;
+    yyparse(&root);
+    if (root == NULL) {
+        fprintf(stderr, "Nothing to compile\n");
+        return EXIT_FAILURE;
+    } else {
+        assert(root);
+        assert(root->type == AST_MODULE);
+    }
+
     symtable_destroy(alias_table);
     symtable_destroy(class_table);
 
