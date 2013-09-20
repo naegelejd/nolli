@@ -21,16 +21,16 @@ typedef struct type {
     unsigned int n;
 } type_t;
 
-extern const type_t bool_type;
-extern const type_t char_type;
-extern const type_t int_type;
-extern const type_t real_type;
-extern const type_t str_type;
-extern const type_t file_type;
+extern type_t bool_type;
+extern type_t char_type;
+extern type_t int_type;
+extern type_t real_type;
+extern type_t str_type;
+extern type_t file_type;
 
 /* TODO: all types should be hashed when they are first parsed! */
-type_t* new_list_type(const type_t* tp);
-type_t* new_map_type(const type_t* ktp, const type_t* vtp);
-type_t* new_user_type(const char *name);
+type_t* new_list_type(type_t* tp);
+type_t* new_map_type(type_t* ktp, type_t* vtp);
+type_t* new_user_type(char *name);
 
 #endif /* NOLLI_TYPE_H */

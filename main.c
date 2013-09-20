@@ -1,40 +1,42 @@
 #include "nolli.h"
-#include "symtable.h"
+#include "lexer.yy.h"
+#include "grammar.h"
 
-extern FILE* yyin;
-extern int yylex(void);
-
-extern int yydebug;
-extern int yyparse();
-
-symtable_t* alias_table = NULL;
-symtable_t* class_table = NULL;
+/* lemon-generated parser function prototypes */
+void* parseAlloc(void*(*m)(size_t));
+void parseFree(void*, void (*f)(void*));
+void parse(void*, int, token_t, nolli_state_t*);
+void parseTrace(FILE*, char*);
 
 int main(void)
 {
-    yydebug = 1;
-    yyin = stdin;
+    nolli_state_t nstate;
+    memset(&nstate, 0, sizeof(nstate));
 
-    /* int y; */
-    /* while ((y = yylex()) > 0) { */
-    /*     printf("%d\n", y); */
-    /* } */
+    yyscan_t scanner;
+    yylex_init_extra(&nstate, &scanner);
+    yyset_in(stdin, scanner);
 
-    alias_table = symtable_create();
-    class_table = symtable_create();
+    /* parseTrace(stdout, "parser: "); */
+    void* parser = parseAlloc(malloc);
 
-    astnode_t* root = NULL;
-    yyparse(&root);
-    if (root == NULL) {
+    int tok = 0;
+    do {
+        tok = yylex(scanner);
+        parse(parser, tok, nstate.cur_tok, &nstate);
+    } while (tok > 0);
+
+    if (nstate.ast_root == NULL) {
         fprintf(stderr, "Nothing to compile\n");
         return EXIT_FAILURE;
     } else {
-        assert(root);
-        assert(root->type == AST_MODULE);
+        assert(nstate.ast_root);
+        assert(nstate.ast_root->type == AST_MODULE);
+        printf("AST is ready to go!\n");
     }
 
-    symtable_destroy(alias_table);
-    symtable_destroy(class_table);
+    parseFree(parser, free);
+    yylex_destroy(scanner);
 
     return EXIT_SUCCESS;
 }

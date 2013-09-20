@@ -8,17 +8,20 @@ set(CMAKE_BUILD_TYPE Debug)
 add_definitions(-Wall)# -Weverything -pedantic)
 
 # Uncomment the next line to enable lots of debug output during runtime
-#add_definitions(-DNDEBUG -DDEBUG)
+add_definitions(-DDEBUG)
 
-set(NOLLI_EXE_NAME nolli)
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/ext")
+include(UseLemon)
 
-find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
-#BISON_TARGET(myparser parser.y ${CMAKE_CURRENT_SOURCE_DIR}/parser.tab.c VERBOSE parser.output COMPILE_FLAGS -d)
-BISON_TARGET(myparser parser.y ${CMAKE_CURRENT_SOURCE_DIR}/parser.tab.c COMPILE_FLAGS -d)
-FLEX_TARGET(myscanner lexer.l ${CMAKE_CURRENT_SOURCE_DIR}/lexer.yy.c)
-ADD_FLEX_BISON_DEPENDENCY(myscanner myparser)
+MAKE_LEMON(ext/lemon.c)
+LEMON_TARGET(parser grammar.y ext/lempar.c)
+FLEX_TARGET(scanner lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.c
+    COMPILE_FLAGS --header-file=${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.h)
+ADD_FLEX_LEMON_DEPENDENCY(scanner parser)
+
+set(NOLLI_EXE nolli)
 
 set(NOLLI_SOURCES
     main.c
@@ -26,8 +29,8 @@ set(NOLLI_SOURCES
     type.c
     symtable.c
     ast.c
-    ${BISON_myparser_OUTPUTS}
-    ${FLEX_myscanner_OUTPUTS}
+    ${LEMON_parser_SOURCE}
+    ${FLEX_scanner_OUTPUTS}
 )
 set(NOLLI_HEADERS
     nolli.h
@@ -36,12 +39,13 @@ set(NOLLI_HEADERS
     ast.h
 )
 
-add_executable(${NOLLI_EXE_NAME} ${NOLLI_SOURCES})
+include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(${NOLLI_EXE} ${NOLLI_SOURCES})
 
 # link only against math library
-target_link_libraries(${NOLLI_EXE_NAME} m)
+target_link_libraries(${NOLLI_EXE} m)
 
-install(TARGETS ${NOLLI_EXE_NAME} DESTINATION bin)
+install(TARGETS ${NOLLI_EXE} DESTINATION bin)
 
 set_source_files_properties(tags PROPERTIES GENERATED true)
 add_custom_command(

@@ -40,6 +40,7 @@ typedef enum {
     EXPR_SUB,
     EXPR_MUL,
     EXPR_DIV,
+    EXPR_MOD,
     EXPR_POW,
     EXPR_LT,
     EXPR_GT,
@@ -68,17 +69,17 @@ typedef struct astnode {
 } astnode_t;
 
 
-astnode_t* make_bool_lit(bool);
-astnode_t* make_char_lit(char);
-astnode_t* make_int_num(long);
-astnode_t* make_real_num(double);
-astnode_t* make_str_lit(const char*);
+astnode_t* make_bool_lit(token_t);
+astnode_t* make_char_lit(token_t);
+astnode_t* make_int_num(token_t);
+astnode_t* make_real_num(token_t);
+astnode_t* make_str_lit(token_t);
 
-astnode_t* make_ident(const char*);
+astnode_t* make_ident(token_t);
 
-astnode_t* make_typedef(const type_t*, astnode_t* id);
+astnode_t* make_typedef(type_t*, astnode_t* id);
 
-astnode_t* make_decl(const type_t*, astnode_t*);
+astnode_t* make_decl(type_t*, astnode_t*);
 astnode_t* make_unexpr(expr_op_t, astnode_t*);
 astnode_t* make_binexpr(expr_op_t, astnode_t*, astnode_t*);
 

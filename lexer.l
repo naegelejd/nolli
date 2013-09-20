@@ -1,4 +1,6 @@
 %option noyywrap
+%option reentrant
+%option extra-type="nolli_state_t*"
 /* %option debug */
 
 %x string
@@ -6,10 +8,9 @@
 %{
 
 #include "nolli.h"
-#include "parser.tab.h"
+#include "grammar.h"
 
-void comment(void);
-extern void yyerror(const char *msg);
+void yyerror(const char *msg);
 
 #define MAX_STR_CONST 128
 char string_buffer[MAX_STR_CONST];
@@ -25,9 +26,8 @@ INTEGER     {D}+|0[xX]{H}+
 REAL        {D}+{E}|{D}*\.{D}+({E})?|{D}+\.{D}*({E})?
 WORD        [a-zA-Z_][a-zA-Z_0-9]*
 WS          [ \t\f\r\n]+
-OP          [\+\-\*\/\%\^]
-SYM         [\=\<\>\(\)\{\}\[\]\.\,\;\:\'\"]
 SEMIS       ([;]{WS}?)+
+COMMENT     \/\*.*\*\/|\/\/.*\n
 
 %%
 
@@ -39,7 +39,7 @@ SEMIS       ([;]{WS}?)+
 \"        {
                 BEGIN(INITIAL);
                 *str_buf_ptr = '\0';
-                /* yylval.string_v = strndup(string_buffer, MAX_STR_CONST); */
+                yyextra->cur_tok.s = strndup(string_buffer, MAX_STR_CONST);
                 return TOK_STR_LIT;
             }
 \n        { yyerror("Unterminated string literal"); }
@@ -78,40 +78,55 @@ in      { return TOK_IN; }
 while   { return TOK_WHILE; }
 until   { return TOK_UNTIL; }
 
-"=="    { return TOK_EQ; }
-"<="    { return TOK_LTEQ; }
-">="    { return TOK_GTEQ; }
 is      { return TOK_IS; }
 and     { return TOK_AND; }
 or      { return TOK_OR; }
 not     { return TOK_NOT; }
 
+true    { yyextra->cur_tok.b = true; return TOK_BOOL_LIT; }
+false   { yyextra->cur_tok.b = false; return TOK_BOOL_LIT; }
+
+\'.\'   { yyextra->cur_tok.c = yytext[0]; return TOK_CHAR_LIT; }
+
+{INTEGER}   { yyextra->cur_tok.i = strtol(yytext, NULL, 0); return TOK_INT_NUM; }
+
+{REAL}  { yyextra->cur_tok.r = strtod(yytext, NULL); return TOK_REAL_NUM;}
+
+{WORD}  { yyextra->cur_tok.s = strdup(yytext); return TOK_IDENT; }
+
+{COMMENT}   { /* ignore block comments */ }
+
+{WS}    { /* ignore white space */ }
+
+"=="    { return TOK_EQ; }
+"<="    { return TOK_LTEQ; }
+">="    { return TOK_GTEQ; }
 "+="    { return TOK_IADD; }
 "-="    { return TOK_ISUB; }
 "*="    { return TOK_IMUL; }
 "/="    { return TOK_IDIV; }
 "^="    { return TOK_IPOW; }
 
-true    { yylval.b = true; return TOK_BOOL_LIT; }
-false   { yylval.b = false; return TOK_BOOL_LIT; }
+"+"     { return TOK_PLUS; }
+"-"     { return TOK_MINUS; }
+"*"     { return TOK_ASTERISK; }
+"/"     { return TOK_FSLASH; }
+"%"     { return TOK_PERCENT; }
+"^"     { return TOK_CARAT; }
 
-\'.\'   { yylval.c = yytext[0]; return TOK_CHAR_LIT; }
-
-{INTEGER}   { yylval.i = strtol(yytext, NULL, 0); return TOK_INT_NUM; }
-
-{REAL}  { yylval.r = strtod(yytext, NULL); return TOK_REAL_NUM;}
-
-{WORD}  { yylval.s = strdup(yytext); return TOK_IDENT; }
-
-"/*"    { comment(); }
-"//".*\n    { /* ignore one-line comments */ }
-
-{WS}    { /* ignore white space */ }
-
-{SEMIS} { /* ignore extra semicolons */ return ';'; }
-
-{OP}    { return yytext[0]; }
-{SYM}   { return yytext[0]; }
+"="     { return TOK_ASS; }
+"<"     { return TOK_LT; }
+">"     { return TOK_GT; }
+"("     { return TOK_LPAREN; }
+")"     { return TOK_RPAREN; }
+"{"     { return TOK_LCURLY; }
+"}"     { return TOK_RCURLY; }
+"["     { return TOK_LBRACK; }
+"]"     { return TOK_RBRACK; }
+"."     { return TOK_DOT; }
+","     { return TOK_COMMA; }
+":"     { return TOK_COLON; }
+{SEMIS} { /* ignore extra semicolons */ return TOK_SEMI; }
 
 .       { yyerror("Invalid character\n"); }
 
@@ -120,18 +135,7 @@ false   { yylval.b = false; return TOK_BOOL_LIT; }
 
 %%
 
-void comment(void)
+void yyerror(const char *msg)
 {
-    char c, c1;
-
-loop:
-    while ((c = input()) != '*' && c != 0) {
-        ;
-    }
-
-    if ((c1 = input()) != '/' && c != 0) {
-        unput(c1);
-        goto loop;
-    }
-
+    fprintf(stderr, "%s\n", msg);
 }

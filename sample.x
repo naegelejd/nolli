@@ -1,4 +1,5 @@
-module std;
+/* A working sample of nolli's syntax */
+module std;     // all nolli files are members of a module
 
 char c = 'h';
 c = 'z';
@@ -7,6 +8,7 @@ int x = 42;
 ;;
    ;
 
+// typedefs can be used to create aliases
 typedef int hash;
 hash id = 12345;
 
