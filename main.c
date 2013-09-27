@@ -17,7 +17,7 @@ int main(void)
     yylex_init_extra(&nstate, &scanner);
     yyset_in(stdin, scanner);
 
-    /* parseTrace(stdout, "parser: "); */
+    parseTrace(stdout, "parser: ");
     void* parser = parseAlloc(malloc);
 
     int tok = 0;

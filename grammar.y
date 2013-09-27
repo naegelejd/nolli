@@ -28,40 +28,37 @@ statements(SS) ::= statements(L) statement(S).  { SS = make_statements(L, S); }
 
 statement(S) ::= typedef(T) SEMI.     { S = T; }
 statement(S) ::= decl(D) SEMI.        { S = D; }
-statement(S) ::= function(F).        { S = F; }
-statement(S) ::= class(C).           { S = C; }
+
+statement(S) ::= assignment(A) SEMI.  { S = A; }
+statement(S) ::= container_assignment(A) SEMI. { S = A; }
+/* statement(S) ::= function(F).        { S = F; } */
 statement(S) ::= ifelse(I).          { S = I; }
 statement(S) ::= forloop(F).         { S = F; }
 statement(S) ::= whileloop(W).       { S = W; }
 statement(S) ::= call(C) SEMI.        { S = C; }
-statement(S) ::= container_assignment(A) SEMI. { S = A; }
-statement(S) ::= assignment(A) SEMI.  { S = A; }
 
 typedef(D) ::= TYPEDEF type(T) ident(I). { D = make_typedef(T, I); }
 
-class ::= CLASS IDENT ASS LCURLY class_members RCURLY.
-class ::= CLASS IDENT LPAREN type RPAREN ASS LCURLY class_members RCURLY.
+classbody ::= LCURLY class_members RCURLY.
 
 class_members ::= class_member.
 class_members ::= class_members class_member.
 
-class_member ::= function.
+class_member ::= assignment.
 class_member ::= decl.
 
-function ::= FUNC ident ASS function_definition.
-function ::= FUNC ident LPAREN params RPAREN ASS function_definition.
-function ::= FUNC ident LPAREN params RPAREN COLON type ASS function_definition.
+funcbody(F) ::= PIPE params PIPE LCURLY funcstatements RCURLY. { F = NULL; }
+funcbody(F) ::= LCURLY funcstatements RCURLY. { F = NULL; }
 
-function_definition(D) ::= LCURLY function_statements RCURLY. { D = NULL; }
+params(P) ::= .                         { P = NULL; }
+params(P) ::= ident.                     { P = NULL; }
+params(P) ::= params COMMA ident.        { P = NULL; }
 
-function_statements(FS) ::= statement.          { FS = NULL; }
-function_statements(FS) ::= RETURN expr SEMI.   { FS = NULL; }
+funcstatement(FS) ::= RETURN expr SEMI. { FS = NULL; }
+funcstatement(FS) ::= statement.        { FS = NULL; }
 
-params(P) ::= .         { P = NULL; }
-params(P) ::= decl.  { P = NULL; }
-params(P) ::= params COMMA decl. { P = NULL; }
-
-body(B) ::= LCURLY statements(S) RCURLY.      { B = S; }
+funcstatements(FS) ::= funcstatement.          { FS = NULL; }
+funcstatements(FS) ::= funcstatements funcstatement.   { FS = NULL; }
 
 forloop(F) ::= FOR ident(I) IN expr(E) body(B).  { F = make_for(I, E, B); }
 
@@ -71,6 +68,8 @@ whileloop(W) ::= UNTIL expr(E) body(B).     { W = make_until(E, B); }
 ifelse(IE) ::= IF expr(E) body(B).   { IE = make_ifelse(E, B, NULL); }
 ifelse(IE) ::= IF expr(E) body(BA) ELSE body(BB).  { IE = make_ifelse(E, BA, BB); }
 ifelse(IE) ::= IF expr(E) body(B) ELSE ifelse(N).    { IE = make_ifelse(E, B, N); }
+
+body(B) ::= LCURLY statements(S) RCURLY.      { B = S; }
 
 call(C) ::= ident LPAREN csvs RPAREN.     { C = NULL; }
 call(C) ::= container_access LPAREN csvs RPAREN.  { C = NULL; }
@@ -92,8 +91,10 @@ map_items(I) ::= map_items(M) COMMA map_keyval(KV).   { I = make_map(M, KV); }
 
 map_keyval(KV) ::= expr(A) COLON expr(B).  { KV = make_mapkv(A, B); }
 
-assignment(M) ::= decl(D) assign(A) expr(E).    { M = make_assignment(D, A, E); }
 assignment(M) ::= ident(I) assign(A) expr(E).   { M = make_assignment(I, A, E); }
+assignment(M) ::= decl(D) assign(A) expr(E).    { M = make_assignment(D, A, E); }
+assignment(M) ::= decl(D) assign(A) funcbody(F).    { M = make_assignment(D, A, F); }
+assignment(M) ::= decl(D) assign(A) classbody(F).    { M = make_assignment(D, A, F); }
 
 container_assignment(CA) ::= ident(I) container_index(X) assign(A) expr(E). {
         CA = make_contassign(I, X, A, E); }
@@ -137,6 +138,7 @@ expr(E) ::= container_access(C).    { E = C; }
 expr(E) ::= list(L).                { E = L; }
 expr(E) ::= map(M).                 { E = M; }
 expr(E) ::= call(C).                { E = C; }
+expr(E) ::= member(M).              { E = M; }
 
 ident(I) ::= IDENT(S).    { I = make_ident(S); }
 
@@ -148,12 +150,27 @@ type(T) ::= INT.     { T = &int_type; }
 type(T) ::= REAL.    { T = &real_type; }
 type(T) ::= STR.     { T = &str_type; }
 type(T) ::= FILE.    { T = &file_type; }
-type(T) ::= LIST LT type(A) GT.           { T = new_list_type(A); }
-type(T) ::= MAP LT type(A) COMMA type(B) GT.   { T = new_map_type(A, B); }
+type(T) ::= LIST LT type(A) GT.             { T = new_list_type(A); }
+type(T) ::= MAP LT type(A) COMMA type(B) GT.        { T = new_map_type(A, B); }
 type(T) ::= IDENT(S).   { T = new_user_type(S.s); }
+type(T) ::= FUNC type LPAREN param_types RPAREN.    { T = NULL; }
+type(T) ::= FUNC LPAREN param_types RPAREN.         { T = NULL; }
+type(T) ::= CLASS.  { T = NULL; }
+
+param_types(P) ::= .                    { P = NULL; }
+param_types(P) ::= type.                { P = NULL; }
+param_types(P) ::= param_types COMMA type.   { P = NULL; }
+
 
 %syntax_error {
-    NOLLI_ERROR("%s\n", "Syntax Error!");
+    NOLLI_ERROR("%s:\n", "Syntax Error");
+    int n = sizeof(yyTokenName) / sizeof(yyTokenName[0]);
+    for (int i = 0; i < n; ++i) {
+        int a = yy_find_shift_action(yypParser, (YYCODETYPE)i);
+        if (a < YYNSTATE + YYNRULE) {
+            NOLLI_ERROR("\tpossible token: %s\n", yyTokenName[i]);
+        }
+    }
 }
 
 %parse_accept {

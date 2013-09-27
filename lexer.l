@@ -123,6 +123,7 @@ false   { yyextra->cur_tok.b = false; return TOK_BOOL_LIT; }
 "}"     { return TOK_RCURLY; }
 "["     { return TOK_LBRACK; }
 "]"     { return TOK_RBRACK; }
+"|"     { return TOK_PIPE; }
 "."     { return TOK_DOT; }
 ","     { return TOK_COMMA; }
 ":"     { return TOK_COLON; }
