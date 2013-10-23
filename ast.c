@@ -44,6 +44,18 @@ astnode_t* make_ident(token_t name)
     return node;
 }
 
+astnode_t* make_module(astnode_t* id, astnode_t* statements)
+{
+    astnode_t* node = create_node(AST_MODULE);
+    return node;
+}
+
+astnode_t* make_import(astnode_t* parent, astnode_t* names)
+{
+    astnode_t* node = create_node(AST_IMPORT);
+    return node;
+}
+
 astnode_t* make_typedef(type_t* t, astnode_t* id)
 {
     astnode_t* node = create_node(AST_TYPEDEF);
@@ -62,7 +74,7 @@ astnode_t* make_unexpr(expr_op_t op, astnode_t* expr)
     return node;
 }
 
-astnode_t* make_binexpr(expr_op_t op, astnode_t* exA, astnode_t* exB)
+astnode_t* make_binexpr(astnode_t* exA, expr_op_t op, astnode_t* exB)
 {
     astnode_t* node = create_node(AST_BINEXPR);
     return node;
@@ -135,14 +147,32 @@ astnode_t* make_call(astnode_t* func, astnode_t* args)
     return node;
 }
 
-astnode_t* make_statements(astnode_t* list, astnode_t* statement)
+astnode_t* make_member(astnode_t* parent, astnode_t* child)
 {
-    astnode_t* node = create_node(AST_STATEMENTS);
+    astnode_t* node = create_node(AST_MEMBER);
     return node;
 }
 
-astnode_t* make_module(astnode_t* id, astnode_t* statements)
+astnode_t* make_return(astnode_t* expr)
 {
-    astnode_t* node = create_node(AST_MODULE);
+    astnode_t* node = create_node(AST_RETURN);
+    return node;
+}
+
+astnode_t* make_break(void)
+{
+    astnode_t* node = create_node(AST_BREAK);
+    return node;
+}
+
+astnode_t* make_continue(void)
+{
+    astnode_t* node = create_node(AST_CONTINUE);
+    return node;
+}
+
+astnode_t* make_statements(astnode_t* list, astnode_t* statement)
+{
+    astnode_t* node = create_node(AST_STATEMENTS);
     return node;
 }

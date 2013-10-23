@@ -10,7 +10,7 @@ macro(LEMON_TARGET name grammar template)
     add_custom_command(
         OUTPUT ${LEMON_${name}_SOURCE} ${LEMON_${name}_HEADER}
         COMMAND ${CMAKE_COMMAND} -E copy ${grammar} ${CMAKE_CURRENT_BINARY_DIR}/${grammar}
-        COMMAND ${LEMON_EXE} -q T=${template} ${CMAKE_CURRENT_BINARY_DIR}/${grammar}
+        COMMAND ${LEMON_EXE} T=${template} ${CMAKE_CURRENT_BINARY_DIR}/${grammar}
         DEPENDS ${LEMON_EXE} ${grammar}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Generating parser from ${grammar} using ${LEMON_EXE}"

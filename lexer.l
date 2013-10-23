@@ -66,10 +66,14 @@ list    { return TOK_LIST; }
 map     { return TOK_MAP; }
 file    { return TOK_FILE; }
 func    { return TOK_FUNC; }
-class   { return TOK_CLASS; }
+struct  { return TOK_STRUCT; }
 module  { return TOK_MODULE; }
-return  { return TOK_RETURN; }
+import  { return TOK_IMPORT; }
 typedef { return TOK_TYPEDEF; }
+from    { return TOK_FROM; }
+return  { return TOK_RETURN; }
+break   { return TOK_BREAK; }
+continue    { return TOK_CONTINUE; }
 
 if      { return TOK_IF; }
 else    { return TOK_ELSE; }
@@ -123,11 +127,11 @@ false   { yyextra->cur_tok.b = false; return TOK_BOOL_LIT; }
 "}"     { return TOK_RCURLY; }
 "["     { return TOK_LBRACK; }
 "]"     { return TOK_RBRACK; }
-"|"     { return TOK_PIPE; }
 "."     { return TOK_DOT; }
 ","     { return TOK_COMMA; }
 ":"     { return TOK_COLON; }
-{SEMIS} { /* ignore extra semicolons */ return TOK_SEMI; }
+    /* {SEMIS} { /1* ignore extra semicolons *1/ return TOK_SEMI; } */
+";" /* ignore semicolons */
 
 .       { yyerror("Invalid character\n"); }
 

@@ -21,44 +21,30 @@
 %left LBRACK RBRACK.
 %left LCURLY RCURLY.
 
-module(M) ::= MODULE ident(I) SEMI statements(S). { M = ((nolli_state_t*)nstate)->ast_root = make_module(I, S); }
+module(M) ::= MODULE ident(I) statements(S). { M = ((nolli_state_t*)nstate)->ast_root = make_module(I, S); }
 
 statements(SS) ::= statement(S).            { SS = S; }
 statements(SS) ::= statements(L) statement(S).  { SS = make_statements(L, S); }
 
-statement(S) ::= typedef(T) SEMI.     { S = T; }
-statement(S) ::= decl(D) SEMI.        { S = D; }
-
-statement(S) ::= assignment(A) SEMI.  { S = A; }
-statement(S) ::= container_assignment(A) SEMI. { S = A; }
-/* statement(S) ::= function(F).        { S = F; } */
+statement(S) ::= import(I).      { S = I; }
+statement(S) ::= typedef(T).     { S = T; }
+/* statement(S) ::= decl(D).        { S = D; } */
+statement(S) ::= assignment(A).  { S = A; }
+statement(S) ::= container_assignment(A). { S = A; }
 statement(S) ::= ifelse(I).          { S = I; }
 statement(S) ::= forloop(F).         { S = F; }
 statement(S) ::= whileloop(W).       { S = W; }
-statement(S) ::= call(C) SEMI.        { S = C; }
+statement(S) ::= call(C).        { S = C; }
+statement(S) ::= RETURN expr(E).  { S = make_return(E); }
+statement(S) ::= BREAK.      { S = make_break(); }
+statement(S) ::= CONTINUE.   { S = make_continue(); }
+
+import(I) ::= IMPORT idents(M).         { I = make_import(NULL, M); }
+import(I) ::= FROM ident(M) IMPORT idents(C). { I = make_import(M, C); }
 
 typedef(D) ::= TYPEDEF type(T) ident(I). { D = make_typedef(T, I); }
 
-classbody ::= LCURLY class_members RCURLY.
-
-class_members ::= class_member.
-class_members ::= class_members class_member.
-
-class_member ::= assignment.
-class_member ::= decl.
-
-funcbody(F) ::= PIPE params PIPE LCURLY funcstatements RCURLY. { F = NULL; }
-funcbody(F) ::= LCURLY funcstatements RCURLY. { F = NULL; }
-
-params(P) ::= .                         { P = NULL; }
-params(P) ::= ident.                     { P = NULL; }
-params(P) ::= params COMMA ident.        { P = NULL; }
-
-funcstatement(FS) ::= RETURN expr SEMI. { FS = NULL; }
-funcstatement(FS) ::= statement.        { FS = NULL; }
-
-funcstatements(FS) ::= funcstatement.          { FS = NULL; }
-funcstatements(FS) ::= funcstatements funcstatement.   { FS = NULL; }
+body(B) ::= LCURLY statements(S) RCURLY.      { B = S; }
 
 forloop(F) ::= FOR ident(I) IN expr(E) body(B).  { F = make_for(I, E, B); }
 
@@ -69,14 +55,13 @@ ifelse(IE) ::= IF expr(E) body(B).   { IE = make_ifelse(E, B, NULL); }
 ifelse(IE) ::= IF expr(E) body(BA) ELSE body(BB).  { IE = make_ifelse(E, BA, BB); }
 ifelse(IE) ::= IF expr(E) body(B) ELSE ifelse(N).    { IE = make_ifelse(E, B, N); }
 
-body(B) ::= LCURLY statements(S) RCURLY.      { B = S; }
+call(C) ::= ident(F) LPAREN csvs(A) RPAREN.     { C = make_call(F, A); }
+call(C) ::= container_access(F) LPAREN csvs(A) RPAREN.  { C = make_call(F, A); }
+call(C) ::= member(F) LPAREN csvs(A) RPAREN.    { C = make_call(F, A); }
+/* call(C) ::= expr LPAREN csvs RPAREN.    { C = NULL; } */
 
-call(C) ::= ident LPAREN csvs RPAREN.     { C = NULL; }
-call(C) ::= container_access LPAREN csvs RPAREN.  { C = NULL; }
-call(C) ::= member LPAREN csvs RPAREN.    { C = NULL; }
-
-member(M) ::= ident DOT ident.        { M = NULL; }
-member(M) ::= member DOT ident.       { M = NULL; }
+member(M) ::= ident(P) DOT ident(I).        { M = make_member(P, I); }
+member(M) ::= member(P) DOT ident(I).       { M = make_member(P, I); }
 
 list(L) ::= LBRACK csvs(C) RBRACK.    { L = C; }
 
@@ -93,8 +78,6 @@ map_keyval(KV) ::= expr(A) COLON expr(B).  { KV = make_mapkv(A, B); }
 
 assignment(M) ::= ident(I) assign(A) expr(E).   { M = make_assignment(I, A, E); }
 assignment(M) ::= decl(D) assign(A) expr(E).    { M = make_assignment(D, A, E); }
-assignment(M) ::= decl(D) assign(A) funcbody(F).    { M = make_assignment(D, A, F); }
-assignment(M) ::= decl(D) assign(A) classbody(F).    { M = make_assignment(D, A, F); }
 
 container_assignment(CA) ::= ident(I) container_index(X) assign(A) expr(E). {
         CA = make_contassign(I, X, A, E); }
@@ -117,20 +100,20 @@ expr(E) ::= INT_NUM(I).     { E = make_int_num(I); }
 expr(E) ::= REAL_NUM(R).    { E = make_real_num(R); }
 expr(E) ::= STR_LIT(S).     { E = make_str_lit(S); }
 expr(E) ::= ident(I).           { E = I; }
-expr(E) ::= expr(A) PLUS expr(B).   { E = make_binexpr(EXPR_ADD, A, B); }
-expr(E) ::= expr(A) MINUS expr(B).  { E = make_binexpr(EXPR_SUB, A, B); }
-expr(E) ::= expr(A) ASTERISK expr(B).  { E = make_binexpr(EXPR_MUL, A, B); }
-expr(E) ::= expr(A) FSLASH expr(B). { E = make_binexpr(EXPR_DIV, A, B); }
-expr(E) ::= expr(A) PERCENT expr(B). { E = make_binexpr(EXPR_MOD, A, B); }
-expr(E) ::= expr(A) CARAT expr(B).  { E = make_binexpr(EXPR_POW, A, B); }
-expr(E) ::= expr(A) LT expr(B).     { E = make_binexpr(EXPR_LT, A, B); }
-expr(E) ::= expr(A) GT expr(B).     { E = make_binexpr(EXPR_GT, A, B); }
-expr(E) ::= expr(A) LTEQ expr(B).   { E = make_binexpr(EXPR_LTEQ, A, B); }
-expr(E) ::= expr(A) GTEQ expr(B).   { E = make_binexpr(EXPR_GTEQ, A, B); }
-expr(E) ::= expr(A) EQ expr(B).     { E = make_binexpr(EXPR_EQ, A, B); }
-expr(E) ::= expr(A) IS expr(B).     { E = make_binexpr(EXPR_IS, A, B); }
-expr(E) ::= expr(A) AND expr(B).    { E = make_binexpr(EXPR_AND, A, B); }
-expr(E) ::= expr(A) OR expr(B).     { E = make_binexpr(EXPR_OR, A, B); }
+expr(E) ::= expr(A) PLUS expr(B).   { E = make_binexpr(A, EXPR_ADD, B); }
+expr(E) ::= expr(A) MINUS expr(B).  { E = make_binexpr(A, EXPR_SUB, B); }
+expr(E) ::= expr(A) ASTERISK expr(B).  { E = make_binexpr(A, EXPR_MUL, B); }
+expr(E) ::= expr(A) FSLASH expr(B). { E = make_binexpr(A, EXPR_DIV, B); }
+expr(E) ::= expr(A) PERCENT expr(B). { E = make_binexpr(A, EXPR_MOD, B); }
+expr(E) ::= expr(A) CARAT expr(B).  { E = make_binexpr(A, EXPR_POW, B); }
+expr(E) ::= expr(A) LT expr(B).     { E = make_binexpr(A, EXPR_LT, B); }
+expr(E) ::= expr(A) GT expr(B).     { E = make_binexpr(A, EXPR_GT, B); }
+expr(E) ::= expr(A) LTEQ expr(B).   { E = make_binexpr(A, EXPR_LTEQ, B); }
+expr(E) ::= expr(A) GTEQ expr(B).   { E = make_binexpr(A, EXPR_GTEQ, B); }
+expr(E) ::= expr(A) EQ expr(B).     { E = make_binexpr(A, EXPR_EQ, B); }
+expr(E) ::= expr(A) IS expr(B).     { E = make_binexpr(A, EXPR_IS, B); }
+expr(E) ::= expr(A) AND expr(B).    { E = make_binexpr(A, EXPR_AND, B); }
+expr(E) ::= expr(A) OR expr(B).     { E = make_binexpr(A, EXPR_OR, B); }
 expr(E) ::= MINUS expr(A). [NOT]    { E = make_unexpr(EXPR_NEG, A); }
 expr(E) ::= NOT expr(A).            { E = make_unexpr(EXPR_NOT, A); }
 expr(E) ::= LPAREN expr(A) RPAREN.  { E = A; }
@@ -139,8 +122,12 @@ expr(E) ::= list(L).                { E = L; }
 expr(E) ::= map(M).                 { E = M; }
 expr(E) ::= call(C).                { E = C; }
 expr(E) ::= member(M).              { E = M; }
+expr(E) ::= body(F).            { E = F; }
 
 ident(I) ::= IDENT(S).    { I = make_ident(S); }
+
+idents(IS) ::= ident.    { IS = NULL; }
+idents(IS) ::= idents COMMA ident.    { IS = NULL; }
 
 decl(D) ::= type(T) ident(I).    { D = make_decl(T, I); }
 
@@ -153,19 +140,24 @@ type(T) ::= FILE.    { T = &file_type; }
 type(T) ::= LIST LT type(A) GT.             { T = new_list_type(A); }
 type(T) ::= MAP LT type(A) COMMA type(B) GT.        { T = new_map_type(A, B); }
 type(T) ::= IDENT(S).   { T = new_user_type(S.s); }
-type(T) ::= FUNC type LPAREN param_types RPAREN.    { T = NULL; }
-type(T) ::= FUNC LPAREN param_types RPAREN.         { T = NULL; }
-type(T) ::= CLASS.  { T = NULL; }
+type(T) ::= functype(F).   { T = F; }
+type(T) ::= STRUCT.  { T = NULL; }
 
-param_types(P) ::= .                    { P = NULL; }
-param_types(P) ::= type.                { P = NULL; }
-param_types(P) ::= param_types COMMA type.   { P = NULL; }
+functype(T) ::= FUNC type LPAREN params RPAREN.    { T = NULL; }
+functype(T) ::= FUNC LPAREN params RPAREN.         { T = NULL; }
+/* functype(T) ::= FUNC type.    { T = NULL; } */
+/* functype(T) ::= FUNC.         { T = NULL; } */
+
+params(P) ::= .                         { P = NULL; }
+params(P) ::= decl.                     { P = NULL; }
+params(P) ::= params COMMA decl.        { P = NULL; }
 
 
 %syntax_error {
     NOLLI_ERROR("%s:\n", "Syntax Error");
-    int n = sizeof(yyTokenName) / sizeof(yyTokenName[0]);
-    for (int i = 0; i < n; ++i) {
+    size_t n = sizeof(yyTokenName) / sizeof(yyTokenName[0]);
+    unsigned int i = 0;
+    for (i = 0; i < n; ++i) {
         int a = yy_find_shift_action(yypParser, (YYCODETYPE)i);
         if (a < YYNSTATE + YYNRULE) {
             NOLLI_ERROR("\tpossible token: %s\n", yyTokenName[i]);
