@@ -5,7 +5,44 @@
 #include <stdbool.h>
 #include <assert.h>
 
-/******** Memory allocation ********/
+
+enum {
+    tok_eof = 0,
+    tok_int,
+    tok_float,
+    tok_string,
+    tok_ident,
+};
+
+static char *tok_type_names[] = {
+    "EOF",
+    "int",
+    "float",
+    "string",
+    "ident"
+};
+
+struct lexer {
+    FILE* input;
+
+    char *buff;
+    size_t blen;
+    size_t balloc;
+
+    long int_num;
+    double float_num;
+    int line;
+    int col;
+    int cur;
+};
+
+#define next(lex) \
+    do { \
+        lex->cur = getc(lex->input); \
+        lex->col++; \
+    } while (false)
+
+/******** Placeholder Memory allocation *********/
 void* zalloc(size_t bytes)
 {
     assert(bytes);
@@ -31,159 +68,145 @@ void* zrealloc(void* block, size_t bytes)
 
     return reblock;
 }
+/************************************************/
 
-/******** String implementation ********/
-enum { STRING_DEFAULT_LENGTH = 16 };
-
-struct string {
-    char* val;
-    unsigned long len;
-    size_t alloc;
-};
-typedef struct string string_t;
-
-string_t* string_new(void)
+int clear(struct lexer *lex)
 {
-    string_t* s = zalloc(sizeof(*s));
-    s->alloc = STRING_DEFAULT_LENGTH;
-    s->val = zalloc(s->alloc);
-    s->len = 0;
-    return s;
-}
-
-int string_expand(string_t* s)
-{
-    assert(s);
-
-    size_t old_alloc = s->alloc;
-    size_t new_alloc = old_alloc * 2;
-
-    /* realloc the string buffer */
-    s->val = zrealloc(s->val, new_alloc);
-    s->alloc = new_alloc;
-
-    /* memory for strings must always be zeroed */
-    memset(s->val + old_alloc, 0, new_alloc - old_alloc);
-
+    memset(lex->buff, 0, lex->balloc);
+    lex->blen = 0;
     return 0;
 }
 
-int string_clear(string_t* s)
+int appendc(struct lexer *lex, int c)
 {
-    memset(s->val, 0, s->alloc);
-    s->len = 0;
-    return 0;
-}
-
-int string_append_char(string_t* s, char c)
-{
-    assert(s);
+    assert(lex);
+    assert(lex->buff);
 
     /* expand string buffer if it's value
      * (including nul terminator) is too long */
-    if (s->len >= s->alloc - 1) {
-        string_expand(s);
+    if (lex->blen >= lex->balloc - 1) {
+        size_t old_alloc = lex->balloc;
+        size_t new_alloc = old_alloc * 2;
+
+        /* realloc the buffer */
+        lex->buff = zrealloc(lex->buff, new_alloc);
+        lex->balloc = new_alloc;
+
+        /* memory for strings must always be zeroed */
+        memset(lex->buff + old_alloc, 0, new_alloc - old_alloc);
     }
 
-    s->val[s->len++] = c;
-
-    return 0;
+    lex->buff[lex->blen++] = (char)c;
+    return c;
 }
 
-void string_delete(string_t* s)
+int lex_integer(struct lexer *lex)
 {
-    free(s->val);
-    free(s);
+    do {
+        appendc(lex, lex->cur);
+        next(lex);
+    } while (isdigit(lex->cur) || lex->cur == '.');
+    return tok_int;
 }
 
-/******** Lexer ********/
-
-enum {
-    tok_eof = 0,
-    tok_num,
-    tok_ident,
-    tok_def,
-    tok_extern
-};
-
-static FILE* g_input;
-static string_t* g_ident_str;
-static string_t* g_num_str;
-
-int gettok(void)
+int lex_float(struct lexer *lex)
 {
-    static int lastc = ' ';
+    return tok_float;
+}
 
-    while (isspace(lastc)) {
-        lastc = getc(g_input);
+int lex_string(struct lexer *lex)
+{
+    next(lex);
+    do {
+        appendc(lex, lex->cur);
+        next(lex);
+    } while (lex->cur != '"');
+    next(lex);  /* eat closing double-quote */
+    return tok_string;
+}
+
+int gettok(struct lexer *lex)
+{
+    clear(lex);     /* clear the lexer's buffer */
+
+    if (lex->cur == 0) {
+        next(lex);
     }
 
-    if (isalpha(lastc)) {
-        string_clear(g_ident_str);
-        do {
-            string_append_char(g_ident_str, lastc);
-            lastc = getc(g_input);
-        } while (isalnum(lastc));
-
-        if (strncmp(g_ident_str->val, "def",
-                    g_ident_str->alloc) == 0) {
-            return tok_def;
-        } else if (strncmp(g_ident_str->val, "extern",
-                    g_ident_str->alloc) == 0) {
-            return tok_extern;
-        } else {
+    while (true) {
+        if (lex->cur == '\n' || lex->cur == '\r') {
+            lex->line++;
+            lex->col = -1;
+            next(lex);
+        }
+        /* eat whitespace */
+        else if (isspace(lex->cur)) {
+            next(lex);
+            continue;
+        }
+        else if (isdigit(lex->cur)) {
+            return lex_integer(lex);
+        }
+        /* eat comments */
+        else if (lex->cur == '#') {
+            do {
+                next(lex);  /* eat up comment line */
+            } while (lex->cur != EOF && lex->cur != '\n' && lex->cur != '\r');
+            continue;
+        }
+        else if (lex->cur == '"') {
+            return lex_string(lex);
+        }
+        else if (isalpha(lex->cur)) {
+            do {
+                appendc(lex, lex->cur);
+                next(lex);
+            } while (isalnum(lex->cur));
             return tok_ident;
         }
-    }
+        else if (lex->cur == EOF) {
+            return tok_eof;
+        }
+        else {
+            int sym = lex->cur;
+            next(lex);
 
-    else if (isdigit(lastc)) {
-        string_clear(g_num_str);
-        do {
-            string_append_char(g_num_str, lastc);
-            lastc = getc(g_input);
-        } while (isdigit(lastc) || lastc == '.');
-
-        return tok_num;
-    }
-
-    else if (lastc == '#') {
-        do {
-            /* eat up comment line */
-            lastc = getc(g_input);
-        } while (lastc != EOF && lastc != '\n' && lastc != '\r');
-
-        /* if there are more lines, continue scanning */
-        if (lastc != EOF) {
-            return gettok();
+            static char symbols[] = "()[]{}+-*/%^&|=<>";
+            if (!strchr(symbols, sym)) {
+                fprintf(stderr, "Error: invalid symbol '%c' at line %d, column %d\n",
+                        sym, lex->line, lex->col);
+                exit(1);
+            } else {
+                return sym;
+            }
         }
     }
 
-    else if (lastc == EOF) {
-        return tok_eof;
-    }
-
-    else {
-        /* return ascii value */
-        int thisc = lastc;
-        lastc = getc(g_input);
-        return thisc;
-    }
-
-    return 0;
+    return tok_eof;
 }
 
 /******** Driver ********/
 int main(void)
 {
-    g_input = stdin;
-    g_ident_str = string_new();
-    g_num_str = string_new();
+    struct lexer *lex = zalloc(sizeof(*lex));
+    lex->input = stdin;
+
+    size_t bufsize = 16;
+    lex->buff = zalloc(bufsize);
+    lex->blen = 0;
+    lex->balloc = bufsize;
+
+    lex->line = 1;
+    lex->col = -1;
 
     int good = 1;
-
     while (good) {
-        good = gettok();
-        printf("%d\n", good);
+        good = gettok(lex);
+        if (good < 5) {
+            printf("%s\n", tok_type_names[good]);
+        } else {
+            printf("%c\n", good);
+        }
     }
 
     return EXIT_SUCCESS;
