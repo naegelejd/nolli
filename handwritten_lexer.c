@@ -3,44 +3,43 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <assert.h>
 
 
 enum {
-    tok_eof = 0,
-    tok_int,
-    tok_float,
-    tok_string,
-    tok_ident,
+    TOK_EOF = 0, TOK_INT, TOK_FLOAT, TOK_STRING, TOK_IDENT,
+
+    TOK_ADD, TOK_IADD,
+    TOK_SUB, TOK_ISUB,
+    TOK_MUL, TOK_IMUL,
+    TOK_DIV, TOK_IDIV,
+    TOK_MOD, TOK_IMOD,
+    TOK_POW, TOK_IPOW,
+    TOK_ASS, TOK_EQ,
+    TOK_NOT, TOK_NEQ,
+    TOK_LT, TOK_LTE,
+    TOK_GT, TOK_GTE,
+
+    TOK_LPAREN, TOK_RPAREN, TOK_LSQUARE, TOK_RSQUARE, TOK_LCURLY, TOK_RCURLY,
 };
 
 static char *tok_type_names[] = {
-    "EOF",
-    "int",
-    "float",
-    "string",
-    "ident"
+    "EOF", "int", "float", "string", "ident",
+
+    "add", "iadd",
+    "sub", "isub",
+    "mul", "imul",
+    "div", "idiv",
+    "mod", "imod",
+    "pow", "ipow",
+    "ass", "eq",
+    "not", "neq",
+    "lt", "lte",
+    "gt", "gte",
+
+    "lparen", "rparen", "lsquare", "rsquare", "lcurly", "rcurly",
 };
-
-struct lexer {
-    FILE* input;
-
-    char *buff;
-    size_t blen;
-    size_t balloc;
-
-    long int_num;
-    double float_num;
-    int line;
-    int col;
-    int cur;
-};
-
-#define next(lex) \
-    do { \
-        lex->cur = getc(lex->input); \
-        lex->col++; \
-    } while (false)
 
 /******** Placeholder Memory allocation *********/
 void* zalloc(size_t bytes)
@@ -69,6 +68,41 @@ void* zrealloc(void* block, size_t bytes)
     return reblock;
 }
 /************************************************/
+
+struct lexer {
+    FILE* input;
+
+    char *buff;
+    size_t blen;
+    size_t balloc;
+
+    long int_num;
+    double float_num;
+    int line;
+    int col;
+    int cur;
+};
+
+#define next(lex) \
+    do { \
+        lex->cur = getc(lex->input); \
+        lex->col++; \
+    } while (false)
+
+void lexerror(struct lexer *lex, char *msg, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "Error at line %d, column %d: ", lex->line, lex->col);
+
+    va_start(ap, msg);
+    vfprintf(stderr, msg, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
+
+    exit(1);
+}
 
 int clear(struct lexer *lex)
 {
@@ -105,24 +139,102 @@ int lex_integer(struct lexer *lex)
     do {
         appendc(lex, lex->cur);
         next(lex);
-    } while (isdigit(lex->cur) || lex->cur == '.');
-    return tok_int;
+    } while (isdigit(lex->cur) || lex->cur == '.' || strchr("eE", lex->cur));
+    return TOK_INT;
 }
 
 int lex_float(struct lexer *lex)
 {
-    return tok_float;
+    return TOK_FLOAT;
 }
 
 int lex_string(struct lexer *lex)
 {
+    /* eat the starting string delimiter */
     next(lex);
     do {
-        appendc(lex, lex->cur);
-        next(lex);
+        switch (lex->cur) {
+        case EOF:
+            lexerror(lex, "Unexpected EOF");
+            break;
+        case '\n': case '\r':
+            lexerror(lex, "Unterminated string literal");
+            break;
+        case '\\': {
+            int c = lex->cur;
+            next(lex);
+            switch (c) {
+            case '"': goto next_append;
+            case '\\': goto next_append;
+            case 'a': c = '\a'; goto next_append;
+            case 'b': c = '\b'; goto next_append;
+            case 'f': c = '\f'; goto next_append;
+            case 'n': c = '\n'; goto next_append;
+            case 'r': c = '\r'; goto next_append;
+            case 't': c = '\t'; goto next_append;
+            case 'v': c = '\v'; goto next_append;
+            case EOF:
+                lexerror(lex, "Unexpected EOF in string literal");
+                break;
+            case '\n': case '\r':
+                lex->line++;
+                lex->col = 0;
+                appendc(lex, lex->cur);
+                break;
+            default:
+                lexerror(lex, "Invalid escape character %c", lex->cur);
+            }
+        next_append:
+            next(lex);
+            appendc(lex, c);
+            break;
+        }
+
+        /* normal character in string literal: */
+        default:
+            appendc(lex, lex->cur);
+            next(lex);
+        }
     } while (lex->cur != '"');
+
     next(lex);  /* eat closing double-quote */
-    return tok_string;
+    return TOK_STRING;
+}
+
+int lex_symbol(struct lexer *lex)
+{
+    int tok = 0;
+    switch (lex->cur) {
+        case '+': tok = TOK_ADD; break;
+        case '-': tok = TOK_SUB; break;
+        case '*': tok = TOK_MUL; break;
+        case '/': tok = TOK_DIV; break;
+        case '%': tok = TOK_MOD; break;
+        case '^': tok = TOK_POW; break;
+        case '=': tok = TOK_ASS; break;
+        case '!': tok = TOK_NOT; break;
+        case '<': tok = TOK_LT; break;
+        case '>': tok = TOK_GT; break;
+        default: {
+            static char symbols[] = "()[]{}";
+            char *at = NULL;
+            if ((at = strchr(symbols, lex->cur))) {
+                next(lex);
+                return (at - symbols) + TOK_LPAREN;
+            } else {
+                lexerror(lex, "Invalid symbol %c", lex->cur);
+            }
+        }
+    }
+
+    next(lex);
+    if (lex->cur == '=') {
+        next(lex);
+        /* in-place operations follow their base op equivalent */
+        return tok + 1;
+    } else {
+        return tok;
+    }
 }
 
 int gettok(struct lexer *lex)
@@ -136,8 +248,9 @@ int gettok(struct lexer *lex)
     while (true) {
         if (lex->cur == '\n' || lex->cur == '\r') {
             lex->line++;
-            lex->col = -1;
+            lex->col = 0;
             next(lex);
+            continue;
         }
         /* eat whitespace */
         else if (isspace(lex->cur)) {
@@ -162,27 +275,18 @@ int gettok(struct lexer *lex)
                 appendc(lex, lex->cur);
                 next(lex);
             } while (isalnum(lex->cur));
-            return tok_ident;
+            return TOK_IDENT;
         }
         else if (lex->cur == EOF) {
-            return tok_eof;
+            return TOK_EOF;
         }
+        /* all that's left is symbols */
         else {
-            int sym = lex->cur;
-            next(lex);
-
-            static char symbols[] = "()[]{}+-*/%^&|=<>";
-            if (!strchr(symbols, sym)) {
-                fprintf(stderr, "Error: invalid symbol '%c' at line %d, column %d\n",
-                        sym, lex->line, lex->col);
-                exit(1);
-            } else {
-                return sym;
-            }
+            return lex_symbol(lex);
         }
     }
 
-    return tok_eof;
+    return TOK_EOF;
 }
 
 /******** Driver ********/
@@ -197,16 +301,22 @@ int main(void)
     lex->balloc = bufsize;
 
     lex->line = 1;
-    lex->col = -1;
+    lex->col = 0;
 
     int good = 1;
     while (good) {
         good = gettok(lex);
-        if (good < 5) {
-            printf("%s\n", tok_type_names[good]);
-        } else {
-            printf("%c\n", good);
+        printf("%s", tok_type_names[good]);
+        switch (good) {
+            case TOK_IDENT:
+                printf(": %s", lex->buff);
+                break;
+            case TOK_STRING:
+                printf(": \"%s\"", lex->buff);
+                break;
+            default:;
         }
+        printf("\n");
     }
 
     return EXIT_SUCCESS;

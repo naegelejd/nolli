@@ -96,7 +96,7 @@ static unsigned int symtable_hash0(const char* s)
     return h;
 }
 
-/* sdbm:
+/* SDBM:
  *
  * hash(i) = hash(i - 1) * 65599 + str[i]
  */
@@ -109,6 +109,45 @@ static unsigned int symtable_hash1(const char* s)
     return h;
 }
 
+
+/* One-at-a-time (Bob Jenkins)
+ *
+ * @param s LuciStringObj to hash
+ * @returns unsigned integer hash
+ */
+static unsigned int symtable_hash_2(char *s)
+{
+    unsigned int h = 0;
+    int c;
+    while ((c = *s++)) {
+        h += c;
+        h += h << 10;
+        h ^= h >> 6;
+    }
+    h += h << 3;
+    h ^= h >> 11;
+    h += h << 15;
+    return h;
+}
+
+/* FNV-1a:
+ *
+ * hash = offset_basis
+ * for each octet_of_data to hash:
+ *     hash = hash xor octet_of_data
+ *     hash = hash * FNV_prime
+ * return hash
+ */
+static unsigned int symtable_hash_3(char *s)
+{
+    unsigned int h = 2166136261;    /* 14695981039346656037 for 64-bit hash */
+    unsigned int c;
+    while ((c = *s++)) {
+        h ^= c;
+        h *= 16777619;  /* 1099511628211 for 64-bit hash */
+        h %= 32;        /* 64 for 64-bit hash */
+    }
+}
 
 /** Creates and initializes a new symtable_t
  *
