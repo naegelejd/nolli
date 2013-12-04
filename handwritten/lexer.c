@@ -1,44 +1,27 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <assert.h>
+#include "lexer.h"
 
-
-enum {
-    TOK_EOF = 0, TOK_INT, TOK_FLOAT, TOK_STRING, TOK_IDENT,
-
-    TOK_ADD, TOK_IADD,
-    TOK_SUB, TOK_ISUB,
-    TOK_MUL, TOK_IMUL,
-    TOK_DIV, TOK_IDIV,
-    TOK_MOD, TOK_IMOD,
-    TOK_POW, TOK_IPOW,
-    TOK_ASS, TOK_EQ,
-    TOK_NOT, TOK_NEQ,
-    TOK_LT, TOK_LTE,
-    TOK_GT, TOK_GTE,
-
-    TOK_LPAREN, TOK_RPAREN, TOK_LSQUARE, TOK_RSQUARE, TOK_LCURLY, TOK_RCURLY,
-};
 
 static char *tok_type_names[] = {
     "EOF", "int", "float", "string", "ident",
 
-    "add", "iadd",
-    "sub", "isub",
-    "mul", "imul",
-    "div", "idiv",
-    "mod", "imod",
-    "pow", "ipow",
-    "ass", "eq",
-    "not", "neq",
-    "lt", "lte",
-    "gt", "gte",
+    "'+'", "'+='",
+    "'-'", "'-='",
+    "'*'", "'*='",
+    "'/'", "'/='",
+    "'%'", "'%='",
+    "'^'", "'^='",
+    "'='", "'=='",
+    "'!'", "'!='",
+    "'<'", "'>='",
+    "'>'", "'>='",
 
-    "lparen", "rparen", "lsquare", "rsquare", "lcurly", "rcurly",
+    "'('", "')'", "'['", "']'", "'{'", "'}'",
+    "','", "'.'", "';'",
+
+    "if", "else", "while", "for", "break", "continue",
+    "func", "return",
+    "struct", "iface",
+    "module", "import",
 };
 
 /******** Placeholder Memory allocation *********/
@@ -68,20 +51,6 @@ void* zrealloc(void* block, size_t bytes)
     return reblock;
 }
 /************************************************/
-
-struct lexer {
-    FILE* input;
-
-    char *buff;
-    size_t blen;
-    size_t balloc;
-
-    long int_num;
-    double float_num;
-    int line;
-    int col;
-    int cur;
-};
 
 #define next(lex) \
     do { \
@@ -134,18 +103,68 @@ int appendc(struct lexer *lex, int c)
     return c;
 }
 
+/* to be called with decimal point as lex->cur or already in buffer */
+int lex_float(struct lexer *lex)
+{
+    do {
+        appendc(lex, lex->cur);
+        next(lex);
+    } while (isdigit(lex->cur));
+
+    /* allow 'scientific E notation' */
+    if (strchr("eE", lex->cur)) {
+        appendc(lex, lex->cur);
+        next(lex);
+
+        if (strchr("-+", lex->cur)) {
+            appendc(lex, lex->cur);
+            next(lex);
+        }
+
+        while (isdigit(lex->cur)) {
+            appendc(lex, lex->cur);
+            next(lex);
+        }
+    }
+
+    char *endptr = NULL;
+    double d = strtod(lex->buff, &endptr);
+    if (endptr != (lex->buff + lex->blen)) {
+        lexerror(lex, "Invalid real number %s", lex->buff);
+    }
+    lex->float_num = d;
+
+    return TOK_FLOAT;
+}
+
 int lex_integer(struct lexer *lex)
 {
     do {
         appendc(lex, lex->cur);
         next(lex);
-    } while (isdigit(lex->cur) || lex->cur == '.' || strchr("eE", lex->cur));
-    return TOK_INT;
-}
+    } while (isdigit(lex->cur));
 
-int lex_float(struct lexer *lex)
-{
-    return TOK_FLOAT;
+    if (lex->cur == '.' || strchr("eE", lex->cur)) {
+        return lex_float(lex);
+    }
+
+    if (strchr("xX", lex->cur)) {
+        appendc(lex, lex->cur);
+        next(lex);
+        while (strchr("abcdefABCDEF123456890", lex->cur)) {
+            appendc(lex, lex->cur);
+            next(lex);
+        }
+    }
+
+    char *endptr = NULL;
+    long l = strtol(lex->buff, &endptr, 0);
+    if (endptr != (lex->buff + lex->blen)) {
+        lexerror(lex, "Invalid integer %s", lex->buff);
+    }
+    lex->int_num = l;
+
+    return TOK_INT;
 }
 
 int lex_string(struct lexer *lex)
@@ -201,6 +220,37 @@ int lex_string(struct lexer *lex)
     return TOK_STRING;
 }
 
+int lex_ident(struct lexer *lex)
+{
+    do {
+        appendc(lex, lex->cur);
+        next(lex);
+    } while (isalnum(lex->cur));
+
+    const char *keywords[] = {
+        "if",
+        "else",
+        "while",
+        "for",
+        "break",
+        "continue",
+        "func",
+        "return",
+        "struct",
+        "iface",
+        "module",
+        "import",
+    };
+    unsigned int kidx = 0;
+    for (kidx = 0; kidx < sizeof(keywords) / sizeof(*keywords); kidx++) {
+        if (strncmp(lex->buff, keywords[kidx], 16) == 0) {
+            return TOK_IF + kidx;
+        }
+    }
+
+    return TOK_IDENT;
+}
+
 int lex_symbol(struct lexer *lex)
 {
     int tok = 0;
@@ -216,7 +266,7 @@ int lex_symbol(struct lexer *lex)
         case '<': tok = TOK_LT; break;
         case '>': tok = TOK_GT; break;
         default: {
-            static char symbols[] = "()[]{}";
+            static char symbols[] = "()[]{},.;";
             char *at = NULL;
             if ((at = strchr(symbols, lex->cur))) {
                 next(lex);
@@ -271,12 +321,18 @@ int gettok(struct lexer *lex)
             return lex_string(lex);
         }
         else if (isalpha(lex->cur)) {
-            do {
-                appendc(lex, lex->cur);
-                next(lex);
-            } while (isalnum(lex->cur));
-            return TOK_IDENT;
+            return lex_ident(lex);
         }
+        /* stupid floating points with no leading zero (e.g. '.123') */
+        /* else if (lex->cur == '.') { */
+        /*     appendc(lex, lex->cur); */
+        /*     next(lex); */
+        /*     if (isdigit(lex->cur)) { */
+        /*         return lex_float(lex); */
+        /*     } else { */
+        /*         return TOK_DOT; */
+        /*     } */
+        /* } */
         else if (lex->cur == EOF) {
             return TOK_EOF;
         }
@@ -289,8 +345,12 @@ int gettok(struct lexer *lex)
     return TOK_EOF;
 }
 
-/******** Driver ********/
-int main(void)
+const char *get_tok_name(int tok)
+{
+    return tok_type_names[tok];
+}
+
+int lexer_init(struct lexer **lexaddr)
 {
     struct lexer *lex = zalloc(sizeof(*lex));
     lex->input = stdin;
@@ -303,21 +363,7 @@ int main(void)
     lex->line = 1;
     lex->col = 0;
 
-    int good = 1;
-    while (good) {
-        good = gettok(lex);
-        printf("%s", tok_type_names[good]);
-        switch (good) {
-            case TOK_IDENT:
-                printf(": %s", lex->buff);
-                break;
-            case TOK_STRING:
-                printf(": \"%s\"", lex->buff);
-                break;
-            default:;
-        }
-        printf("\n");
-    }
+    *lexaddr = lex;
 
-    return EXIT_SUCCESS;
+    return 1;
 }
