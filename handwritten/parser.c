@@ -9,6 +9,8 @@ struct parser {
 
 void term(struct parser *parser);
 void expression(struct parser *parser);
+void arguments(struct parser *parser);
+int statement(struct parser *parser);
 void statements(struct parser *parser);
 
 
@@ -16,7 +18,8 @@ void parse_error(struct parser *parser, char *msg, ...)
 {
     va_list ap;
 
-    fprintf(stderr, "Error (L %d): ", parser->lexer->line);
+    fprintf(stderr, "ERROR (L %d, C %d): ",
+            parser->lexer->line, parser->lexer->col);
 
     va_start(ap, msg);
     vfprintf(stderr, msg, ap);
@@ -25,6 +28,20 @@ void parse_error(struct parser *parser, char *msg, ...)
     fprintf(stderr, "\n");
 
     /* exit(1); */
+}
+
+void parse_debug(struct parser *parser, char *msg, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "DEBUG (L %d, C %d): ",
+            parser->lexer->line, parser->lexer->col);
+
+    va_start(ap, msg);
+    vfprintf(stderr, msg, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
 }
 
 #undef next
@@ -53,7 +70,14 @@ int expect(struct parser *parser, int tok)
 
 void expression(struct parser *parser)
 {
+    if (accept(parser, TOK_NOT)) {
+        ;
+    } else if (accept(parser, TOK_SUB)) {
+        ;
+    }
+
     term(parser);
+
     while (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
             parser->cur == TOK_MUL || parser->cur == TOK_DIV ||
             parser->cur == TOK_POW || parser->cur == TOK_MOD ||
@@ -65,34 +89,58 @@ void expression(struct parser *parser)
     }
 }
 
+void list_literal(struct parser *parser)
+{
+    expect(parser, TOK_LSQUARE);
+    if (check(parser, TOK_RSQUARE)) {
+        ; /* empty list */
+    } else {
+        do {
+            expression(parser);
+        } while (accept(parser, TOK_COMMA));
+    }
+    expect(parser, TOK_RSQUARE);
+}
+
+void map_literal(struct parser *parser)
+{
+    expect(parser, TOK_LCURLY);
+    if (check(parser, TOK_RCURLY)) {
+        ; /* empty list */
+    } else {
+        do {
+            expression(parser);
+            expect(parser, TOK_COLON);
+            expression(parser);
+        } while (accept(parser, TOK_COMMA));
+    }
+    expect(parser, TOK_RCURLY);
+}
+
 void term(struct parser *parser)
 {
-    if (accept(parser, TOK_INT)) {
+    if (accept(parser, TOK_CHAR)) {
         ;
-    } else if (accept(parser, TOK_FLOAT)) {
+    } else if (accept(parser, TOK_INT)) {
+        ;
+    } else if (accept(parser, TOK_REAL)) {
         ;
     } else if (accept(parser, TOK_STRING)) {
         ;
     } else if (accept(parser, TOK_IDENT)) {
-        ;
+        if (check(parser, TOK_LPAREN)) {
+            arguments(parser);
+            parse_debug(parser, "Parsed function call");
+        }
     } else if (accept(parser, TOK_LPAREN)) {
         expression(parser);
         expect(parser, TOK_RPAREN);
+    } else if (check(parser, TOK_LSQUARE)) {
+        list_literal(parser);
+    } else if (check(parser, TOK_LCURLY)) {
+        map_literal(parser);
     } else {
         parse_error(parser, "expression: invalid expression");
-        next(parser);
-    }
-}
-
-void condition(struct parser *parser) {
-    expression(parser);
-    if (parser->cur == TOK_EQ || parser->cur == TOK_NEQ ||
-            parser->cur == TOK_LT || parser->cur == TOK_LTE ||
-            parser->cur == TOK_GT || parser->cur == TOK_GTE) {
-        next(parser);
-        expression(parser);
-    } else {
-        parse_error(parser, "condition: invalid operator");
         next(parser);
     }
 }
@@ -100,66 +148,139 @@ void condition(struct parser *parser) {
 void arguments(struct parser *parser)
 {
     expect(parser, TOK_LPAREN);
-    if (accept(parser, TOK_RPAREN)) {
+    if (check(parser, TOK_RPAREN)) {
         ; /* function call with no args */
     } else {
-        expression(parser);
-        while (accept(parser, TOK_COMMA)) {
+        do {
             expression(parser);
-        }
-        expect(parser, TOK_RPAREN);
+        } while (accept(parser, TOK_COMMA));
+    }
+    expect(parser, TOK_RPAREN);
+}
+
+/**
+ * Accept either multiple statements between curly braces, or
+ * a single statement
+ */
+void body(struct parser *parser)
+{
+    if (accept(parser, TOK_LCURLY)) {
+        statements(parser);
+        expect(parser, TOK_RCURLY);
+    } else {
+        statement(parser);
     }
 }
 
 void ifelse(struct parser *parser)
 {
     accept(parser, TOK_IF);
-    condition(parser);
-    expect(parser, TOK_LCURLY);
-    statements(parser);
-    expect(parser, TOK_RCURLY);
+    expression(parser);
+    body(parser);
+
     if (accept(parser, TOK_ELSE)) {
-        expect(parser, TOK_LCURLY);
-        statements(parser);
-        expect(parser, TOK_RCURLY);
+        body(parser);
+        parse_debug(parser, "Parsed `if+else` construct");
+    } else {
+        parse_debug(parser, "Parsed `if` construct");
     }
 }
 
 void whileloop(struct parser *parser)
 {
     accept(parser, TOK_WHILE);
-    condition(parser);
-    expect(parser, TOK_LCURLY);
-    statements(parser);
-    expect(parser, TOK_RCURLY);
+    expression(parser);
+    body(parser);
+    parse_debug(parser, "Parsed `while` loop");
 }
 
 void forloop(struct parser *parser)
 {
     accept(parser, TOK_FOR);
-    condition(parser);
-    expect(parser, TOK_LCURLY);
-    statements(parser);
-    expect(parser, TOK_RCURLY);
+    expression(parser);
+    body(parser);
+    parse_debug(parser, "Parsed `for` loop");
+}
+
+void declaration(struct parser *parser)
+{
+    if (accept(parser, TOK_LSQUARE)) {
+        expect(parser, TOK_TYPE);
+        expect(parser, TOK_RSQUARE);
+        /* parsed list type */
+    } else if (accept(parser, TOK_LCURLY)) {
+        expect(parser, TOK_TYPE);
+        expect(parser, TOK_COMMA);
+        expect(parser, TOK_TYPE);
+        expect(parser, TOK_RCURLY);
+        /* parsed map type */
+    } else {
+        expect(parser, TOK_TYPE);
+    }
+
+    do {
+        expect(parser, TOK_IDENT);
+        if (accept(parser, TOK_ASS)) {
+            expression(parser);
+            parse_debug(parser, "Parsed initialization");
+        } else {
+            parse_debug(parser, "Parsed declaration");
+        }
+    } while (accept(parser, TOK_COMMA));
 }
 
 void parameters(struct parser *parser)
 {
-
+    /* 1 decl, or many comma-separated decls */
+    do {
+        declaration(parser);
+    } while (check(parser, TOK_COMMA));
 }
 
 void funcdef(struct parser *parser)
 {
     accept(parser, TOK_FUNC);
+    if (accept(parser, TOK_TYPE)) {
+        /* function has a return value */
+        ;
+    }
     expect(parser, TOK_IDENT);
 
     expect(parser, TOK_LPAREN);
-    parameters(parser);
+
+    if (!check(parser, TOK_RPAREN)) {
+        parameters(parser);
+    }
     expect(parser, TOK_RPAREN);
 
     expect(parser, TOK_LCURLY);
     statements(parser);
     expect(parser, TOK_RCURLY);
+
+    parse_debug(parser, "Parsed function definition");
+}
+
+int ident_statement(struct parser *parser)
+{
+    expect(parser, TOK_IDENT);
+
+    if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
+            parser->cur == TOK_ISUB || parser->cur == TOK_IMUL ||
+            parser->cur == TOK_IDIV || parser->cur == TOK_IMOD ||
+            parser->cur == TOK_IPOW) {
+        next(parser);   /* eat assignment operator */
+        expression(parser);
+        parse_debug(parser, "Parsed variable assignment");
+    } else if (check(parser, TOK_LPAREN)) {
+        arguments(parser);
+        parse_debug(parser, "Parsed function call");
+    } else {
+        parse_error(parser, "Invalid token after ident, expecting %s",
+                get_tok_name(parser->cur));
+        next(parser);
+        return 0;
+    }
+    return 1;
 }
 
 int statement(struct parser *parser)
@@ -170,39 +291,35 @@ int y = 2 + 2;
 x = 1;
 x(y)
 */
-
-    if (accept(parser, TOK_IDENT)) {
-        if (accept(parser, TOK_IDENT)) {
-            /* just parsed decl */
-            if (accept(parser, TOK_ASS)) {
-                expression(parser);
-                /* just parsed declaration+initialization */
-            }
-        } else if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
-                parser->cur == TOK_ISUB || parser->cur == TOK_IMUL ||
-                parser->cur == TOK_IDIV || parser->cur == TOK_IMOD ||
-                parser->cur == TOK_IPOW) {
-            next(parser);   /* eat assignment operator */
-            expression(parser);
-            /* just parsed assignment */
-        } else if (check(parser, TOK_LPAREN)) {
-            arguments(parser);
-            /* just parsed a function call */
-        } else {
-            parse_error(parser, "statement: ident->??");
-            next(parser);
-            return 0;
-        }
+    if (check(parser, TOK_TYPE) ||
+            check(parser, TOK_LSQUARE) ||
+            check(parser, TOK_LCURLY)) {
+        declaration(parser);
+        /* just parsed decl or initialization */
+    } else if (check(parser, TOK_IDENT)) {
+        return ident_statement(parser);
     } else if (check(parser, TOK_IF)) {
         ifelse(parser);
     } else if (check(parser, TOK_WHILE)) {
         whileloop(parser);
     } else if (check(parser, TOK_FUNC)) {
         funcdef(parser);
+    } else if (accept(parser, TOK_RET)) {
+        /* TODO: empty return statements? */
+        expression(parser);
+        parse_debug(parser, "Parsed a return statement");
+    } else if (accept(parser, TOK_BREAK)) {
+        ;
+    } else if (accept(parser, TOK_CONT)) {
+        ;
     } else {
+        /* right-curly brace is the only token that would end a series of
+         * statements. anything else would be an invalid first token */
+        if (!check(parser, TOK_RCURLY)) {
+            parse_error(parser, "Unexpected token %s", get_tok_name(parser->cur));
+            next(parser);
+        }
         return 0;
-        /* parse_error(parser, "statement: syntax parse_error"); */
-        /* next(parser); */
     }
     return 1;
 }
@@ -212,49 +329,58 @@ void statements(struct parser *parser)
     while (statement(parser) != 0) ;
 }
 
-void import(struct parser *parser)
+int import(struct parser *parser)
 {
-    /* expect(parser, TOK_IMPORT); */
-    expect(parser, TOK_IDENT);
-    /* parsed import */
+    if (accept(parser, TOK_IMPORT)) {
+        ;
+    } else if (accept(parser, TOK_FROM)) {
+        expect(parser, TOK_IDENT);
+        expect(parser, TOK_IMPORT);
+    } else {
+        return 0;
+    }
+
+    do {
+        expect(parser, TOK_IDENT);
+    } while (accept(parser, TOK_COMMA));
+
+    parse_debug(parser, "Parsed `import`");
+
+    return 1;
 }
 
-int struct_contents(struct parser *parser)
+void imports(struct parser *parser)
 {
-
-    return 0;
+    while (import(parser) != 0) ;
 }
 
 void structtype(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
     expect(parser, TOK_LCURLY);
-    while (struct_contents(parser)) {
-        ;
+    while (!check(parser, TOK_RCURLY)) {
+        declaration(parser);
     }
     expect(parser, TOK_RCURLY);
-}
-
-int interface_contents(struct parser *parser)
-{
-
-    return 0;
+    parse_debug(parser, "Parsed `struct`");
 }
 
 void interface(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
     expect(parser, TOK_LCURLY);
-    while (interface_contents(parser)) {
+    while (!check(parser, TOK_RCURLY)) {
+        /* functype(parser); */
         ;
     }
     expect(parser, TOK_RCURLY);
+    parse_debug(parser, "Parsed `iface`");
 }
 
 int top_level_construct(struct parser *parser)
 {
-    if (accept(parser, TOK_IMPORT)) {
-        import(parser);
+    if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
+        imports(parser);
     } else if (accept(parser, TOK_STRUCT)) {
         structtype(parser);
     } else if (accept(parser, TOK_IFACE)) {
@@ -280,89 +406,24 @@ void module(struct parser *parser)
         while (top_level_construct(parser) != 0) ;
         expect(parser, TOK_EOF);
     }
+    parse_debug(parser, "Parsed entire file");
 }
-
 
 /******** Driver ********/
 int main(void)
 {
     struct lexer *lex;
-    lexer_init(&lex);
+    lexer_init(&lex, stdin);
 
     struct parser *parser = calloc(1, sizeof(*parser));
     parser->lexer = lex;
 
-    module(parser);
-/*
-    int good = 1;
-    while (good) {
-        good = gettok(lex);
-        printf("%s", get_tok_name(good));
-        switch (good) {
-            case TOK_IDENT:
-                printf(": %s", lex->buff);
-                break;
-            case TOK_STRING:
-                printf(": \"%s\"", lex->buff);
-                break;
-            case TOK_INT:
-                printf(": %ld", lex->int_num);
-                break;
-            case TOK_FLOAT:
-                printf(": %f", lex->float_num);
-                break;
-            default:;
-        }
-        printf("\n");
+    bool scanonly = false;
+    if (scanonly) {
+        lexer_scan_all(lex);
+    } else {
+        module(parser);
     }
-*/
+
     return EXIT_SUCCESS;
 }
-
-/*
-Grammar:
-
-program = "module" ident ["import" ident {"," ident}] statements .
-
-statements =
-        statements statement .
-    |   statement .
-
-statement =
-        funcdef
-    |   assignment
-    |   call
-    |   ifelse
-    |   loop .
-
-ifelse = "if" expr "{" statements "}" ["else" "{" statements "}"] .
-
-loop =
-        "while" expr "{" statements "}"
-    |   "for" expr ";" expr ";" expr ";" "{" statements "}" .
-
-call = expr "(" [expr { "," expr }] ")" .
-
-assignment = expr assop expr .
-
-assop = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "^=" .
-
-funcdef = ident "(" [ident { "," ident }] ")" "{" statements "}" .
-
-expr =
-        ident
-    |   "(" expr ")"
-    |   int
-    |   float
-    |   string
-    |   unop expr
-    |   expr binop expr .
-
-unop = "-" | "!" .
-
-binop = "+" | "-" | "*" | "/" | "%" | "^" | "==" | "!=" | "<" | "<=" | ">" | ">=" .
-
-*/
-
-
-

@@ -2,7 +2,9 @@
 
 
 static char *tok_type_names[] = {
-    "EOF", "int", "float", "string", "ident",
+    "EOF",
+    "bool", "char", "int", "real", "string",
+    "type", "identifier",
 
     "'+'", "'+='",
     "'-'", "'-='",
@@ -16,12 +18,14 @@ static char *tok_type_names[] = {
     "'>'", "'>='",
 
     "'('", "')'", "'['", "']'", "'{'", "'}'",
-    "','", "'.'", "';'",
+    "','", "'.'", "':'", "';'",
 
-    "if", "else", "while", "for", "break", "continue",
+    "if", "else",
+    "while", "for",
+    "break", "continue",
     "func", "return",
     "struct", "iface",
-    "module", "import",
+    "module", "import", "from",
 };
 
 /******** Placeholder Memory allocation *********/
@@ -73,33 +77,53 @@ void lexerror(struct lexer *lex, char *msg, ...)
     exit(1);
 }
 
-int clear(struct lexer *lex)
+/* returns former length of string in buffer */
+int clear_sbuffer(struct sbuffer *sbuff)
 {
-    memset(lex->buff, 0, lex->balloc);
-    lex->blen = 0;
-    return 0;
+    assert(sbuff);
+
+    memset(sbuff->buff, 0, sbuff->balloc);
+
+    size_t len = sbuff->blen;
+    sbuff->blen = 0;
+
+    return len;
+}
+
+struct sbuffer *new_sbuffer(size_t nbytes)
+{
+    assert(nbytes);
+
+    struct sbuffer *sbuff = zalloc(sizeof(*sbuff));
+    sbuff->buff = zalloc(nbytes);
+    sbuff->blen = 0;
+    sbuff->balloc = nbytes;
+    return sbuff;
 }
 
 int appendc(struct lexer *lex, int c)
 {
     assert(lex);
-    assert(lex->buff);
+
+    struct sbuffer *sbuff = lex->sbuff;
+    assert(sbuff);
+    assert(sbuff->buff);
 
     /* expand string buffer if it's value
      * (including nul terminator) is too long */
-    if (lex->blen >= lex->balloc - 1) {
-        size_t old_alloc = lex->balloc;
+    if (sbuff->blen >= sbuff->balloc - 1) {
+        size_t old_alloc = sbuff->balloc;
         size_t new_alloc = old_alloc * 2;
 
         /* realloc the buffer */
-        lex->buff = zrealloc(lex->buff, new_alloc);
-        lex->balloc = new_alloc;
+        sbuff->buff = zrealloc(sbuff->buff, new_alloc);
+        sbuff->balloc = new_alloc;
 
         /* memory for strings must always be zeroed */
-        memset(lex->buff + old_alloc, 0, new_alloc - old_alloc);
+        memset(sbuff->buff + old_alloc, 0, new_alloc - old_alloc);
     }
 
-    lex->buff[lex->blen++] = (char)c;
+    sbuff->buff[sbuff->blen++] = (char)c;
     return c;
 }
 
@@ -128,13 +152,13 @@ int lex_float(struct lexer *lex)
     }
 
     char *endptr = NULL;
-    double d = strtod(lex->buff, &endptr);
-    if (endptr != (lex->buff + lex->blen)) {
-        lexerror(lex, "Invalid real number %s", lex->buff);
+    double d = strtod(lex->sbuff->buff, &endptr);
+    if (endptr != (lex->sbuff->buff + lex->sbuff->blen)) {
+        lexerror(lex, "Invalid real number %s", lex->sbuff->buff);
     }
-    lex->float_num = d;
+    lex->data.real = d;
 
-    return TOK_FLOAT;
+    return TOK_REAL;
 }
 
 int lex_integer(struct lexer *lex)
@@ -158,11 +182,11 @@ int lex_integer(struct lexer *lex)
     }
 
     char *endptr = NULL;
-    long l = strtol(lex->buff, &endptr, 0);
-    if (endptr != (lex->buff + lex->blen)) {
-        lexerror(lex, "Invalid integer %s", lex->buff);
+    long l = strtol(lex->sbuff->buff, &endptr, 0);
+    if (endptr != (lex->sbuff->buff + lex->sbuff->blen)) {
+        lexerror(lex, "Invalid integer %s", lex->sbuff->buff);
     }
-    lex->int_num = l;
+    lex->data.integer = l;
 
     return TOK_INT;
 }
@@ -227,6 +251,7 @@ int lex_ident(struct lexer *lex)
         next(lex);
     } while (isalnum(lex->cur));
 
+    /* TODO: use hash-table or similar O(1) lookup */
     const char *keywords[] = {
         "if",
         "else",
@@ -240,11 +265,24 @@ int lex_ident(struct lexer *lex)
         "iface",
         "module",
         "import",
+        "from",
     };
     unsigned int kidx = 0;
     for (kidx = 0; kidx < sizeof(keywords) / sizeof(*keywords); kidx++) {
-        if (strncmp(lex->buff, keywords[kidx], 16) == 0) {
+        if (strncmp(lex->sbuff->buff, keywords[kidx], 16) == 0) {
             return TOK_IF + kidx;
+        }
+    }
+
+    /* TODO: use hash-table or similar O(1) lookup */
+    const char *typenames[] = {
+        "bool", "char", "int", "real", "str"
+    };
+    unsigned int tidx = 0;
+    for (tidx = 0; tidx < sizeof(typenames) / sizeof(*typenames); tidx++) {
+        if (strncmp(lex->sbuff->buff, typenames[tidx], 8) == 0) {
+            lex->data.type = START_TYPE + tidx;
+            return TOK_TYPE;
         }
     }
 
@@ -266,7 +304,7 @@ int lex_symbol(struct lexer *lex)
         case '<': tok = TOK_LT; break;
         case '>': tok = TOK_GT; break;
         default: {
-            static char symbols[] = "()[]{},.;";
+            static char symbols[] = "()[]{},.:;";
             char *at = NULL;
             if ((at = strchr(symbols, lex->cur))) {
                 next(lex);
@@ -289,7 +327,7 @@ int lex_symbol(struct lexer *lex)
 
 int gettok(struct lexer *lex)
 {
-    clear(lex);     /* clear the lexer's buffer */
+    clear_sbuffer(lex->sbuff);     /* clear the lexer's string buffer */
 
     if (lex->cur == 0) {
         next(lex);
@@ -316,6 +354,14 @@ int gettok(struct lexer *lex)
                 next(lex);  /* eat up comment line */
             } while (lex->cur != EOF && lex->cur != '\n' && lex->cur != '\r');
             continue;
+        }
+        else if (lex->cur == '\'') {
+            /* lex single-quoted character */
+            next(lex);  /* skip opening ' */
+            lex->data.rune = lex->cur;
+            next(lex);
+            next(lex);  /* skip closing ' */
+            return TOK_CHAR;
         }
         else if (lex->cur == '"') {
             return lex_string(lex);
@@ -350,15 +396,13 @@ const char *get_tok_name(int tok)
     return tok_type_names[tok];
 }
 
-int lexer_init(struct lexer **lexaddr)
+int lexer_init(struct lexer **lexaddr, FILE *file)
 {
     struct lexer *lex = zalloc(sizeof(*lex));
-    lex->input = stdin;
+    lex->input = file;
 
     size_t bufsize = 16;
-    lex->buff = zalloc(bufsize);
-    lex->blen = 0;
-    lex->balloc = bufsize;
+    lex->sbuff = new_sbuffer(bufsize);
 
     lex->line = 1;
     lex->col = 0;
@@ -366,4 +410,30 @@ int lexer_init(struct lexer **lexaddr)
     *lexaddr = lex;
 
     return 1;
+}
+
+int lexer_scan_all(struct lexer *lex)
+{
+    int good = 1;
+    while (good) {
+        good = gettok(lex);
+        printf("%s", get_tok_name(good));
+        switch (good) {
+            case TOK_IDENT:
+                printf(": %s", lex->sbuff->buff);
+                break;
+            case TOK_STRING:
+                printf(": \"%s\"", lex->sbuff->buff);
+                break;
+            case TOK_INT:
+                printf(": %ld", lex->data.integer);
+                break;
+            case TOK_REAL:
+                printf(": %f", lex->data.real);
+                break;
+            default:;
+        }
+        printf("\n");
+    }
+    return good;
 }

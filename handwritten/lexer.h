@@ -11,7 +11,9 @@
 
 
 enum {
-    TOK_EOF = 0, TOK_INT, TOK_FLOAT, TOK_STRING, TOK_IDENT,
+    TOK_EOF = 0,
+    TOK_BOOL, TOK_CHAR, TOK_INT, TOK_REAL, TOK_STRING,
+    TOK_TYPE, TOK_IDENT,
 
     TOK_ADD, TOK_IADD,
     TOK_SUB, TOK_ISUB,
@@ -25,23 +27,40 @@ enum {
     TOK_GT, TOK_GTE,
 
     TOK_LPAREN, TOK_RPAREN, TOK_LSQUARE, TOK_RSQUARE, TOK_LCURLY, TOK_RCURLY,
-    TOK_COMMA, TOK_DOT, TOK_SEMI,
+    TOK_COMMA, TOK_DOT, TOK_COLON, TOK_SEMI,
 
     TOK_IF, TOK_ELSE, TOK_WHILE, TOK_FOR, TOK_BREAK, TOK_CONT,
     TOK_FUNC, TOK_RET,
     TOK_STRUCT, TOK_IFACE,
-    TOK_MODULE, TOK_IMPORT
+    TOK_MODULE, TOK_IMPORT, TOK_FROM
+};
+
+enum {
+    START_TYPE,
+
+    TYPE_BOOL, TYPE_CHAR, TYPE_INT, TYPE_REAL, TYPE_STR,
+
+    END_TYPE
+};
+
+struct sbuffer {
+    char *buff;
+    size_t blen;
+    size_t balloc;
 };
 
 struct lexer {
     FILE* input;
 
-    char *buff;
-    size_t blen;
-    size_t balloc;
+    union {
+        char rune;      /* TODO: UTF-8 code points */
+        int type;
+        long integer;
+        double real;
+    } data;
 
-    long int_num;
-    double float_num;
+    struct sbuffer *sbuff;
+
     int line;
     int col;
     int cur;
@@ -49,7 +68,8 @@ struct lexer {
 
 
 int gettok(struct lexer *lex);
-int lexer_init(struct lexer **lexaddr);
+int lexer_init(struct lexer **lexaddr, FILE *file);
+int lexer_scan_all(struct lexer *lex);
 const char *get_tok_name(int tok);
 
 #endif /* LEXER_H */
