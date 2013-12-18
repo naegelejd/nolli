@@ -1,9 +1,11 @@
+#include "error.h"
 #include "lexer.h"
 
 
 struct parser {
     struct lexer *lexer;
     int cur;
+    bool error;
 };
 
 
@@ -16,6 +18,8 @@ void statements(struct parser *parser);
 
 void parse_error(struct parser *parser, char *msg, ...)
 {
+    parser->error = true;
+
     va_list ap;
 
     fprintf(stderr, "ERROR (L %d, C %d): ",
@@ -197,6 +201,8 @@ void whileloop(struct parser *parser)
 void forloop(struct parser *parser)
 {
     accept(parser, TOK_FOR);
+    expect(parser, TOK_IDENT);
+    expect(parser, TOK_IN);
     expression(parser);
     body(parser);
     parse_debug(parser, "Parsed `for` loop");
@@ -283,6 +289,23 @@ int ident_statement(struct parser *parser)
     return 1;
 }
 
+void typedefinition(struct parser *parser)
+{
+    if (accept(parser, TOK_FUNC)) {
+        accept(parser, TOK_TYPE);
+        expect(parser, TOK_LPAREN);
+        if (!check(parser, TOK_RPAREN)) {
+            do {
+                expect(parser, TOK_TYPE);
+            } while (accept(parser, TOK_COMMA));
+        }
+        expect(parser, TOK_RPAREN);
+    } else {
+        expect(parser, TOK_TYPE);
+    }
+    expect(parser, TOK_IDENT);
+}
+
 int statement(struct parser *parser)
 {
 /*
@@ -302,6 +325,8 @@ x(y)
         ifelse(parser);
     } else if (check(parser, TOK_WHILE)) {
         whileloop(parser);
+    } else if (check(parser, TOK_FOR)) {
+        forloop(parser);
     } else if (check(parser, TOK_FUNC)) {
         funcdef(parser);
     } else if (accept(parser, TOK_RET)) {
@@ -312,6 +337,8 @@ x(y)
         ;
     } else if (accept(parser, TOK_CONT)) {
         ;
+    } else if (accept(parser, TOK_TYPEDEF)) {
+        typedefinition(parser);
     } else {
         /* right-curly brace is the only token that would end a series of
          * statements. anything else would be an invalid first token */
@@ -365,16 +392,48 @@ void structtype(struct parser *parser)
     parse_debug(parser, "Parsed `struct`");
 }
 
+void funcdecl(struct parser *parser)
+{
+    accept(parser, TOK_FUNC);
+    accept(parser, TOK_TYPE);   /* function has a return value */
+
+    expect(parser, TOK_IDENT);  /* function name */
+
+    expect(parser, TOK_LPAREN);
+
+    if (!check(parser, TOK_RPAREN)) {
+        do {
+            accept(parser, TOK_TYPE);
+        } while (accept(parser, TOK_COMMA));
+    }
+
+    expect(parser, TOK_RPAREN);
+
+    parse_debug(parser, "Parsed function declaration");
+}
+
 void interface(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
     expect(parser, TOK_LCURLY);
     while (!check(parser, TOK_RCURLY)) {
-        /* functype(parser); */
-        ;
+        funcdecl(parser);
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `iface`");
+}
+
+void top_level_typedef(struct parser *parser)
+{
+    if (accept(parser, TOK_STRUCT)) {
+        structtype(parser);
+        expect(parser, TOK_IDENT);
+    } else if (accept(parser, TOK_IFACE)) {
+        interface(parser);
+        expect(parser, TOK_IDENT);
+    } else {
+        typedefinition(parser);
+    }
 }
 
 int top_level_construct(struct parser *parser)
@@ -385,8 +444,10 @@ int top_level_construct(struct parser *parser)
         structtype(parser);
     } else if (accept(parser, TOK_IFACE)) {
         interface(parser);
-    } else if (accept(parser, TOK_FUNC)) {
+    } else if (check(parser, TOK_FUNC)) {
         funcdef(parser);
+    } else if (accept(parser, TOK_TYPEDEF)) {
+        top_level_typedef(parser);
     } else {
         return 0;
     }
@@ -425,5 +486,9 @@ int main(void)
         module(parser);
     }
 
-    return EXIT_SUCCESS;
+    if (parser->error) {
+        return ERR_PARSE;
+    } else {
+        return EXIT_SUCCESS;
+    }
 }

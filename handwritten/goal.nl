@@ -1,13 +1,15 @@
 module intro
 
-import math
+import math, hello, world, goodbye
 
-struct point {
-    int x,y
+struct shape {
+    int area, perimeter
+    str name = "circle"
 }
 
-iface shape {
-
+iface buffer {
+    show ()
+    int read (file)
 }
 
 func int main(str args)
@@ -29,11 +31,16 @@ func int main(str args)
     else
         print("false")
 
-
     int i = 3
     while (i > 0) {
         print(i)
     }
+
+    func say () { print("temp") }
+    temp()
+
+    typedef func int (str) main_t
+    [main_t] mains = { main, main, main }
 
     return 0
 }

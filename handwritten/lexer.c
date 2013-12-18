@@ -3,7 +3,7 @@
 
 static char *tok_type_names[] = {
     "EOF",
-    "bool", "char", "int", "real", "string",
+    "bool", "char", "int", "real", "string", "file",
     "type", "identifier",
 
     "'+'", "'+='",
@@ -23,6 +23,8 @@ static char *tok_type_names[] = {
     "if", "else",
     "while", "for",
     "break", "continue",
+    "in",
+    "typedef",
     "func", "return",
     "struct", "iface",
     "module", "import", "from",
@@ -244,28 +246,13 @@ int lex_string(struct lexer *lex)
     return TOK_STRING;
 }
 
-int lex_ident(struct lexer *lex)
+int lookup_keyword(struct lexer *lex)
 {
-    do {
-        appendc(lex, lex->cur);
-        next(lex);
-    } while (isalnum(lex->cur));
-
     /* TODO: use hash-table or similar O(1) lookup */
     const char *keywords[] = {
-        "if",
-        "else",
-        "while",
-        "for",
-        "break",
-        "continue",
-        "func",
-        "return",
-        "struct",
-        "iface",
-        "module",
-        "import",
-        "from",
+        "if", "else", "while", "for", "break",
+        "continue", "in", "typedef", "func", "return",
+        "struct", "iface", "module", "import", "from",
     };
     unsigned int kidx = 0;
     for (kidx = 0; kidx < sizeof(keywords) / sizeof(*keywords); kidx++) {
@@ -273,19 +260,237 @@ int lex_ident(struct lexer *lex)
             return TOK_IF + kidx;
         }
     }
+    return 0;
+}
 
-    /* TODO: use hash-table or similar O(1) lookup */
-    const char *typenames[] = {
-        "bool", "char", "int", "real", "str"
-    };
-    unsigned int tidx = 0;
-    for (tidx = 0; tidx < sizeof(typenames) / sizeof(*typenames); tidx++) {
-        if (strncmp(lex->sbuff->buff, typenames[tidx], 8) == 0) {
-            lex->data.type = START_TYPE + tidx;
-            return TOK_TYPE;
+
+/* djb2 (Daniel J. Bernstein):
+ *
+ * hash(i) = hash(i - 1) * 33 + str[i]
+ *
+ * Magic Constant 5381:
+ *  1. odd number
+ *  2. prime number
+ *  3. deficient number
+ *  4. 001/010/100/000/101 b
+ *
+ */
+static unsigned int string_hash0(const char* s)
+{
+    unsigned int h = 5381;
+    int c;
+
+    while ((c = *s++))
+        h = ((h << 5) + h) + c;
+    return h;
+}
+
+/* SDBM:
+ *
+ * hash(i) = hash(i - 1) * 65599 + str[i]
+ */
+static unsigned int string_hash1(const char* s)
+{
+    unsigned int h = 0;
+    int c;
+    while ((c = *s++))
+        h = c + (h << 6) + (h << 16) - h;
+    return h;
+}
+
+
+/* One-at-a-time (Bob Jenkins)
+ *
+ * @param s LuciStringObj to hash
+ * @returns unsigned integer hash
+ */
+static unsigned int string_hash_2(char *s)
+{
+    unsigned int h = 0;
+    int c;
+    while ((c = *s++)) {
+        h += c;
+        h += h << 10;
+        h ^= h >> 6;
+    }
+    h += h << 3;
+    h ^= h >> 11;
+    h += h << 15;
+    return h;
+}
+
+//#define GET_INDEX(H0, H1, I, N)   ( ( (H0) + ((I) * (I)) * (H1) ) % (N) )
+#define GET_INDEX(H0, I, N)   (((H0) + (I)) % (N))
+
+/** total number of possible hash table sizes */
+#define MAX_TABLE_SIZE_OPTIONS  28
+/**
+ * Array of prime number hash table sizes.
+ *
+ * Numbers courtesy of:
+ * http://planetmath.org/GoodHashTablePrimes.html
+ */
+static unsigned int TYPETABLE_SIZES[] = {
+    7, 17, 43, 97, 193, 389, 769, 1543, 3079, 6151,
+    12289, 24593, 49157, 98317, 196613, 393241, 786433,
+    1572869, 3145739, 6291469, 12582917, 25165843,
+    50331653, 100663319, 201326611, 402653189,
+    805306457, 1610612741, 0
+};
+
+static int typetable_do(struct typetable *table,
+        const char *key, int val, int what);
+
+static struct typetable *typetable_resize(struct typetable *tt, unsigned int new_size_idx)
+{
+    assert(tt);
+
+    if (new_size_idx <= 0 || new_size_idx >= MAX_TABLE_SIZE_OPTIONS) {
+        return tt;
+    }
+
+    unsigned int old_size = tt->size;
+    char **old_names = tt->names;
+    int *old_ids = tt->ids;
+
+    tt->size_idx = new_size_idx;
+    tt->size = TYPETABLE_SIZES[new_size_idx];
+    tt->count = 0;
+
+    tt->names = zalloc(tt->size * sizeof(*tt->names));
+    tt->ids = zalloc(tt->size * sizeof(*tt->ids));
+
+    unsigned int i;
+    for (i = 0; i < old_size; i++) {
+        if (old_names[i] != NULL) {
+            typetable_do(tt, old_names[i], old_ids[i], TYPETABLE_INSERT);
         }
     }
 
+    free(old_names);
+    free(old_ids);
+
+    return tt;
+}
+
+static struct typetable *typetable_grow(struct typetable *tt)
+{
+    return typetable_resize(tt, tt->size_idx + 1);
+}
+
+static struct typetable *typetable_shrink(struct typetable *tt)
+{
+    return typetable_resize(tt, tt->size_idx - 1);
+}
+
+struct typetable *new_typetable(void)
+{
+    struct typetable *table = zalloc(sizeof(*table));
+    table->count = 0;
+    table->size_idx = 1;    /* start off with 17 slots in table */
+    table->size = TYPETABLE_SIZES[table->size_idx];
+    table->names = zalloc(table->size * sizeof(*table->names));
+    table->ids = zalloc(table->size * sizeof(*table->ids));
+
+    const char *typenames[] = {
+        "bool", "char", "int", "real", "str", "file"
+    };
+    unsigned int tidx = 0;
+    for (tidx = 0; tidx < sizeof(typenames) / sizeof(*typenames); tidx++) {
+        typetable_do(table, typenames[tidx], -1, TYPETABLE_INSERT);
+    }
+
+    return table;
+}
+
+/*
+    SEARCH
+    NULL            key missing, return 0
+    strcmp = 0      key found, return
+    else            loop
+    ...             not found, return 0
+
+    INSERT
+    NULL            insert it, return
+    strcmp = 0      key exists, update value, return
+    else            loop
+    ...             should never get here if table dynamically expands
+
+    GET
+    NULL            key missing, return 0
+    strcmp = 0      found key, return val
+    else            loop
+    ...             not found, return 0
+*/
+static int typetable_do(struct typetable *table, const char *key, int val, int what)
+{
+    if (table->count > (table->size * 0.60)) {
+        typetable_grow(table);
+    }
+
+    unsigned int hash0 = string_hash0(key);
+
+    unsigned int i = 0, idx = 0;
+    for (i = 0; i < table->size; i++) {
+        unsigned int idx = GET_INDEX(hash0, i, table->size);
+        const char *curkey  = table->names[idx];
+
+        if (curkey == NULL) {
+            if (what == TYPETABLE_INSERT) {
+                table->names[idx] = (char *)key;
+                if (val < 0) {
+                    table->ids[idx] = table->count;
+                } else {
+                    table->ids[idx] = val;
+                }
+                table->count++;
+                return val;
+            } else {
+                return -1;
+            }
+        } else if (strcmp(curkey, key) == 0) {
+            /* Once a type is defined, it cannot be changed */
+            return table->ids[idx];
+        }
+    }
+
+    return -1;
+}
+
+int check_type(struct lexer *lex, const char *name)
+{
+    return typetable_do(lex->typetable, name, -1, TYPETABLE_SEARCH);
+}
+
+int add_type(struct lexer *lex, const char *name)
+{
+    return typetable_do(lex->typetable, name, -1, TYPETABLE_INSERT);
+}
+
+int readd_type(struct lexer *lex, const char *name, int id)
+{
+    return typetable_do(lex->typetable, name, id, TYPETABLE_INSERT);
+}
+
+int lex_ident(struct lexer *lex)
+{
+    do {
+        appendc(lex, lex->cur);
+        next(lex);
+    } while (isalnum(lex->cur) || lex->cur == '_');
+
+    int keyword = lookup_keyword(lex);
+    if (keyword) {
+        return keyword;
+    }
+
+    int id = check_type(lex, lex->sbuff->buff);
+    if (id > -1) {
+        lex->data.typeid = id;
+        return TOK_TYPE;
+    }
+
+    /* otherwise, it's a normal identifier */
     return TOK_IDENT;
 }
 
@@ -366,7 +571,7 @@ int gettok(struct lexer *lex)
         else if (lex->cur == '"') {
             return lex_string(lex);
         }
-        else if (isalpha(lex->cur)) {
+        else if (isalpha(lex->cur) || lex->cur == '_') {
             return lex_ident(lex);
         }
         /* stupid floating points with no leading zero (e.g. '.123') */
@@ -403,6 +608,8 @@ int lexer_init(struct lexer **lexaddr, FILE *file)
 
     size_t bufsize = 16;
     lex->sbuff = new_sbuffer(bufsize);
+
+    lex->typetable = new_typetable();
 
     lex->line = 1;
     lex->col = 0;
