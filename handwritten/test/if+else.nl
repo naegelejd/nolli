@@ -1,4 +1,4 @@
-module ifelse
+module test_ifelse
 
 func int main ()
 {

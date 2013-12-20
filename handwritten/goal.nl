@@ -40,7 +40,10 @@ func int main(str args)
     temp()
 
     typedef func int (str) main_t
-    [main_t] mains = { main, main, main }
+    [main_t] mains = [main, main, main]
+    for m in mains {
+        main("hello world")
+    }
 
     return 0
 }

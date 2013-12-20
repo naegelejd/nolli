@@ -1,4 +1,4 @@
-module funcs
+module test_funcs
 
 func noop () { }
 

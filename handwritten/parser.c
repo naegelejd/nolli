@@ -121,21 +121,47 @@ void map_literal(struct parser *parser)
     expect(parser, TOK_RCURLY);
 }
 
+void member(struct parser *parser)
+{
+    do {
+        accept(parser, TOK_IDENT);
+        if (check(parser, TOK_LPAREN)) {
+            arguments(parser);
+        }
+    } while (accept(parser, TOK_DOT));
+    parse_debug(parser, "Parsed member");
+}
+
 void term(struct parser *parser)
 {
     if (accept(parser, TOK_CHAR)) {
-        ;
+        char c = parser->lexer->lastbuff[0];
     } else if (accept(parser, TOK_INT)) {
-        ;
+        struct lexer *lex = parser->lexer;
+        char *endptr = NULL;
+        size_t blen = strnlen(lex->lastbuff, lex->balloc);
+        long l = strtol(lex->lastbuff, &endptr, 0);
+        if (endptr != (lex->lastbuff + blen)) {
+            parse_error(parser, "Invalid integer %s", lex->lastbuff);
+        }
     } else if (accept(parser, TOK_REAL)) {
-        ;
+        struct lexer *lex = parser->lexer;
+        char *endptr = NULL;
+        size_t blen = strnlen(lex->lastbuff, lex->balloc);
+        double d = strtod(lex->lastbuff, &endptr);
+        if (endptr != (lex->lastbuff + blen)) {
+            parse_error(parser, "Invalid real number %s", lex->lastbuff);
+        }
     } else if (accept(parser, TOK_STRING)) {
         ;
     } else if (accept(parser, TOK_IDENT)) {
         if (check(parser, TOK_LPAREN)) {
             arguments(parser);
             parse_debug(parser, "Parsed function call");
+        } else if (accept(parser, TOK_DOT)) {
+            member(parser);
         }
+        /* else, parsed identifier */
     } else if (accept(parser, TOK_LPAREN)) {
         expression(parser);
         expect(parser, TOK_RPAREN);
@@ -289,21 +315,31 @@ int ident_statement(struct parser *parser)
     return 1;
 }
 
+void functype(struct parser *parser)
+{
+    accept(parser, TOK_FUNC);
+    accept(parser, TOK_TYPE);
+    accept(parser, TOK_IDENT);
+    expect(parser, TOK_LPAREN);
+    if (!check(parser, TOK_RPAREN)) {
+        do {
+            expect(parser, TOK_TYPE);
+            accept(parser, TOK_IDENT);  /* optional param name */
+        } while (accept(parser, TOK_COMMA));    /* optional param name */
+    }
+    expect(parser, TOK_RPAREN);
+}
+
 void typedefinition(struct parser *parser)
 {
-    if (accept(parser, TOK_FUNC)) {
-        accept(parser, TOK_TYPE);
-        expect(parser, TOK_LPAREN);
-        if (!check(parser, TOK_RPAREN)) {
-            do {
-                expect(parser, TOK_TYPE);
-            } while (accept(parser, TOK_COMMA));
-        }
-        expect(parser, TOK_RPAREN);
+    if (check(parser, TOK_FUNC)) {
+        functype(parser);
     } else {
         expect(parser, TOK_TYPE);
     }
     expect(parser, TOK_IDENT);
+    add_type(parser->lexer, parser->lexer->lastbuff);
+    parse_debug(parser, "Parsed type definition");
 }
 
 int statement(struct parser *parser)
@@ -384,9 +420,15 @@ void imports(struct parser *parser)
 void structtype(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
+    add_type(parser->lexer, parser->lexer->lastbuff);
+
     expect(parser, TOK_LCURLY);
     while (!check(parser, TOK_RCURLY)) {
-        declaration(parser);
+        if (check(parser, TOK_FUNC)) {
+            functype(parser);
+        } else {
+            declaration(parser);
+        }
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `struct`");
@@ -415,25 +457,14 @@ void funcdecl(struct parser *parser)
 void interface(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
+    add_type(parser->lexer, parser->lexer->lastbuff);
+
     expect(parser, TOK_LCURLY);
     while (!check(parser, TOK_RCURLY)) {
         funcdecl(parser);
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `iface`");
-}
-
-void top_level_typedef(struct parser *parser)
-{
-    if (accept(parser, TOK_STRUCT)) {
-        structtype(parser);
-        expect(parser, TOK_IDENT);
-    } else if (accept(parser, TOK_IFACE)) {
-        interface(parser);
-        expect(parser, TOK_IDENT);
-    } else {
-        typedefinition(parser);
-    }
 }
 
 int top_level_construct(struct parser *parser)
@@ -447,7 +478,7 @@ int top_level_construct(struct parser *parser)
     } else if (check(parser, TOK_FUNC)) {
         funcdef(parser);
     } else if (accept(parser, TOK_TYPEDEF)) {
-        top_level_typedef(parser);
+        typedefinition(parser);
     } else {
         return 0;
     }

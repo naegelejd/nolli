@@ -45,12 +45,6 @@ enum {
     END_TYPE
 };
 
-struct sbuffer {
-    char *buff;
-    size_t blen;
-    size_t balloc;
-};
-
 struct typetable {
     char **names;
     int *ids;
@@ -61,19 +55,17 @@ struct typetable {
 };
 
 enum {TYPETABLE_SEARCH = 0, TYPETABLE_INSERT = 1};
-
+enum {TYPENAME_MAXLEN = 32};
 
 struct lexer {
     FILE* input;
 
-    union {
-        char rune;      /* TODO: UTF-8 code points */
-        int typeid;
-        long integer;
-        double real;
-    } data;
+    int typeid;
 
-    struct sbuffer *sbuff;
+    char *curbuff;
+    char *lastbuff;
+    size_t blen;
+    size_t balloc;
 
     struct typetable *typetable;
 

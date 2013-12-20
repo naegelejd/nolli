@@ -80,57 +80,50 @@ void lexerror(struct lexer *lex, char *msg, ...)
 }
 
 /* returns former length of string in buffer */
-int clear_sbuffer(struct sbuffer *sbuff)
+int rotate_buffers(struct lexer *lex)
 {
-    assert(sbuff);
+    assert(lex);
+    assert(lex->curbuff);
+    assert(lex->lastbuff);
 
-    memset(sbuff->buff, 0, sbuff->balloc);
+    memset(lex->lastbuff, 0, lex->balloc);
+    strncpy(lex->lastbuff, lex->curbuff, lex->balloc);
 
-    size_t len = sbuff->blen;
-    sbuff->blen = 0;
+    memset(lex->curbuff, 0, lex->balloc);
+
+    size_t len = lex->blen;
+    lex->blen = 0;
 
     return len;
-}
-
-struct sbuffer *new_sbuffer(size_t nbytes)
-{
-    assert(nbytes);
-
-    struct sbuffer *sbuff = zalloc(sizeof(*sbuff));
-    sbuff->buff = zalloc(nbytes);
-    sbuff->blen = 0;
-    sbuff->balloc = nbytes;
-    return sbuff;
 }
 
 int appendc(struct lexer *lex, int c)
 {
     assert(lex);
-
-    struct sbuffer *sbuff = lex->sbuff;
-    assert(sbuff);
-    assert(sbuff->buff);
+    assert(lex->curbuff);
 
     /* expand string buffer if it's value
      * (including nul terminator) is too long */
-    if (sbuff->blen >= sbuff->balloc - 1) {
-        size_t old_alloc = sbuff->balloc;
+    if (lex->blen >= lex->balloc - 1) {
+        size_t old_alloc = lex->balloc;
         size_t new_alloc = old_alloc * 2;
 
         /* realloc the buffer */
-        sbuff->buff = zrealloc(sbuff->buff, new_alloc);
-        sbuff->balloc = new_alloc;
+        lex->curbuff = zrealloc(lex->curbuff, new_alloc);
+        lex->lastbuff = zrealloc(lex->lastbuff, new_alloc);
+        lex->balloc = new_alloc;
 
         /* memory for strings must always be zeroed */
-        memset(sbuff->buff + old_alloc, 0, new_alloc - old_alloc);
+        memset(lex->curbuff + old_alloc, 0, new_alloc - old_alloc);
+        memset(lex->lastbuff + old_alloc, 0, new_alloc - old_alloc);
     }
 
-    sbuff->buff[sbuff->blen++] = (char)c;
+    lex->curbuff[lex->blen++] = (char)c;
     return c;
 }
 
 /* to be called with decimal point as lex->cur or already in buffer */
-int lex_float(struct lexer *lex)
+int lex_real(struct lexer *lex)
 {
     do {
         appendc(lex, lex->cur);
@@ -153,13 +146,6 @@ int lex_float(struct lexer *lex)
         }
     }
 
-    char *endptr = NULL;
-    double d = strtod(lex->sbuff->buff, &endptr);
-    if (endptr != (lex->sbuff->buff + lex->sbuff->blen)) {
-        lexerror(lex, "Invalid real number %s", lex->sbuff->buff);
-    }
-    lex->data.real = d;
-
     return TOK_REAL;
 }
 
@@ -171,7 +157,7 @@ int lex_integer(struct lexer *lex)
     } while (isdigit(lex->cur));
 
     if (lex->cur == '.' || strchr("eE", lex->cur)) {
-        return lex_float(lex);
+        return lex_real(lex);
     }
 
     if (strchr("xX", lex->cur)) {
@@ -182,13 +168,6 @@ int lex_integer(struct lexer *lex)
             next(lex);
         }
     }
-
-    char *endptr = NULL;
-    long l = strtol(lex->sbuff->buff, &endptr, 0);
-    if (endptr != (lex->sbuff->buff + lex->sbuff->blen)) {
-        lexerror(lex, "Invalid integer %s", lex->sbuff->buff);
-    }
-    lex->data.integer = l;
 
     return TOK_INT;
 }
@@ -256,7 +235,7 @@ int lookup_keyword(struct lexer *lex)
     };
     unsigned int kidx = 0;
     for (kidx = 0; kidx < sizeof(keywords) / sizeof(*keywords); kidx++) {
-        if (strncmp(lex->sbuff->buff, keywords[kidx], 16) == 0) {
+        if (strncmp(lex->curbuff, keywords[kidx], 16) == 0) {
             return TOK_IF + kidx;
         }
     }
@@ -433,7 +412,7 @@ static int typetable_do(struct typetable *table, const char *key, int val, int w
     unsigned int i = 0, idx = 0;
     for (i = 0; i < table->size; i++) {
         unsigned int idx = GET_INDEX(hash0, i, table->size);
-        const char *curkey  = table->names[idx];
+        const char *curkey = table->names[idx];
 
         if (curkey == NULL) {
             if (what == TYPETABLE_INSERT) {
@@ -444,11 +423,11 @@ static int typetable_do(struct typetable *table, const char *key, int val, int w
                     table->ids[idx] = val;
                 }
                 table->count++;
-                return val;
+                return table->ids[idx];
             } else {
                 return -1;
             }
-        } else if (strcmp(curkey, key) == 0) {
+        } else if (strncmp(curkey, key, TYPENAME_MAXLEN) == 0) {
             /* Once a type is defined, it cannot be changed */
             return table->ids[idx];
         }
@@ -464,12 +443,11 @@ int check_type(struct lexer *lex, const char *name)
 
 int add_type(struct lexer *lex, const char *name)
 {
-    return typetable_do(lex->typetable, name, -1, TYPETABLE_INSERT);
-}
+    char *name_copy = strndup(name, TYPENAME_MAXLEN);
+    int id = typetable_do(lex->typetable, name_copy, -1, TYPETABLE_INSERT);
 
-int readd_type(struct lexer *lex, const char *name, int id)
-{
-    return typetable_do(lex->typetable, name, id, TYPETABLE_INSERT);
+    return id;
+    /* return typetable_do(lex->typetable, name, -1, TYPETABLE_INSERT); */
 }
 
 int lex_ident(struct lexer *lex)
@@ -484,9 +462,9 @@ int lex_ident(struct lexer *lex)
         return keyword;
     }
 
-    int id = check_type(lex, lex->sbuff->buff);
+    int id = check_type(lex, lex->curbuff);
     if (id > -1) {
-        lex->data.typeid = id;
+        lex->typeid = id;
         return TOK_TYPE;
     }
 
@@ -532,7 +510,7 @@ int lex_symbol(struct lexer *lex)
 
 int gettok(struct lexer *lex)
 {
-    clear_sbuffer(lex->sbuff);     /* clear the lexer's string buffer */
+    rotate_buffers(lex);    /* clear the lexer's current string buffer */
 
     if (lex->cur == 0) {
         next(lex);
@@ -563,7 +541,7 @@ int gettok(struct lexer *lex)
         else if (lex->cur == '\'') {
             /* lex single-quoted character */
             next(lex);  /* skip opening ' */
-            lex->data.rune = lex->cur;
+            appendc(lex, lex->cur);
             next(lex);
             next(lex);  /* skip closing ' */
             return TOK_CHAR;
@@ -579,7 +557,7 @@ int gettok(struct lexer *lex)
         /*     appendc(lex, lex->cur); */
         /*     next(lex); */
         /*     if (isdigit(lex->cur)) { */
-        /*         return lex_float(lex); */
+        /*         return lex_real(lex); */
         /*     } else { */
         /*         return TOK_DOT; */
         /*     } */
@@ -607,7 +585,10 @@ int lexer_init(struct lexer **lexaddr, FILE *file)
     lex->input = file;
 
     size_t bufsize = 16;
-    lex->sbuff = new_sbuffer(bufsize);
+    lex->curbuff = zalloc(bufsize);
+    lex->lastbuff = zalloc(bufsize);
+    lex->blen = 0;
+    lex->balloc = bufsize;
 
     lex->typetable = new_typetable();
 
@@ -627,16 +608,14 @@ int lexer_scan_all(struct lexer *lex)
         printf("%s", get_tok_name(good));
         switch (good) {
             case TOK_IDENT:
-                printf(": %s", lex->sbuff->buff);
-                break;
-            case TOK_STRING:
-                printf(": \"%s\"", lex->sbuff->buff);
-                break;
             case TOK_INT:
-                printf(": %ld", lex->data.integer);
-                break;
             case TOK_REAL:
-                printf(": %f", lex->data.real);
+                printf(": %s", lex->curbuff);
+                break;
+            case TOK_CHAR:
+                printf(": '%c'", lex->curbuff[0]);
+            case TOK_STRING:
+                printf(": \"%s\"", lex->curbuff);
                 break;
             default:;
         }

@@ -1,4 +1,4 @@
-module whileloop
+module test_while
 
 func int main ()
 {
