@@ -1,6 +1,5 @@
 #include "lexer.h"
 
-
 static char *tok_type_names[] = {
     "EOF",
     "bool", "char", "int", "real", "string", "file",
@@ -30,33 +29,6 @@ static char *tok_type_names[] = {
     "module", "import", "from",
 };
 
-/******** Placeholder Memory allocation *********/
-void* zalloc(size_t bytes)
-{
-    assert(bytes);
-    void* block = calloc(1, bytes);
-    if (block == NULL) {
-        fprintf(stderr, "Alloc failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    return block;
-}
-
-void* zrealloc(void* block, size_t bytes)
-{
-    assert(block);
-    assert(bytes);
-
-    void* reblock = realloc(block, bytes);
-    if (reblock == NULL) {
-        fprintf(stderr, "Alloc failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    return reblock;
-}
-/************************************************/
 
 #define next(lex) \
     do { \
@@ -109,8 +81,8 @@ int appendc(struct lexer *lex, int c)
         size_t new_alloc = old_alloc * 2;
 
         /* realloc the buffer */
-        lex->curbuff = zrealloc(lex->curbuff, new_alloc);
-        lex->lastbuff = zrealloc(lex->lastbuff, new_alloc);
+        lex->curbuff = nrealloc(lex->curbuff, new_alloc);
+        lex->lastbuff = nrealloc(lex->lastbuff, new_alloc);
         lex->balloc = new_alloc;
 
         /* memory for strings must always be zeroed */
@@ -336,8 +308,8 @@ static struct typetable *typetable_resize(struct typetable *tt, unsigned int new
     tt->size = TYPETABLE_SIZES[new_size_idx];
     tt->count = 0;
 
-    tt->names = zalloc(tt->size * sizeof(*tt->names));
-    tt->ids = zalloc(tt->size * sizeof(*tt->ids));
+    tt->names = nalloc(tt->size * sizeof(*tt->names));
+    tt->ids = nalloc(tt->size * sizeof(*tt->ids));
 
     unsigned int i;
     for (i = 0; i < old_size; i++) {
@@ -364,12 +336,12 @@ static struct typetable *typetable_shrink(struct typetable *tt)
 
 struct typetable *new_typetable(void)
 {
-    struct typetable *table = zalloc(sizeof(*table));
+    struct typetable *table = nalloc(sizeof(*table));
     table->count = 0;
     table->size_idx = 1;    /* start off with 17 slots in table */
     table->size = TYPETABLE_SIZES[table->size_idx];
-    table->names = zalloc(table->size * sizeof(*table->names));
-    table->ids = zalloc(table->size * sizeof(*table->ids));
+    table->names = nalloc(table->size * sizeof(*table->names));
+    table->ids = nalloc(table->size * sizeof(*table->ids));
 
     const char *typenames[] = {
         "bool", "char", "int", "real", "str", "file"
@@ -409,7 +381,7 @@ static int typetable_do(struct typetable *table, const char *key, int val, int w
 
     unsigned int hash0 = string_hash0(key);
 
-    unsigned int i = 0, idx = 0;
+    unsigned int i = 0;
     for (i = 0; i < table->size; i++) {
         unsigned int idx = GET_INDEX(hash0, i, table->size);
         const char *curkey = table->names[idx];
@@ -581,12 +553,12 @@ const char *get_tok_name(int tok)
 
 int lexer_init(struct lexer **lexaddr, FILE *file)
 {
-    struct lexer *lex = zalloc(sizeof(*lex));
+    struct lexer *lex = nalloc(sizeof(*lex));
     lex->input = file;
 
     size_t bufsize = 16;
-    lex->curbuff = zalloc(bufsize);
-    lex->lastbuff = zalloc(bufsize);
+    lex->curbuff = nalloc(bufsize);
+    lex->lastbuff = nalloc(bufsize);
     lex->blen = 0;
     lex->balloc = bufsize;
 

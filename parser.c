@@ -1,13 +1,4 @@
-#include "error.h"
-#include "lexer.h"
-
-
-struct parser {
-    struct lexer *lexer;
-    int cur;
-    bool error;
-};
-
+#include "parser.h"
 
 void term(struct parser *parser);
 void expression(struct parser *parser);
@@ -485,7 +476,7 @@ int top_level_construct(struct parser *parser)
     return 1;
 }
 
-void module(struct parser *parser)
+void parse_module(struct parser *parser)
 {
     next(parser);   /* read first token */
 
@@ -499,27 +490,4 @@ void module(struct parser *parser)
         expect(parser, TOK_EOF);
     }
     parse_debug(parser, "Parsed entire file");
-}
-
-/******** Driver ********/
-int main(void)
-{
-    struct lexer *lex;
-    lexer_init(&lex, stdin);
-
-    struct parser *parser = calloc(1, sizeof(*parser));
-    parser->lexer = lex;
-
-    bool scanonly = false;
-    if (scanonly) {
-        lexer_scan_all(lex);
-    } else {
-        module(parser);
-    }
-
-    if (parser->error) {
-        return ERR_PARSE;
-    } else {
-        return EXIT_SUCCESS;
-    }
 }

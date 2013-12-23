@@ -10,36 +10,28 @@ add_definitions(-Wall)# -Weverything -pedantic)
 # Uncomment the next line to enable lots of debug output during runtime
 add_definitions(-DDEBUG)
 
-list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/ext")
-include(UseLemon)
-
-find_package(FLEX REQUIRED)
-
-MAKE_LEMON(ext/lemon.c)
-LEMON_TARGET(parser grammar.y ext/lempar.c)
-FLEX_TARGET(scanner lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.c
-    COMPILE_FLAGS --header-file=${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.h)
-ADD_FLEX_LEMON_DEPENDENCY(scanner parser)
-
 set(NOLLI_EXE nolli)
 
 set(NOLLI_SOURCES
     main.c
     alloc.c
+    lexer.c
+    parser.c
+    ast.c
     type.c
     symtable.c
-    ast.c
-    ${LEMON_parser_SOURCE}
-    ${FLEX_scanner_OUTPUTS}
-)
-set(NOLLI_HEADERS
-    nolli.h
-    alloc.h
-    symtable.h
-    ast.h
 )
 
-include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+set(NOLLI_HEADERS
+    nolli.h
+    error.h
+    alloc.h
+    lexer.h
+    ast.h
+    symtable.h
+)
+
+#include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(${NOLLI_EXE} ${NOLLI_SOURCES})
 
 # link only against math library

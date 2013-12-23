@@ -1,11 +1,27 @@
 #include "alloc.h"
 
-void* alloc(size_t bytes)
+void *nalloc(size_t bytes)
 {
-    void* ret = calloc(1, bytes);
-    if (ret == NULL) {
-        fprintf(stderr, "Failed to allocate memory\n");
+    assert(bytes);
+    void* block = calloc(1, bytes);
+    if (block == NULL) {
+        fprintf(stderr, "Alloc failed\n");
         exit(EXIT_FAILURE);
     }
-    return ret;
+
+    return block;
+}
+
+void *nrealloc(void* block, size_t bytes)
+{
+    assert(block);
+    assert(bytes);
+
+    void* reblock = realloc(block, bytes);
+    if (reblock == NULL) {
+        fprintf(stderr, "Alloc failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return reblock;
 }

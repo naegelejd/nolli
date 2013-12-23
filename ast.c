@@ -2,43 +2,43 @@
 
 static astnode_t* create_node(ast_type_t type)
 {
-    astnode_t* a = alloc(sizeof(*a));
+    astnode_t* a = nalloc(sizeof(*a));
     a->type = type;
     return a;
 }
 
 
-astnode_t* make_bool_lit(token_t t)
+astnode_t* make_bool_lit(bool b)
 {
     astnode_t* bn = create_node(AST_BOOL_LIT);
     return bn;
 }
 
-astnode_t* make_char_lit(token_t t)
+astnode_t* make_char_lit(char c)
 {
     astnode_t* cn = create_node(AST_CHAR_LIT);
     return cn;
 }
 
-astnode_t* make_int_num(token_t t)
+astnode_t* make_int_num(long l)
 {
     astnode_t* ln = create_node(AST_INT_NUM);
     return ln;
 }
 
-astnode_t* make_real_num(token_t t)
+astnode_t* make_real_num(double d)
 {
     astnode_t* dn = create_node(AST_REAL_NUM);
     return dn;
 }
 
-astnode_t* make_str_lit(token_t t)
+astnode_t* make_str_lit(const char *s)
 {
     astnode_t* sn = create_node(AST_STR_LIT);
     return sn;
 }
 
-astnode_t* make_ident(token_t name)
+astnode_t* make_ident(const char *i)
 {
     astnode_t* node = create_node(AST_IDENT);
     return node;

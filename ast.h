@@ -78,13 +78,13 @@ typedef struct astnode {
 } astnode_t;
 
 
-astnode_t* make_bool_lit(token_t);
-astnode_t* make_char_lit(token_t);
-astnode_t* make_int_num(token_t);
-astnode_t* make_real_num(token_t);
-astnode_t* make_str_lit(token_t);
+astnode_t* make_bool_lit(bool b);
+astnode_t* make_char_lit(char c);
+astnode_t* make_int_num(long l);
+astnode_t* make_real_num(double d);
+astnode_t* make_str_lit(const char *s);
 
-astnode_t* make_ident(token_t);
+astnode_t* make_ident(const char *s);
 
 astnode_t* make_module(astnode_t*, astnode_t*);
 astnode_t* make_import(astnode_t*, astnode_t*);

@@ -1,13 +1,7 @@
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef NOLLI_LEXER_H
+#define NOLLI_LEXER_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <assert.h>
+#include "nolli.h"
 
 
 enum {
@@ -35,14 +29,6 @@ enum {
     TOK_FUNC, TOK_RET,
     TOK_STRUCT, TOK_IFACE,
     TOK_MODULE, TOK_IMPORT, TOK_FROM
-};
-
-enum {
-    START_TYPE,
-
-    TYPE_BOOL, TYPE_CHAR, TYPE_INT, TYPE_REAL, TYPE_STR,
-
-    END_TYPE
 };
 
 struct typetable {
@@ -85,4 +71,4 @@ int add_type(struct lexer *lex, const char *name);
 int readd_type(struct lexer *lex, const char *name, int id);
 
 
-#endif /* LEXER_H */
+#endif /* NOLLI_LEXER_H */

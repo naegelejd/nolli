@@ -3,6 +3,7 @@
 
 #include "nolli.h"
 
-void* alloc(size_t bytes);
+void *nalloc(size_t bytes);
+void *nrealloc(void* block, size_t bytes);
 
 #endif /* NOLLI_ALLOC_H */

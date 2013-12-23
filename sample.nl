@@ -1,10 +1,10 @@
-/* A working sample of nolli's syntax */
-module std     // all nolli files are members of a module
+# A working sample of nolli's syntax */
+module std     # all nolli files are members of a module
 
 import math
 from math import PI, E
 
-func int (str args) main = {
+func int main (str args) {
     char c = 'h'
     c = 'z'
 
@@ -12,18 +12,18 @@ func int (str args) main = {
 
     str s = "hello world"
 
-    // typedefs can be used to create aliases
+    # typedefs can be used to create aliases
     typedef int hash
     hash id = 12345
 
-    // reals are double floating-point numbers
+    # reals are double floating-point numbers
     real y = 3.14
 
-    // lists are dynamic arrays
-    list<int> five = [1, 2, 3, 4, 5]
+    # lists are dynamic arrays
+    [int] five = [1, 2, 3, 4, 5]
 
-    // maps store key value pairs
-    map<str, int> string_lengths = {"hello":"world", "five":6}
+    # maps store key value pairs
+    {str, int} string_lengths = {"hello":8, "five":6}
     string_lengths["hello"] = 6
 
     file out = fopen("output.txt", "w")
@@ -51,29 +51,29 @@ func int (str args) main = {
         print(i)
     }
 
-    //l = [1..5]
+    #l = [1..5]
     real m = mean(l)
 
-    Vehicle v = Vehicle()
-    assert(v is v)     // `is` determines if instances match
+    #Vehicle v = Vehicle()
+    #assert(v is v)     # `is` determines if instances match
 
     return 1
 }
 
-func int (int i, str s) strlen = { return s.len + i }
+func int strlen (int i, str s) { return s.len + i }
 typedef func int (int i, str s) slen_func_t
 slen_func_t strlen2 = strlen
 
-func real (list<real> rs) mean = {
+func real mean ([real] rs) {
     return sum(rs) / len(rs)
 }
 
-struct Vehicle = {
-    func () honk = { print("honk") }
-    func (int miles) drive = { print("drove %i\n", miles) }
+struct Vehicle {
+    func honk () { print("honk") }
+    func drive (int miles) { print("drove %i\n", miles) }
 }
 
-struct Truck = {
-    func (int miles) drive = Vehicle.drive
-    func () honk = { print("HONK!!") }
+struct Truck {
+    func drive (int miles)
+    func honk () { print("HONK!!") }
 }

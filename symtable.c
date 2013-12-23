@@ -59,8 +59,8 @@ static symtable_t *symtable_resize(symtable_t *st, unsigned int new_size_idx)
     st->count = 0;
     st->collisions = 0;
 
-    st->keys = alloc(st->size * sizeof(*st->keys));
-    st->vals = alloc(st->size * sizeof(*st->vals));
+    st->keys = nalloc(st->size * sizeof(*st->keys));
+    st->vals = nalloc(st->size * sizeof(*st->vals));
 
     unsigned int i;
     for (i = 0; i < old_size; i++) {
@@ -155,12 +155,12 @@ static unsigned int symtable_hash_3(char *s)
  */
 symtable_t *symtable_create()
 {
-    symtable_t *st = alloc(sizeof(*st));
+    symtable_t *st = nalloc(sizeof(*st));
     st->size_idx = 0;
     st->size = table_sizes[st->size_idx];
 
-    st->keys = alloc(st->size * sizeof(*st->keys));
-    st->vals = alloc(st->size * sizeof(*st->vals));
+    st->keys = nalloc(st->size * sizeof(*st->keys));
+    st->vals = nalloc(st->size * sizeof(*st->vals));
 
     return st;
 }

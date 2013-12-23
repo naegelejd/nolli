@@ -7,17 +7,7 @@ More information coming soon...
 
 ### Build 
 
-To generate the necessary scanner and parser, you'll need
-[flex (lex)](http://flex.sourceforge.net/) and
-[bison (yacc)](http://www.gnu.org/software/bison/)
-
-Both `flex` and `bison` are available via:
-
-- any Linux distribution's package manager
-- [Macports](http://www.macports.org/) on OSX
-- [GnuWin32](http://gnuwin32.sourceforget.net/) on Windows.
-
-You'll also need [cmake](http://www.cmake.org/) to generate the build system for your OS (Makefiles, VS Studio project, etc.)
+You need [cmake](http://www.cmake.org/) to generate the build system for your OS (Makefiles, VS Studio project, etc.)
 
 Unix/MinGW build example:
 
