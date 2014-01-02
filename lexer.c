@@ -52,7 +52,7 @@ void lexerror(struct lexer *lex, char *msg, ...)
 }
 
 /* returns former length of string in buffer */
-int rotate_buffers(struct lexer *lex)
+static int rotate_buffers(struct lexer *lex)
 {
     assert(lex);
     assert(lex->curbuff);
@@ -69,7 +69,7 @@ int rotate_buffers(struct lexer *lex)
     return len;
 }
 
-int appendc(struct lexer *lex, int c)
+static int appendc(struct lexer *lex, int c)
 {
     assert(lex);
     assert(lex->curbuff);
@@ -95,7 +95,7 @@ int appendc(struct lexer *lex, int c)
 }
 
 /* to be called with decimal point as lex->cur or already in buffer */
-int lex_real(struct lexer *lex)
+static int lex_real(struct lexer *lex)
 {
     do {
         appendc(lex, lex->cur);
@@ -121,7 +121,7 @@ int lex_real(struct lexer *lex)
     return TOK_REAL;
 }
 
-int lex_integer(struct lexer *lex)
+static int lex_integer(struct lexer *lex)
 {
     do {
         appendc(lex, lex->cur);
@@ -144,7 +144,7 @@ int lex_integer(struct lexer *lex)
     return TOK_INT;
 }
 
-int lex_string(struct lexer *lex)
+static int lex_string(struct lexer *lex)
 {
     /* eat the starting string delimiter */
     next(lex);
@@ -197,7 +197,7 @@ int lex_string(struct lexer *lex)
     return TOK_STRING;
 }
 
-int lookup_keyword(struct lexer *lex)
+static int lookup_keyword(struct lexer *lex)
 {
     /* TODO: use hash-table or similar O(1) lookup */
     const char *keywords[] = {
@@ -334,7 +334,7 @@ static struct typetable *typetable_shrink(struct typetable *tt)
     return typetable_resize(tt, tt->size_idx - 1);
 }
 
-struct typetable *new_typetable(void)
+static struct typetable *new_typetable(void)
 {
     struct typetable *table = nalloc(sizeof(*table));
     table->count = 0;
@@ -422,7 +422,7 @@ int add_type(struct lexer *lex, const char *name)
     /* return typetable_do(lex->typetable, name, -1, TYPETABLE_INSERT); */
 }
 
-int lex_ident(struct lexer *lex)
+static int lex_ident(struct lexer *lex)
 {
     do {
         appendc(lex, lex->cur);
@@ -444,7 +444,7 @@ int lex_ident(struct lexer *lex)
     return TOK_IDENT;
 }
 
-int lex_symbol(struct lexer *lex)
+static int lex_symbol(struct lexer *lex)
 {
     int tok = 0;
     switch (lex->cur) {

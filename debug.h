@@ -7,6 +7,19 @@
                 __func__, __VA_ARGS__); \
     } while (0)
 
+/**
+ * Verbosely prints error information prior to exiting
+ *
+ * @param fmt C-style formatting
+ * @param ... everything to print
+ */
+#define NOLLI_DIE(fmt, ...) \
+    do { \
+        fprintf(stderr, "FATAL: %s:%d:%s(): " fmt, \
+                __FILE__, __LINE__, __func__, __VA_ARGS__); \
+        exit(1); \
+    } while (0)
+
 #ifdef DEBUG
 
 /**

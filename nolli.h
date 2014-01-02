@@ -13,6 +13,8 @@
 #include "debug.h"
 #include "alloc.h"
 #include "error.h"
+#include "lexer.h"
+#include "parser.h"
 #include "type.h"
 #include "symtable.h"
 #include "ast.h"

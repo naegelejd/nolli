@@ -1,13 +1,13 @@
 #include "parser.h"
 
-void term(struct parser *parser);
-void expression(struct parser *parser);
-void arguments(struct parser *parser);
-int statement(struct parser *parser);
-void statements(struct parser *parser);
+static void term(struct parser *parser);
+static void expression(struct parser *parser);
+static void arguments(struct parser *parser);
+static int statement(struct parser *parser);
+static void statements(struct parser *parser);
 
 
-void parse_error(struct parser *parser, char *msg, ...)
+static void parse_error(struct parser *parser, char *msg, ...)
 {
     parser->error = true;
 
@@ -25,7 +25,7 @@ void parse_error(struct parser *parser, char *msg, ...)
     /* exit(1); */
 }
 
-void parse_debug(struct parser *parser, char *msg, ...)
+static void parse_debug(struct parser *parser, char *msg, ...)
 {
     va_list ap;
 
@@ -43,7 +43,7 @@ void parse_debug(struct parser *parser, char *msg, ...)
 #define next(p)         ((p)->cur = gettok((p)->lexer))
 #define check(p, t)     ((p)->cur == (t))
 
-int accept(struct parser *parser, int tok)
+static int accept(struct parser *parser, int tok)
 {
     if (check(parser, tok)) {
         next(parser);
@@ -52,7 +52,7 @@ int accept(struct parser *parser, int tok)
     return 0;
 }
 
-int expect(struct parser *parser, int tok)
+static int expect(struct parser *parser, int tok)
 {
     if (accept(parser, tok)) {
         return 1;
@@ -63,7 +63,7 @@ int expect(struct parser *parser, int tok)
     return 0;
 }
 
-void expression(struct parser *parser)
+static void expression(struct parser *parser)
 {
     if (accept(parser, TOK_NOT)) {
         ;
@@ -84,7 +84,7 @@ void expression(struct parser *parser)
     }
 }
 
-void list_literal(struct parser *parser)
+static void list_literal(struct parser *parser)
 {
     expect(parser, TOK_LSQUARE);
     if (check(parser, TOK_RSQUARE)) {
@@ -97,7 +97,7 @@ void list_literal(struct parser *parser)
     expect(parser, TOK_RSQUARE);
 }
 
-void map_literal(struct parser *parser)
+static void map_literal(struct parser *parser)
 {
     expect(parser, TOK_LCURLY);
     if (check(parser, TOK_RCURLY)) {
@@ -112,7 +112,7 @@ void map_literal(struct parser *parser)
     expect(parser, TOK_RCURLY);
 }
 
-void member(struct parser *parser)
+static void member(struct parser *parser)
 {
     do {
         accept(parser, TOK_IDENT);
@@ -123,7 +123,7 @@ void member(struct parser *parser)
     parse_debug(parser, "Parsed member");
 }
 
-void term(struct parser *parser)
+static void term(struct parser *parser)
 {
     if (accept(parser, TOK_CHAR)) {
         char c = parser->lexer->lastbuff[0];
@@ -166,7 +166,7 @@ void term(struct parser *parser)
     }
 }
 
-void arguments(struct parser *parser)
+static void arguments(struct parser *parser)
 {
     expect(parser, TOK_LPAREN);
     if (check(parser, TOK_RPAREN)) {
@@ -183,7 +183,7 @@ void arguments(struct parser *parser)
  * Accept either multiple statements between curly braces, or
  * a single statement
  */
-void body(struct parser *parser)
+static void body(struct parser *parser)
 {
     if (accept(parser, TOK_LCURLY)) {
         statements(parser);
@@ -193,7 +193,7 @@ void body(struct parser *parser)
     }
 }
 
-void ifelse(struct parser *parser)
+static void ifelse(struct parser *parser)
 {
     accept(parser, TOK_IF);
     expression(parser);
@@ -207,7 +207,7 @@ void ifelse(struct parser *parser)
     }
 }
 
-void whileloop(struct parser *parser)
+static void whileloop(struct parser *parser)
 {
     accept(parser, TOK_WHILE);
     expression(parser);
@@ -215,7 +215,7 @@ void whileloop(struct parser *parser)
     parse_debug(parser, "Parsed `while` loop");
 }
 
-void forloop(struct parser *parser)
+static void forloop(struct parser *parser)
 {
     accept(parser, TOK_FOR);
     expect(parser, TOK_IDENT);
@@ -225,7 +225,7 @@ void forloop(struct parser *parser)
     parse_debug(parser, "Parsed `for` loop");
 }
 
-void declaration(struct parser *parser)
+static void declaration(struct parser *parser)
 {
     if (accept(parser, TOK_LSQUARE)) {
         expect(parser, TOK_TYPE);
@@ -252,7 +252,7 @@ void declaration(struct parser *parser)
     } while (accept(parser, TOK_COMMA));
 }
 
-void parameters(struct parser *parser)
+static void parameters(struct parser *parser)
 {
     /* 1 decl, or many comma-separated decls */
     do {
@@ -260,7 +260,7 @@ void parameters(struct parser *parser)
     } while (check(parser, TOK_COMMA));
 }
 
-void funcdef(struct parser *parser)
+static void funcdef(struct parser *parser)
 {
     accept(parser, TOK_FUNC);
     if (accept(parser, TOK_TYPE)) {
@@ -283,7 +283,7 @@ void funcdef(struct parser *parser)
     parse_debug(parser, "Parsed function definition");
 }
 
-int ident_statement(struct parser *parser)
+static int ident_statement(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
 
@@ -306,7 +306,7 @@ int ident_statement(struct parser *parser)
     return 1;
 }
 
-void functype(struct parser *parser)
+static void functype(struct parser *parser)
 {
     accept(parser, TOK_FUNC);
     accept(parser, TOK_TYPE);
@@ -321,7 +321,7 @@ void functype(struct parser *parser)
     expect(parser, TOK_RPAREN);
 }
 
-void typedefinition(struct parser *parser)
+static void typedefinition(struct parser *parser)
 {
     if (check(parser, TOK_FUNC)) {
         functype(parser);
@@ -378,12 +378,12 @@ x(y)
     return 1;
 }
 
-void statements(struct parser *parser)
+static void statements(struct parser *parser)
 {
     while (statement(parser) != 0) ;
 }
 
-int import(struct parser *parser)
+static int import(struct parser *parser)
 {
     if (accept(parser, TOK_IMPORT)) {
         ;
@@ -403,12 +403,12 @@ int import(struct parser *parser)
     return 1;
 }
 
-void imports(struct parser *parser)
+static void imports(struct parser *parser)
 {
     while (import(parser) != 0) ;
 }
 
-void structtype(struct parser *parser)
+static void structtype(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
     add_type(parser->lexer, parser->lexer->lastbuff);
@@ -425,7 +425,7 @@ void structtype(struct parser *parser)
     parse_debug(parser, "Parsed `struct`");
 }
 
-void funcdecl(struct parser *parser)
+static void funcdecl(struct parser *parser)
 {
     accept(parser, TOK_FUNC);
     accept(parser, TOK_TYPE);   /* function has a return value */
@@ -445,7 +445,7 @@ void funcdecl(struct parser *parser)
     parse_debug(parser, "Parsed function declaration");
 }
 
-void interface(struct parser *parser)
+static void interface(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
     add_type(parser->lexer, parser->lexer->lastbuff);
@@ -458,7 +458,7 @@ void interface(struct parser *parser)
     parse_debug(parser, "Parsed `iface`");
 }
 
-int top_level_construct(struct parser *parser)
+static int top_level_construct(struct parser *parser)
 {
     if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
         imports(parser);
