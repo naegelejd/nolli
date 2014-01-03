@@ -6,8 +6,8 @@
 
 enum {
     TOK_EOF = 0,
+    TOK_IDENT = 1, TOK_TYPE = 1,
     TOK_BOOL, TOK_CHAR, TOK_INT, TOK_REAL, TOK_STRING, TOK_FILE,
-    TOK_TYPE, TOK_IDENT,
 
     TOK_ADD, TOK_IADD,
     TOK_SUB, TOK_ISUB,
@@ -46,14 +46,10 @@ enum {TYPENAME_MAXLEN = 32};
 struct lexer {
     FILE* input;
 
-    int typeid;
-
     char *curbuff;
     char *lastbuff;
     size_t blen;
     size_t balloc;
-
-    struct typetable *typetable;
 
     int line;
     int col;
@@ -65,10 +61,5 @@ int gettok(struct lexer *lex);
 int lexer_init(struct lexer **lexaddr, FILE *file);
 int lexer_scan_all(struct lexer *lex);
 const char *get_tok_name(int tok);
-
-int check_type(struct lexer *lex, const char *name);
-int add_type(struct lexer *lex, const char *name);
-int readd_type(struct lexer *lex, const char *name, int id);
-
 
 #endif /* NOLLI_LEXER_H */

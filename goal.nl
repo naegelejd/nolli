@@ -8,8 +8,8 @@ struct shape {
 }
 
 iface buffer {
-    show ()
-    int read (file)
+    func show ()
+    func int read (file)
 }
 
 func int main(str args)

@@ -32,7 +32,7 @@ func int main (str args) {
 
     if (true) {
         println("true")
-    } else if (not true) {
+    } else if (!true) {
         println("false")
     } else {
         println("idk")
@@ -43,7 +43,7 @@ func int main (str args) {
         i = i + 1
     }
 
-    until (i > 8) {
+    while !(i > 8) {
         i += 1
     }
 
@@ -62,18 +62,18 @@ func int main (str args) {
 
 func int strlen (int i, str s) { return s.len + i }
 typedef func int (int i, str s) slen_func_t
-slen_func_t strlen2 = strlen
+#slen_func_t strlen2 = strlen
 
 func real mean ([real] rs) {
     return sum(rs) / len(rs)
 }
 
-struct Vehicle {
-    func honk () { print("honk") }
-    func drive (int miles) { print("drove %i\n", miles) }
+iface Vehicle {
+    func honk ()
+    func drive (int miles)
 }
 
 struct Truck {
     func drive (int miles)
-    func honk () { print("HONK!!") }
+    func honk () 
 }

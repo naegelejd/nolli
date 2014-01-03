@@ -151,8 +151,13 @@ static void term(struct parser *parser)
             parse_debug(parser, "Parsed function call");
         } else if (accept(parser, TOK_DOT)) {
             member(parser);
+        } else if (accept(parser, TOK_LSQUARE)) {
+            expression(parser);
+            expect(parser, TOK_RSQUARE);
+            /* parsed container lookup */
+        } else {
+            ; /* parsed identifier expr */
         }
-        /* else, parsed identifier */
     } else if (accept(parser, TOK_LPAREN)) {
         expression(parser);
         expect(parser, TOK_RPAREN);
@@ -225,31 +230,49 @@ static void forloop(struct parser *parser)
     parse_debug(parser, "Parsed `for` loop");
 }
 
-static void declaration(struct parser *parser)
+static void declaration_type(struct parser *parser)
 {
     if (accept(parser, TOK_LSQUARE)) {
         expect(parser, TOK_TYPE);
         expect(parser, TOK_RSQUARE);
-        /* parsed list type */
     } else if (accept(parser, TOK_LCURLY)) {
         expect(parser, TOK_TYPE);
         expect(parser, TOK_COMMA);
         expect(parser, TOK_TYPE);
         expect(parser, TOK_RCURLY);
-        /* parsed map type */
     } else {
         expect(parser, TOK_TYPE);
     }
+}
 
+static void declaration_name(struct parser *parser)
+{
+    expect(parser, TOK_IDENT);
+    if (accept(parser, TOK_ASS)) {
+        expression(parser);
+        parse_debug(parser, "Parsed initialization");
+    } else {
+        parse_debug(parser, "Parsed declaration");
+    }
+}
+
+static void declaration_names(struct parser *parser)
+{
     do {
-        expect(parser, TOK_IDENT);
-        if (accept(parser, TOK_ASS)) {
-            expression(parser);
-            parse_debug(parser, "Parsed initialization");
-        } else {
-            parse_debug(parser, "Parsed declaration");
-        }
+        declaration_name(parser);
     } while (accept(parser, TOK_COMMA));
+}
+
+static void declarations(struct parser *parser)
+{
+    declaration_type(parser);
+    declaration_name(parser);
+}
+
+static void declaration(struct parser *parser)
+{
+    declaration_type(parser);
+    declaration_name(parser);
 }
 
 static void parameters(struct parser *parser)
@@ -257,17 +280,17 @@ static void parameters(struct parser *parser)
     /* 1 decl, or many comma-separated decls */
     do {
         declaration(parser);
-    } while (check(parser, TOK_COMMA));
+    } while (accept(parser, TOK_COMMA));
 }
 
 static void funcdef(struct parser *parser)
 {
     accept(parser, TOK_FUNC);
-    if (accept(parser, TOK_TYPE)) {
-        /* function has a return value */
-        ;
-    }
-    expect(parser, TOK_IDENT);
+
+    /* we don't know if this is a return type or the function name :( */
+    expect(parser, TOK_TYPE);
+    /* parse function name if the last token was the return type */
+    accept(parser, TOK_IDENT);
 
     expect(parser, TOK_LPAREN);
 
@@ -285,7 +308,20 @@ static void funcdef(struct parser *parser)
 
 static int ident_statement(struct parser *parser)
 {
-    expect(parser, TOK_IDENT);
+    if (check(parser, TOK_LPAREN)) {
+        arguments(parser);
+        parse_debug(parser, "Parsed function call");
+        return 1;
+    } else if (accept(parser, TOK_DOT)) {
+        member(parser);
+        return 1;
+    }
+
+    if (accept(parser, TOK_LSQUARE)) {
+        expression(parser);
+        expect(parser, TOK_RSQUARE);
+        /* parsing container assignment */
+    }
 
     if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
             parser->cur == TOK_ISUB || parser->cur == TOK_IMUL ||
@@ -293,12 +329,9 @@ static int ident_statement(struct parser *parser)
             parser->cur == TOK_IPOW) {
         next(parser);   /* eat assignment operator */
         expression(parser);
-        parse_debug(parser, "Parsed variable assignment");
-    } else if (check(parser, TOK_LPAREN)) {
-        arguments(parser);
-        parse_debug(parser, "Parsed function call");
+        parse_debug(parser, "Parsed assignment");
     } else {
-        parse_error(parser, "Invalid token after ident, expecting %s",
+        parse_error(parser, "Invalid token after ident, found %s",
                 get_tok_name(parser->cur));
         next(parser);
         return 0;
@@ -306,30 +339,36 @@ static int ident_statement(struct parser *parser)
     return 1;
 }
 
-static void functype(struct parser *parser)
+static void funcdecl(struct parser *parser)
 {
-    accept(parser, TOK_FUNC);
-    accept(parser, TOK_TYPE);
+    expect(parser, TOK_FUNC);
+    /* we don't know if this is a return type or the function name :( */
+    expect(parser, TOK_TYPE);
+    /* function name if the last token was the return type */
     accept(parser, TOK_IDENT);
+
     expect(parser, TOK_LPAREN);
+
     if (!check(parser, TOK_RPAREN)) {
         do {
-            expect(parser, TOK_TYPE);
-            accept(parser, TOK_IDENT);  /* optional param name */
-        } while (accept(parser, TOK_COMMA));    /* optional param name */
+            declaration_type(parser);
+            accept(parser, TOK_TYPE);   /* optional parameter name */
+        } while (accept(parser, TOK_COMMA));
     }
+
     expect(parser, TOK_RPAREN);
+
+    parse_debug(parser, "Parsed function declaration");
 }
 
 static void typedefinition(struct parser *parser)
 {
     if (check(parser, TOK_FUNC)) {
-        functype(parser);
+        funcdecl(parser);
     } else {
         expect(parser, TOK_TYPE);
     }
     expect(parser, TOK_IDENT);
-    add_type(parser->lexer, parser->lexer->lastbuff);
     parse_debug(parser, "Parsed type definition");
 }
 
@@ -341,13 +380,14 @@ int y = 2 + 2;
 x = 1;
 x(y)
 */
-    if (check(parser, TOK_TYPE) ||
-            check(parser, TOK_LSQUARE) ||
-            check(parser, TOK_LCURLY)) {
-        declaration(parser);
-        /* just parsed decl or initialization */
-    } else if (check(parser, TOK_IDENT)) {
-        return ident_statement(parser);
+    if (accept(parser, TOK_IDENT)) {
+        if (check(parser, TOK_IDENT)) {
+            declaration_names(parser);
+        } else {
+            return ident_statement(parser);
+        }
+    } else if (check(parser, TOK_LSQUARE) || check(parser, TOK_LCURLY)) {
+        declarations(parser);
     } else if (check(parser, TOK_IF)) {
         ifelse(parser);
     } else if (check(parser, TOK_WHILE)) {
@@ -411,44 +451,22 @@ static void imports(struct parser *parser)
 static void structtype(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
-    add_type(parser->lexer, parser->lexer->lastbuff);
 
     expect(parser, TOK_LCURLY);
     while (!check(parser, TOK_RCURLY)) {
         if (check(parser, TOK_FUNC)) {
-            functype(parser);
+            funcdecl(parser);
         } else {
-            declaration(parser);
+            declarations(parser);
         }
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `struct`");
 }
 
-static void funcdecl(struct parser *parser)
-{
-    accept(parser, TOK_FUNC);
-    accept(parser, TOK_TYPE);   /* function has a return value */
-
-    expect(parser, TOK_IDENT);  /* function name */
-
-    expect(parser, TOK_LPAREN);
-
-    if (!check(parser, TOK_RPAREN)) {
-        do {
-            accept(parser, TOK_TYPE);
-        } while (accept(parser, TOK_COMMA));
-    }
-
-    expect(parser, TOK_RPAREN);
-
-    parse_debug(parser, "Parsed function declaration");
-}
-
 static void interface(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
-    add_type(parser->lexer, parser->lexer->lastbuff);
 
     expect(parser, TOK_LCURLY);
     while (!check(parser, TOK_RCURLY)) {
