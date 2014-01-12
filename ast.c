@@ -1,178 +1,387 @@
 #include "nolli.h"
 
-static astnode_t* create_node(ast_type_t type)
+static struct ast* create_node(ast_type_t type)
 {
-    astnode_t* a = nalloc(sizeof(*a));
+    struct ast* a = nalloc(sizeof(*a));
     a->type = type;
     return a;
 }
 
-
-astnode_t* make_bool_lit(bool b)
+struct ast* ast_make_bool_lit(bool b)
 {
-    astnode_t* bn = create_node(AST_BOOL_LIT);
+    struct ast* bn = create_node(AST_BOOL_LIT);
     return bn;
 }
 
-astnode_t* make_char_lit(char c)
+struct ast* ast_make_char_lit(char c)
 {
-    astnode_t* cn = create_node(AST_CHAR_LIT);
-    return cn;
+    struct ast_char *node = nalloc(sizeof(*node));
+    node->HEAD.type = AST_CHAR_LIT;
+    node->c = c;
+    return (struct ast*)node;
 }
 
-astnode_t* make_int_num(long l)
+struct ast* ast_make_int_num(long l)
 {
-    astnode_t* ln = create_node(AST_INT_NUM);
-    return ln;
+    struct ast_int *node = nalloc(sizeof(*node));
+    node->HEAD.type = AST_INT_NUM;
+    node->l = l;
+    return (struct ast*)node;
 }
 
-astnode_t* make_real_num(double d)
+struct ast* ast_make_real_num(double d)
 {
-    astnode_t* dn = create_node(AST_REAL_NUM);
+    struct ast_real *node = nalloc(sizeof(*node));
+    node->HEAD.type = AST_REAL_NUM;
+    node->d = d;
+    return (struct ast*)node;
+}
+
+struct ast* ast_make_str_lit(const char *s)
+{
+    assert(s);
+
+    struct ast_str *node = nalloc(sizeof(*node));
+    node->HEAD.type = AST_STR_LIT;
+    node->s = strdup(s);
+    return (struct ast*)node;
+}
+
+struct ast* ast_make_ident(const char *s)
+{
+    assert(s);
+
+    struct ast_ident *ident = nalloc(sizeof(*ident));
+    ident->HEAD.type = AST_IDENT;
+    ident->s = strdup(s);
+    return (struct ast*)ident;
+}
+
+struct ast* ast_make_import(struct ast* parent, struct ast* names)
+{
+    struct ast* node = create_node(AST_IMPORT);
+    return node;
+}
+
+struct ast* ast_make_typedef(type_t* t, struct ast* id)
+{
+    struct ast* node = create_node(AST_TYPEDEF);
+    return node;
+}
+
+struct ast* ast_make_decl(type_t* t, struct ast* id)
+{
+    struct ast* dn = create_node(AST_DECL);
     return dn;
 }
 
-astnode_t* make_str_lit(const char *s)
+
+struct ast* ast_make_unexpr(expr_op_t op, struct ast* expr)
 {
-    astnode_t* sn = create_node(AST_STR_LIT);
-    return sn;
+    assert(expr);
+
+    struct ast_unexpr* unexpr = nalloc(sizeof(*unexpr));
+    unexpr->HEAD.type = AST_UNEXPR;
+    unexpr->op = op;
+    unexpr->expr = expr;
+    return (struct ast*)unexpr;
 }
 
-astnode_t* make_ident(const char *i)
+struct ast* ast_make_binexpr(struct ast* lhs, expr_op_t op, struct ast* rhs)
 {
-    astnode_t* node = create_node(AST_IDENT);
+    assert(lhs);
+    assert(rhs);
+
+    struct ast_binexpr* binexpr = nalloc(sizeof(*binexpr));
+    binexpr->HEAD.type = AST_BINEXPR;
+    binexpr->op = op;
+    binexpr->lhs = lhs;
+    binexpr->rhs = rhs;
+    return (struct ast*)binexpr;
+}
+
+struct ast *ast_make_list(list_type_t type)
+{
+    struct ast_list *list = nalloc(sizeof(*list));
+    list->HEAD.type = AST_LIST;
+    list->type = type;
+    /* TODO: this could differ based on list type..
+     * e.g. statement lists allocate for 8 statements
+     *      list literals only allocate for 4, etc.
+     */
+    list->alloc = 8;
+    list->count = 0;
+    list->items = nalloc(list->alloc * sizeof(*list->items));
+
+    return (struct ast*)list;
+}
+
+struct ast *ast_list_append(struct ast* node, struct ast* item)
+{
+    assert(node);
+    assert(item);
+    struct ast_list* list = (struct ast_list*)node;
+    if (list->count > list->alloc) {
+        list->alloc *= 2;
+        list->items = nrealloc(list->items,
+                list->alloc * sizeof(*list->items));
+    }
+    list->items[list->count++] = item;
+
+    return (struct ast*)list;
+}
+
+struct ast* ast_make_keyval(struct ast* key, struct ast* val)
+{
+    struct ast_keyval* keyval = nalloc(sizeof(*keyval));
+    keyval->HEAD.type = AST_KEYVAL;
+    keyval->key = key;
+    keyval->val = val;
+    return (struct ast*)keyval;
+}
+
+struct ast* ast_make_contaccess(struct ast* cont, struct ast* idx)
+{
+    struct ast* node = create_node(AST_CONTACCESS);
     return node;
 }
 
-astnode_t* make_module(astnode_t* id, astnode_t* statements)
+struct ast* ast_make_assignment(struct ast* ident, assign_op_t op, struct ast* expr)
 {
-    astnode_t* node = create_node(AST_MODULE);
+    assert(ident);
+    assert(expr);
+
+    struct ast_assignment* assignment = nalloc(sizeof(*assignment));
+    assignment->HEAD.type = AST_ASSIGN;
+
+    assignment->ident = ident;
+    assignment->expr = expr;
+
+    return (struct ast*)assignment;
+}
+
+struct ast* ast_make_contassign(struct ast* cont, struct ast* idx,
+        assign_op_t op, struct ast* item)
+{
+    struct ast* node = create_node(AST_CONTASSIGN);
     return node;
 }
 
-astnode_t* make_import(astnode_t* parent, astnode_t* names)
+struct ast* ast_make_ifelse(struct ast* cond, struct ast* t, struct ast* f)
 {
-    astnode_t* node = create_node(AST_IMPORT);
+    struct ast* node = create_node(AST_IFELSE);
     return node;
 }
 
-astnode_t* make_typedef(type_t* t, astnode_t* id)
+struct ast* ast_make_while(struct ast* cond, struct ast* s)
 {
-    astnode_t* node = create_node(AST_TYPEDEF);
+    struct ast* node = create_node(AST_WHILE);
     return node;
 }
 
-astnode_t* make_decl(type_t* t, astnode_t* id)
+struct ast* ast_make_until(struct ast* cond, struct ast* s)
 {
-    astnode_t* dn = create_node(AST_DECL);
-    return dn;
-}
-
-astnode_t* make_unexpr(expr_op_t op, astnode_t* expr)
-{
-    astnode_t* node = create_node(AST_UNEXPR);
+    struct ast* node = create_node(AST_UNTIL);
     return node;
 }
 
-astnode_t* make_binexpr(astnode_t* exA, expr_op_t op, astnode_t* exB)
+struct ast* ast_make_for(struct ast* id, struct ast* iter, struct ast* s)
 {
-    astnode_t* node = create_node(AST_BINEXPR);
+    struct ast* node = create_node(AST_FOR);
     return node;
 }
 
-astnode_t* make_list(astnode_t* list, astnode_t* item)
+struct ast* ast_make_call(struct ast* func, struct ast* args)
 {
-    astnode_t* node = create_node(AST_LIST);
+    assert(func);
+    assert(args);
+
+    struct ast_call *call = nalloc(sizeof(*call));
+    call->HEAD.type = AST_CALL;
+    call->func = func;
+    call->args = args;
+    return (struct ast*)call;
+}
+
+struct ast* ast_make_member(struct ast* parent, struct ast* child)
+{
+    struct ast* node = create_node(AST_MEMBER);
     return node;
 }
 
-astnode_t* make_map(astnode_t* items, astnode_t* kv)
+struct ast* ast_make_return(struct ast* expr)
 {
-    astnode_t* node = create_node(AST_MAP);
+    struct ast* node = create_node(AST_RETURN);
     return node;
 }
 
-astnode_t* make_mapkv(astnode_t* key, astnode_t* val)
+struct ast* ast_make_break(void)
 {
-    astnode_t* node = create_node(AST_MAPKV);
+    struct ast* node = create_node(AST_BREAK);
     return node;
 }
 
-astnode_t* make_contaccess(astnode_t* cont, astnode_t* idx)
+struct ast* ast_make_continue(void)
 {
-    astnode_t* node = create_node(AST_CONTACCESS);
+    struct ast* node = create_node(AST_CONTINUE);
     return node;
 }
 
-astnode_t* make_assignment(astnode_t* id, assign_op_t op, astnode_t* expr)
+static char *ast_name(struct ast* node)
 {
-    astnode_t* node = create_node(AST_ASSIGN);
-    return node;
+    static char *names[] = {
+        "BAD_TYPE",
+        "BOOL_LIT",
+        "CHAR_LIT",
+        "INT_NUM",
+        "REAL_NUM",
+        "STR_LIT",
+        "IDENT",
+        "IMPORT",
+        "TYPEDEF",
+        "DECL",
+        "UNEXPR",
+        "BINEXPR",
+        "LIST",
+        "KEYVAL",
+        "CONTACCESS",
+        "ASSIGN",
+        "CONTASSIGN",
+        "IFELSE",
+        "WHILE",
+        "UNTIL",
+        "FOR",
+        "CALL",
+        "FUNC_DEF",
+        "STRUCT",
+        "MEMBER",
+        "RETURN",
+        "BREAK",
+        "CONTINUE",
+    };
+
+    static char *list_names[] = {
+        "LIST_ARGS",
+        "LIST_LITERAL",
+        "LIST_MAP_ITEMS",
+        "LIST_STATEMENTS",
+    };
+
+    if (node->type == AST_LIST) {
+        struct ast_list* list = (struct ast_list*)node;
+        return list_names[list->type];
+    }
+    return names[node->type];
 }
 
-astnode_t* make_contassign(astnode_t* cont, astnode_t* idx,
-        assign_op_t op, astnode_t* item)
+typedef void (*visitor) (struct ast*);
+typedef void (*walker) (struct ast*, visitor);
+
+void visit(struct ast* node)
 {
-    astnode_t* node = create_node(AST_CONTASSIGN);
-    return node;
+    printf("%s\n", ast_name(node));
 }
 
-astnode_t* make_ifelse(astnode_t* cond, astnode_t* t, astnode_t* f)
+static void walk_int_num(struct ast *node, visitor v);
+static void walk_ident(struct ast *node, visitor v);
+static void walk_unexpr(struct ast *node, visitor v);
+static void walk_binexpr(struct ast *node, visitor v);
+static void walk_list(struct ast *node, visitor v);
+static void walk_assign(struct ast *node, visitor v);
+static void walk_call(struct ast *node, visitor v);
+
+void walk(struct ast* root)
 {
-    astnode_t* node = create_node(AST_IFELSE);
-    return node;
+    static walker walkers[] = {
+        NULL, /* not a valid AST node */
+        NULL, /* walk_bool_lit, */
+        NULL, /* walk_char_lit, */
+        walk_int_num,
+        NULL, /* walk_real_num, */
+        NULL, /* walk_str_lit, */
+
+        walk_ident,
+
+        NULL, /* walk_import, */
+        NULL, /* walk_typedef, */
+        NULL, /* walk_decl, */
+
+        walk_unexpr,
+        walk_binexpr,
+        walk_list,
+
+        NULL, /* walk_keyval, */
+        NULL, /* walk_contaccess, */
+
+        walk_assign,
+        NULL, /* walk_contassign, */
+        NULL, /* walk_ifelse, */
+        NULL, /* walk_while, */
+        NULL, /* walk_until, */
+        NULL, /* walk_for, */
+        walk_call,
+        NULL, /* walk_func_def, */
+        NULL, /* walk_struct, */
+        NULL, /* walk_member, */
+
+        NULL, /* walk_return, */
+        NULL, /* walk_break, */
+        NULL, /* walk_continue, */
+    };
+
+    visitor v = visit;
+
+    walkers[root->type](root, v);
 }
 
-astnode_t* make_while(astnode_t* cond, astnode_t* s)
+
+static void walk_int_num(struct ast *node, visitor v)
 {
-    astnode_t* node = create_node(AST_WHILE);
-    return node;
+    v(node);
 }
 
-astnode_t* make_until(astnode_t* cond, astnode_t* s)
+static void walk_ident(struct ast *node, visitor v)
 {
-    astnode_t* node = create_node(AST_UNTIL);
-    return node;
+    v(node);
 }
 
-astnode_t* make_for(astnode_t* id, astnode_t* iter, astnode_t* s)
+static void walk_unexpr(struct ast *node, visitor v)
 {
-    astnode_t* node = create_node(AST_FOR);
-    return node;
+    struct ast_unexpr* unexpr = (struct ast_unexpr*)node;
+    walk(unexpr->expr);
+    v(node);
 }
 
-astnode_t* make_call(astnode_t* func, astnode_t* args)
+static void walk_binexpr(struct ast *node, visitor v)
 {
-    astnode_t* node = create_node(AST_CALL);
-    return node;
+    struct ast_binexpr* binexpr = (struct ast_binexpr*)node;
+    walk(binexpr->lhs);
+    walk(binexpr->rhs);
+    v(node);
 }
 
-astnode_t* make_member(astnode_t* parent, astnode_t* child)
+static void walk_list(struct ast *node, visitor v)
 {
-    astnode_t* node = create_node(AST_MEMBER);
-    return node;
+    struct ast_list* list = (struct ast_list*)node;
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i]);
+    }
+    v(node);
 }
 
-astnode_t* make_return(astnode_t* expr)
+static void walk_assign(struct ast *node, visitor v)
 {
-    astnode_t* node = create_node(AST_RETURN);
-    return node;
+    struct ast_assignment* assignment = (struct ast_assignment*)node;
+    walk(assignment->ident);
+    walk(assignment->expr);
+    v(node);
 }
 
-astnode_t* make_break(void)
+static void walk_call(struct ast *node, visitor v)
 {
-    astnode_t* node = create_node(AST_BREAK);
-    return node;
-}
-
-astnode_t* make_continue(void)
-{
-    astnode_t* node = create_node(AST_CONTINUE);
-    return node;
-}
-
-astnode_t* make_statements(astnode_t* list, astnode_t* statement)
-{
-    astnode_t* node = create_node(AST_STATEMENTS);
-    return node;
+    struct ast_call* call = (struct ast_call*)node;
+    walk(call->func);
+    walk(call->args);
+    v(node);
 }

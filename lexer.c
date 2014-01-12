@@ -248,6 +248,7 @@ static int lex_symbol(struct lexer *lex)
             static char symbols[] = "()[]{},.:;";
             char *at = NULL;
             if ((at = strchr(symbols, lex->cur))) {
+                appendc(lex, lex->cur);
                 next(lex);
                 return (at - symbols) + TOK_LPAREN;
             } else {
@@ -337,7 +338,7 @@ const char *get_tok_name(int tok)
     return tok_type_names[tok];
 }
 
-int lexer_init(struct lexer **lexaddr, FILE *file)
+void lexer_init(struct lexer **lexaddr, FILE *file)
 {
     struct lexer *lex = nalloc(sizeof(*lex));
     lex->input = file;
@@ -352,8 +353,6 @@ int lexer_init(struct lexer **lexaddr, FILE *file)
     lex->col = 0;
 
     *lexaddr = lex;
-
-    return 1;
 }
 
 int lexer_scan_all(struct lexer *lex)

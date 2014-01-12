@@ -19,11 +19,6 @@
 #include "symtable.h"
 #include "ast.h"
 
-typedef struct nolli_state
-{
-
-    astnode_t* ast_root;
-
-} nolli_state_t;
+struct nolli_state { };
 
 #endif /* NOLLI_H */

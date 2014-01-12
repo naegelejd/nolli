@@ -27,6 +27,7 @@ set(NOLLI_HEADERS
     error.h
     alloc.h
     lexer.h
+    parser.h
     ast.h
     symtable.h
 )

@@ -3,7 +3,6 @@
 
 #include "nolli.h"
 
-
 enum {
     TOK_EOF = 0,
     TOK_IDENT = 1, TOK_TYPE = 1,
@@ -58,7 +57,7 @@ struct lexer {
 
 
 int gettok(struct lexer *lex);
-int lexer_init(struct lexer **lexaddr, FILE *file);
+void lexer_init(struct lexer **lexaddr, FILE *file);
 int lexer_scan_all(struct lexer *lex);
 const char *get_tok_name(int tok);
 

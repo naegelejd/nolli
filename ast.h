@@ -4,6 +4,8 @@
 struct type_t;
 
 typedef enum {
+    AST_BAD_TYPE,
+
     AST_BOOL_LIT,
     AST_CHAR_LIT,
     AST_INT_NUM,
@@ -12,7 +14,6 @@ typedef enum {
 
     AST_IDENT,
 
-    AST_MODULE,
     AST_IMPORT,
 
     AST_TYPEDEF,
@@ -22,8 +23,8 @@ typedef enum {
     AST_BINEXPR,
 
     AST_LIST,
-    AST_MAP,
-    AST_MAPKV,
+
+    AST_KEYVAL,
     AST_CONTACCESS,
 
     AST_ASSIGN,
@@ -40,8 +41,6 @@ typedef enum {
     AST_RETURN,
     AST_BREAK,
     AST_CONTINUE,
-
-    AST_STATEMENTS,
 } ast_type_t;
 
 typedef enum {
@@ -73,47 +72,119 @@ typedef enum {
     ASS_POW
 } assign_op_t;
 
-typedef struct astnode {
-    ast_type_t type;
-} astnode_t;
+typedef enum {
+    LIST_ARGS,
+    LIST_LITERAL,
+    LIST_MAP_ITEMS,
+    LIST_STATEMENTS,
+} list_type_t;
+
+struct ast {
+    int type;
+};
+
+struct ast_char {
+    struct ast HEAD;
+    char c;
+};
+
+struct ast_int {
+    struct ast HEAD;
+    long l;
+};
+
+struct ast_real {
+    struct ast HEAD;
+    double d;
+};
+
+struct ast_str {
+    struct ast HEAD;
+    char *s;
+};
+
+struct ast_ident {
+    struct ast HEAD;
+    char *s;
+};
+
+struct ast_unexpr {
+    struct ast HEAD;
+    expr_op_t op;
+    struct ast* expr;
+};
+
+struct ast_binexpr {
+    struct ast HEAD;
+    expr_op_t op;
+    struct ast* lhs;
+    struct ast* rhs;
+};
+
+struct ast_call {
+    struct ast HEAD;
+    struct ast* func;
+    struct ast* args;
+};
+
+struct ast_assignment {
+    struct ast HEAD;
+    struct ast* ident;
+    struct ast* expr;
+};
+
+struct ast_keyval {
+    struct ast HEAD;
+    struct ast* key;
+    struct ast* val;
+};
+
+struct ast_list {
+    struct ast HEAD;
+    struct ast **items;
+    list_type_t type;
+    unsigned int alloc;
+    unsigned int count;
+};
 
 
-astnode_t* make_bool_lit(bool b);
-astnode_t* make_char_lit(char c);
-astnode_t* make_int_num(long l);
-astnode_t* make_real_num(double d);
-astnode_t* make_str_lit(const char *s);
+struct ast* ast_make_bool_lit(bool b);
+struct ast* ast_make_char_lit(char c);
+struct ast* ast_make_int_num(long l);
+struct ast* ast_make_real_num(double d);
+struct ast* ast_make_str_lit(const char *s);
 
-astnode_t* make_ident(const char *s);
+struct ast* ast_make_ident(const char *s);
 
-astnode_t* make_module(astnode_t*, astnode_t*);
-astnode_t* make_import(astnode_t*, astnode_t*);
+struct ast* ast_make_import(struct ast*, struct ast*);
 
-astnode_t* make_typedef(type_t*, astnode_t* id);
+struct ast* ast_make_typedef(type_t*, struct ast* id);
 
-astnode_t* make_decl(type_t*, astnode_t*);
-astnode_t* make_unexpr(expr_op_t, astnode_t*);
-astnode_t* make_binexpr(astnode_t*, expr_op_t, astnode_t*);
+struct ast* ast_make_decl(type_t*, struct ast*);
+struct ast* ast_make_unexpr(expr_op_t, struct ast*);
+struct ast* ast_make_binexpr(struct ast*, expr_op_t, struct ast*);
 
-astnode_t* make_list(astnode_t*, astnode_t*);
-astnode_t* make_map(astnode_t*, astnode_t*);
-astnode_t* make_mapkv(astnode_t*, astnode_t*);
-astnode_t* make_contaccess(astnode_t*, astnode_t*);
+struct ast* ast_make_list(list_type_t);
+struct ast* ast_list_append(struct ast*, struct ast*);
+struct ast* ast_make_keyval(struct ast* key, struct ast* val);
+struct ast* ast_make_contaccess(struct ast*, struct ast*);
 
-astnode_t* make_assignment(astnode_t*, assign_op_t, astnode_t*);
-astnode_t* make_contassign(astnode_t*, astnode_t*, assign_op_t, astnode_t*);
+struct ast* ast_make_assignment(struct ast*, assign_op_t, struct ast*);
+struct ast* ast_make_contassign(struct ast*, struct ast*, assign_op_t, struct ast*);
 
-astnode_t* make_ifelse(astnode_t*, astnode_t*, astnode_t*);
-astnode_t* make_while(astnode_t*, astnode_t*);
-astnode_t* make_until(astnode_t*, astnode_t*);
-astnode_t* make_for(astnode_t*, astnode_t*, astnode_t*);
-astnode_t* make_call(astnode_t*, astnode_t*);
-astnode_t* make_member(astnode_t*, astnode_t*);
+struct ast* ast_make_ifelse(struct ast*, struct ast*, struct ast*);
+struct ast* ast_make_while(struct ast*, struct ast*);
+struct ast* ast_make_until(struct ast*, struct ast*);
+struct ast* ast_make_for(struct ast*, struct ast*, struct ast*);
+struct ast* ast_make_call(struct ast*, struct ast*);
+struct ast* ast_make_member(struct ast*, struct ast*);
 
-astnode_t* make_break(void);
-astnode_t* make_continue(void);
-astnode_t* make_return(astnode_t*);
+struct ast* ast_make_break(void);
+struct ast* ast_make_continue(void);
+struct ast* ast_make_return(struct ast*);
 
-astnode_t* make_statements(astnode_t*, astnode_t*);
+struct ast* ast_make_statement_list(struct ast*, struct ast*);
+
+void walk(struct ast* root);
 
 #endif /* NOLLI_AST_H */

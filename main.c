@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-    nolli_state_t nstate;
+    struct nolli_state nstate;
     memset(&nstate, 0, sizeof(nstate));
 
     FILE *fin = stdin;
@@ -17,14 +17,16 @@ int main(int argc, char **argv)
     struct lexer *lex = NULL;
     lexer_init(&lex, fin);
 
-    struct parser *parser = calloc(1, sizeof(*parser));
-    parser->lexer = lex;
+    struct parser *parser = NULL;calloc(1, sizeof(*parser));
+    parser_init(&parser, lex);
+
+    struct ast *root = NULL;
 
     bool scanonly = false;
     if (scanonly) {
         lexer_scan_all(lex);
     } else {
-        parse_module(parser);
+        root = parse(parser);
     }
 
     if (fclose(fin) != 0) {
@@ -34,6 +36,12 @@ int main(int argc, char **argv)
     if (parser->error) {
         return ERR_PARSE;
     }
+
+    if (root == NULL) {
+        NOLLI_DIE("%s\n", "Failed to construct AST");
+    }
+
+    walk(root);
 
     return EXIT_SUCCESS;
 }

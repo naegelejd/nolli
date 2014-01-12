@@ -1,12 +1,5 @@
 #include "parser.h"
 
-static void term(struct parser *parser);
-static void expression(struct parser *parser);
-static void arguments(struct parser *parser);
-static int statement(struct parser *parser);
-static void statements(struct parser *parser);
-
-
 static void parse_error(struct parser *parser, char *msg, ...)
 {
     parser->error = true;
@@ -63,56 +56,224 @@ static int expect(struct parser *parser, int tok)
     return 0;
 }
 
-static void expression(struct parser *parser)
+
+static struct ast *statements(struct parser *parser);
+static struct ast *statement(struct parser *parser);
+static struct ast *ident_statement(struct parser *parser);
+static struct ast *expression(struct parser *parser);
+static struct ast *term(struct parser *parser);
+static struct ast *list_literal(struct parser *parser);
+static struct ast *map_literal(struct parser *parser);
+static struct ast *arguments(struct parser *parser);
+static struct ast *member(struct parser *parser);
+static struct ast *imports(struct parser *parser);
+static struct ast *structtype(struct parser *parser);
+static struct ast *interface(struct parser *parser);
+
+void parser_init(struct parser **parser_addr, struct lexer *lex)
 {
-    if (accept(parser, TOK_NOT)) {
-        ;
-    } else if (accept(parser, TOK_SUB)) {
-        ;
+    struct parser *parser = nalloc(sizeof(*parser));
+    parser->lexer = lex;
+    parser->buffer = lex->lastbuff;
+
+    *parser_addr = parser;
+}
+
+struct ast *parse(struct parser *parser)
+{
+    next(parser);
+
+    struct ast *root = statements(parser);
+
+    parse_debug(parser, "Parsed entire file");
+
+    return root;
+}
+
+static struct ast *statements(struct parser *parser)
+{
+    struct ast *statements = ast_make_list(LIST_STATEMENTS);
+    struct ast* stmt = statement(parser);
+    while (stmt != NULL) {
+        statements = ast_list_append(statements, stmt);
+        /* add statement to list */
+        stmt = statement(parser);
+    }
+    return statements;
+}
+
+static struct ast *ident_statement(struct parser *parser)
+{
+    struct ast *ident = ast_make_ident(parser->buffer);
+
+    if (check(parser, TOK_LPAREN)) {
+        struct ast *args = arguments(parser);
+        struct ast *call = ast_make_call(ident, args);
+        parse_debug(parser, "Parsed function call statement");
+        return call;
+    } else if (accept(parser, TOK_DOT)) {
+        member(parser);
+        return NULL;    /* FIXME */
     }
 
-    term(parser);
+    if (accept(parser, TOK_LSQUARE)) {
+        expression(parser);
+        expect(parser, TOK_RSQUARE);
+        /* parsing container assignment */
+    }
 
-    while (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
+    if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
+            parser->cur == TOK_ISUB || parser->cur == TOK_IMUL ||
+            parser->cur == TOK_IDIV || parser->cur == TOK_IMOD ||
+            parser->cur == TOK_IPOW) {
+        int ass = parser->cur; /* save assignment operator */
+        next(parser);   /* eat assignment operator */
+        struct ast *expr = expression(parser);
+        struct ast *assignment = ast_make_assignment(ident, ass, expr);
+        parse_debug(parser, "Parsed assignment");
+        return assignment;
+    } else {
+        parse_error(parser, "Invalid token after ident, found %s",
+                get_tok_name(parser->cur));
+        next(parser);
+        return NULL;
+    }
+}
+
+static struct ast *expression(struct parser *parser)
+{
+    struct ast *lhs = NULL;
+    if (parser->cur == TOK_NOT || parser->cur == TOK_SUB) {
+        int unop = parser->cur;
+        next(parser);
+        struct ast *t = term(parser);
+        lhs = ast_make_unexpr(unop, t);
+    } else {
+        lhs = term(parser);
+    }
+
+    if (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
             parser->cur == TOK_MUL || parser->cur == TOK_DIV ||
             parser->cur == TOK_POW || parser->cur == TOK_MOD ||
             parser->cur == TOK_EQ || parser->cur == TOK_NEQ ||
             parser->cur == TOK_LT || parser->cur == TOK_LTE ||
             parser->cur == TOK_GT || parser->cur == TOK_GTE) {
+        int op = parser->cur;
         next(parser);
-        term(parser);
+        struct ast *rhs = expression(parser);
+        return ast_make_binexpr(lhs, op, rhs);
+    } else {
+        return lhs;
     }
 }
 
-static void list_literal(struct parser *parser)
+static struct ast *term(struct parser *parser)
+{
+    if (accept(parser, TOK_CHAR)) {
+        char c = parser->buffer[0];
+        return ast_make_char_lit(c);
+    } else if (accept(parser, TOK_INT)) {
+        char *endptr = NULL;
+        size_t len = strlen(parser->buffer);
+        long l = strtol(parser->buffer, &endptr, 0);
+        if (endptr != (parser->buffer + len)) {
+            parse_error(parser, "Invalid integer %s", parser->buffer);
+        }
+        return ast_make_int_num(l);
+    } else if (accept(parser, TOK_REAL)) {
+        char *endptr = NULL;
+        size_t len = strlen(parser->buffer);
+        double d = strtod(parser->buffer, &endptr);
+        if (endptr != (parser->buffer + len)) {
+            parse_error(parser, "Invalid real number %s", parser->buffer);
+        }
+        return ast_make_real_num(d);
+    } else if (accept(parser, TOK_STRING)) {
+        return ast_make_str_lit(parser->buffer);
+    } else if (accept(parser, TOK_IDENT)) {
+        struct ast *ident = ast_make_ident(parser->buffer);
+        if (check(parser, TOK_LPAREN)) {
+            struct ast *args = arguments(parser);
+            parse_debug(parser, "Parsed function call expression");
+            return ast_make_call(ident, args);
+        } else if (accept(parser, TOK_DOT)) {
+            member(parser);
+            return NULL;    /* FIXME */
+        } else if (accept(parser, TOK_LSQUARE)) {
+            expression(parser);
+            expect(parser, TOK_RSQUARE);
+            /* parsed container lookup */
+            return NULL;
+        } else {
+            return ast_make_ident(parser->buffer);
+        }
+    } else if (accept(parser, TOK_LPAREN)) {
+        struct ast *expr = expression(parser);
+        expect(parser, TOK_RPAREN);
+        return expr;
+    } else if (check(parser, TOK_LSQUARE)) {
+        return list_literal(parser);
+    } else if (check(parser, TOK_RSQUARE)) {
+        return map_literal(parser);
+    } else {
+        parse_error(parser, "Invalid terminal: %s", parser->buffer);
+        next(parser);
+        return NULL;
+    }
+}
+
+static struct ast *list_literal(struct parser *parser)
 {
     expect(parser, TOK_LSQUARE);
+    struct ast* expr_list = ast_make_list(LIST_LITERAL);
     if (check(parser, TOK_RSQUARE)) {
-        ; /* empty list */
+        ; /* function call with no args */
     } else {
         do {
-            expression(parser);
+            struct ast* expr = expression(parser);
+            expr_list = ast_list_append(expr_list, expr);
         } while (accept(parser, TOK_COMMA));
     }
     expect(parser, TOK_RSQUARE);
+    return expr_list;
 }
 
-static void map_literal(struct parser *parser)
+static struct ast *map_literal(struct parser *parser)
 {
     expect(parser, TOK_LCURLY);
+    struct ast* keyval_list = ast_make_list(LIST_MAP_ITEMS);
     if (check(parser, TOK_RCURLY)) {
-        ; /* empty list */
+        ; /* function call with no args */
     } else {
         do {
-            expression(parser);
+            struct ast* key = expression(parser);
             expect(parser, TOK_COLON);
-            expression(parser);
+            struct ast* val = expression(parser);
+            struct ast *kv = ast_make_keyval(key, val);
+            keyval_list = ast_list_append(keyval_list, kv);
         } while (accept(parser, TOK_COMMA));
     }
     expect(parser, TOK_RCURLY);
+    return keyval_list;
 }
 
-static void member(struct parser *parser)
+static struct ast *arguments(struct parser *parser)
+{
+    expect(parser, TOK_LPAREN);
+    struct ast* arg_list = ast_make_list(LIST_ARGS);
+    if (check(parser, TOK_RPAREN)) {
+        ; /* function call with no args */
+    } else {
+        do {
+            struct ast* expr = expression(parser);
+            arg_list = ast_list_append(arg_list, expr);
+        } while (accept(parser, TOK_COMMA));
+    }
+    expect(parser, TOK_RPAREN);
+    return arg_list;
+}
+
+static struct ast *member(struct parser *parser)
 {
     do {
         accept(parser, TOK_IDENT);
@@ -121,67 +282,8 @@ static void member(struct parser *parser)
         }
     } while (accept(parser, TOK_DOT));
     parse_debug(parser, "Parsed member");
-}
 
-static void term(struct parser *parser)
-{
-    if (accept(parser, TOK_CHAR)) {
-        char c = parser->lexer->lastbuff[0];
-    } else if (accept(parser, TOK_INT)) {
-        struct lexer *lex = parser->lexer;
-        char *endptr = NULL;
-        size_t blen = strnlen(lex->lastbuff, lex->balloc);
-        long l = strtol(lex->lastbuff, &endptr, 0);
-        if (endptr != (lex->lastbuff + blen)) {
-            parse_error(parser, "Invalid integer %s", lex->lastbuff);
-        }
-    } else if (accept(parser, TOK_REAL)) {
-        struct lexer *lex = parser->lexer;
-        char *endptr = NULL;
-        size_t blen = strnlen(lex->lastbuff, lex->balloc);
-        double d = strtod(lex->lastbuff, &endptr);
-        if (endptr != (lex->lastbuff + blen)) {
-            parse_error(parser, "Invalid real number %s", lex->lastbuff);
-        }
-    } else if (accept(parser, TOK_STRING)) {
-        ;
-    } else if (accept(parser, TOK_IDENT)) {
-        if (check(parser, TOK_LPAREN)) {
-            arguments(parser);
-            parse_debug(parser, "Parsed function call");
-        } else if (accept(parser, TOK_DOT)) {
-            member(parser);
-        } else if (accept(parser, TOK_LSQUARE)) {
-            expression(parser);
-            expect(parser, TOK_RSQUARE);
-            /* parsed container lookup */
-        } else {
-            ; /* parsed identifier expr */
-        }
-    } else if (accept(parser, TOK_LPAREN)) {
-        expression(parser);
-        expect(parser, TOK_RPAREN);
-    } else if (check(parser, TOK_LSQUARE)) {
-        list_literal(parser);
-    } else if (check(parser, TOK_LCURLY)) {
-        map_literal(parser);
-    } else {
-        parse_error(parser, "expression: invalid expression");
-        next(parser);
-    }
-}
-
-static void arguments(struct parser *parser)
-{
-    expect(parser, TOK_LPAREN);
-    if (check(parser, TOK_RPAREN)) {
-        ; /* function call with no args */
-    } else {
-        do {
-            expression(parser);
-        } while (accept(parser, TOK_COMMA));
-    }
-    expect(parser, TOK_RPAREN);
+    return NULL; /* FIXME */
 }
 
 /**
@@ -306,39 +408,6 @@ static void funcdef(struct parser *parser)
     parse_debug(parser, "Parsed function definition");
 }
 
-static int ident_statement(struct parser *parser)
-{
-    if (check(parser, TOK_LPAREN)) {
-        arguments(parser);
-        parse_debug(parser, "Parsed function call");
-        return 1;
-    } else if (accept(parser, TOK_DOT)) {
-        member(parser);
-        return 1;
-    }
-
-    if (accept(parser, TOK_LSQUARE)) {
-        expression(parser);
-        expect(parser, TOK_RSQUARE);
-        /* parsing container assignment */
-    }
-
-    if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
-            parser->cur == TOK_ISUB || parser->cur == TOK_IMUL ||
-            parser->cur == TOK_IDIV || parser->cur == TOK_IMOD ||
-            parser->cur == TOK_IPOW) {
-        next(parser);   /* eat assignment operator */
-        expression(parser);
-        parse_debug(parser, "Parsed assignment");
-    } else {
-        parse_error(parser, "Invalid token after ident, found %s",
-                get_tok_name(parser->cur));
-        next(parser);
-        return 0;
-    }
-    return 1;
-}
-
 static void funcdecl(struct parser *parser)
 {
     expect(parser, TOK_FUNC);
@@ -372,7 +441,7 @@ static void typedefinition(struct parser *parser)
     parse_debug(parser, "Parsed type definition");
 }
 
-int statement(struct parser *parser)
+static struct ast *statement(struct parser *parser)
 {
 /*
 int x;
@@ -388,6 +457,12 @@ x(y)
         }
     } else if (check(parser, TOK_LSQUARE) || check(parser, TOK_LCURLY)) {
         declarations(parser);
+    } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
+        imports(parser);
+    } else if (accept(parser, TOK_STRUCT)) {
+        structtype(parser);
+    } else if (accept(parser, TOK_IFACE)) {
+        interface(parser);
     } else if (check(parser, TOK_IF)) {
         ifelse(parser);
     } else if (check(parser, TOK_WHILE)) {
@@ -407,20 +482,9 @@ x(y)
     } else if (accept(parser, TOK_TYPEDEF)) {
         typedefinition(parser);
     } else {
-        /* right-curly brace is the only token that would end a series of
-         * statements. anything else would be an invalid first token */
-        if (!check(parser, TOK_RCURLY)) {
-            parse_error(parser, "Unexpected token %s", get_tok_name(parser->cur));
-            next(parser);
-        }
-        return 0;
+        return NULL;
     }
-    return 1;
-}
-
-static void statements(struct parser *parser)
-{
-    while (statement(parser) != 0) ;
+    return NULL;
 }
 
 static int import(struct parser *parser)
@@ -443,12 +507,14 @@ static int import(struct parser *parser)
     return 1;
 }
 
-static void imports(struct parser *parser)
+static struct ast *imports(struct parser *parser)
 {
     while (import(parser) != 0) ;
+
+    return NULL; /* FIXME */
 }
 
-static void structtype(struct parser *parser)
+static struct ast *structtype(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
 
@@ -462,9 +528,11 @@ static void structtype(struct parser *parser)
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `struct`");
+
+    return NULL; /* FIXME */
 }
 
-static void interface(struct parser *parser)
+static struct ast *interface(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
 
@@ -474,38 +542,6 @@ static void interface(struct parser *parser)
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `iface`");
-}
 
-static int top_level_construct(struct parser *parser)
-{
-    if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
-        imports(parser);
-    } else if (accept(parser, TOK_STRUCT)) {
-        structtype(parser);
-    } else if (accept(parser, TOK_IFACE)) {
-        interface(parser);
-    } else if (check(parser, TOK_FUNC)) {
-        funcdef(parser);
-    } else if (accept(parser, TOK_TYPEDEF)) {
-        typedefinition(parser);
-    } else {
-        return 0;
-    }
-    return 1;
-}
-
-void parse_module(struct parser *parser)
-{
-    next(parser);   /* read first token */
-
-    if (accept(parser, TOK_EOF)) {
-        return;
-    } else {
-        if (!expect(parser, TOK_MODULE) || !expect(parser, TOK_IDENT)) {
-            parse_error(parser, "Missing `module <identifier>`\n");
-        }
-        while (top_level_construct(parser) != 0) ;
-        expect(parser, TOK_EOF);
-    }
-    parse_debug(parser, "Parsed entire file");
+    return NULL; /* FIXME */
 }
