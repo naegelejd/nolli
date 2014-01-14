@@ -1,8 +1,6 @@
 #ifndef NOLLI_AST_H
 #define NOLLI_AST_H
 
-struct type_t;
-
 typedef enum {
     AST_BAD_TYPE,
 
@@ -172,6 +170,7 @@ struct ast_assignment {
     struct ast HEAD;
     struct ast* ident;
     struct ast* expr;
+    assign_op_t op;
 };
 
 struct ast_keyval {
@@ -184,6 +183,25 @@ struct ast_import {
     struct ast HEAD;
     struct ast *from;
     struct ast *modules;
+};
+
+struct ast_typedef {
+    struct ast HEAD;
+    struct ast *type;
+    struct ast *alias;
+};
+
+struct ast_return {
+    struct ast HEAD;
+    struct ast *expr;
+};
+
+struct ast_break {
+    struct ast HEAD;
+};
+
+struct ast_cont {
+    struct ast HEAD;
 };
 
 struct ast_list {
@@ -214,6 +232,20 @@ struct ast_for {
     struct ast *body;
 };
 
+struct ast_contaccess {
+    struct ast HEAD;
+    struct ast *ident;
+    struct ast *index;
+};
+
+struct ast_contassign {
+    struct ast HEAD;
+    struct ast *ident;
+    struct ast *index;
+    struct ast *expr;
+    assign_op_t op;
+};
+
 
 struct ast* ast_make_bool_lit(bool b);
 struct ast* ast_make_char_lit(char c);
@@ -225,7 +257,7 @@ struct ast* ast_make_ident(const char *s);
 
 struct ast* ast_make_import(struct ast*, struct ast*);
 
-struct ast* ast_make_typedef(type_t*, struct ast* id);
+struct ast* ast_make_typedef(struct ast*, struct ast*);
 
 struct ast* ast_make_type(struct ast*);
 struct ast* ast_make_list_type(struct ast*);

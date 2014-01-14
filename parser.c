@@ -107,20 +107,21 @@ static struct ast *statement(struct parser *parser)
         return forloop(parser);
     } else if (check(parser, TOK_FUNC)) {
         funcdef(parser);
+        return NULL;    /* FIXME */
     } else if (accept(parser, TOK_RET)) {
         /* TODO: empty return statements? */
-        expression(parser);
+        struct ast *expr = expression(parser);
         parse_debug(parser, "Parsed a return statement");
+        return ast_make_return(expr);
     } else if (accept(parser, TOK_BREAK)) {
-        ;
+        return ast_make_break();
     } else if (accept(parser, TOK_CONT)) {
-        ;
+        return ast_make_continue();
     } else if (accept(parser, TOK_TYPEDEF)) {
-        typedefinition(parser);
+        return typedefinition(parser);
     } else {
         return NULL;
     }
-    return NULL;
 }
 
 static struct ast *var_declaration(struct parser *parser)
@@ -210,10 +211,11 @@ static struct ast *ident_statement(struct parser *parser)
         return NULL;    /* FIXME */
     }
 
+    struct ast *index = NULL;
     if (accept(parser, TOK_LSQUARE)) {
-        expression(parser);
-        expect(parser, TOK_RSQUARE);
         /* parsing container assignment */
+        index = expression(parser);
+        expect(parser, TOK_RSQUARE);
     }
 
     if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
@@ -223,7 +225,12 @@ static struct ast *ident_statement(struct parser *parser)
         int ass = parser->cur; /* save assignment operator */
         next(parser);   /* eat assignment operator */
         struct ast *expr = expression(parser);
-        struct ast *assignment = ast_make_assignment(ident, ass, expr);
+        struct ast *assignment = NULL;
+        if (index != NULL) {
+            assignment = ast_make_contassign(ident, index, ass, expr);
+        } else {
+            assignment = ast_make_assignment(ident, ass, expr);
+        }
         parse_debug(parser, "Parsed assignment");
         return assignment;
     } else {
@@ -234,6 +241,9 @@ static struct ast *ident_statement(struct parser *parser)
     }
 }
 
+/*
+ * TODO: Use Shunting Yard algorithm to parse respecting operator precedence
+ */
 static struct ast *expression(struct parser *parser)
 {
     struct ast *lhs = NULL;
@@ -294,10 +304,10 @@ static struct ast *term(struct parser *parser)
             member(parser);
             return NULL;    /* FIXME */
         } else if (accept(parser, TOK_LSQUARE)) {
-            expression(parser);
+            struct ast *index = expression(parser);
             expect(parser, TOK_RSQUARE);
             /* parsed container lookup */
-            return NULL;
+            return ast_make_contaccess(ident, index);
         } else {
             return ast_make_ident(parser->buffer);
         }
@@ -307,7 +317,7 @@ static struct ast *term(struct parser *parser)
         return expr;
     } else if (check(parser, TOK_LSQUARE)) {
         return list_literal(parser);
-    } else if (check(parser, TOK_RSQUARE)) {
+    } else if (check(parser, TOK_LCURLY)) {
         return map_literal(parser);
     } else {
         parse_error(parser, "Invalid terminal: %s", parser->buffer);
@@ -491,15 +501,18 @@ static void funcdecl(struct parser *parser)
 
 static struct ast *typedefinition(struct parser *parser)
 {
+    struct ast *type = NULL;
     if (check(parser, TOK_FUNC)) {
-        funcdecl(parser);
+        funcdecl(parser); /* FIXME */
     } else {
         expect(parser, TOK_TYPE);
+        type = ast_make_ident(parser->buffer);
     }
     expect(parser, TOK_IDENT);
+    struct ast *alias = ast_make_ident(parser->buffer);
     parse_debug(parser, "Parsed `typedef`");
 
-    return NULL; /* FIXME */
+    return ast_make_typedef(type, alias);
 }
 
 static struct ast *import(struct parser *parser)
