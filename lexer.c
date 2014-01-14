@@ -19,6 +19,7 @@ static char *tok_type_names[] = {
     "'('", "')'", "'['", "']'", "'{'", "'}'",
     "','", "'.'", "':'", "';'",
 
+    "var", "const",
     "if", "else",
     "while", "for",
     "break", "continue",
@@ -201,14 +202,14 @@ static int lookup_keyword(struct lexer *lex)
 {
     /* TODO: use hash-table or similar O(1) lookup */
     const char *keywords[] = {
-        "if", "else", "while", "for", "break",
+        "var", "const", "if", "else", "while", "for", "break",
         "continue", "in", "typedef", "func", "return",
         "struct", "iface", "module", "import", "from",
     };
     unsigned int kidx = 0;
     for (kidx = 0; kidx < sizeof(keywords) / sizeof(*keywords); kidx++) {
         if (strncmp(lex->curbuff, keywords[kidx], 16) == 0) {
-            return TOK_IF + kidx;
+            return TOK_VAR + kidx;
         }
     }
     return 0;

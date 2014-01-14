@@ -17,7 +17,13 @@ typedef enum {
     AST_IMPORT,
 
     AST_TYPEDEF,
+
+    AST_TYPE,
+    AST_LIST_TYPE,
+    AST_MAP_TYPE,
+
     AST_DECL,
+    AST_INIT,
 
     AST_UNEXPR,
     AST_BINEXPR,
@@ -31,7 +37,6 @@ typedef enum {
     AST_CONTASSIGN,
     AST_IFELSE,
     AST_WHILE,
-    AST_UNTIL,
     AST_FOR,
     AST_CALL,
     AST_FUNC_DEF,
@@ -73,8 +78,15 @@ typedef enum {
 } assign_op_t;
 
 typedef enum {
+    DECL_VAR,
+    DECL_CONST
+} decl_type_t;
+
+typedef enum {
+    LIST_DECLS,
     LIST_ARGS,
     LIST_LITERAL,
+    LIST_IMPORTS,
     LIST_MAP_ITEMS,
     LIST_STATEMENTS,
 } list_type_t;
@@ -108,6 +120,35 @@ struct ast_ident {
     char *s;
 };
 
+struct ast_type {
+    struct ast HEAD;
+    struct ast *name;
+};
+
+struct ast_list_type {
+    struct ast HEAD;
+    struct ast *name;
+};
+
+struct ast_map_type {
+    struct ast HEAD;
+    struct ast *keyname;
+    struct ast *valname;
+};
+
+struct ast_decl {
+    struct ast HEAD;
+    struct ast *type;
+    struct ast *name_s;     /* one ident or a list of idents */
+    decl_type_t tp;
+};
+
+struct ast_init {
+    struct ast HEAD;
+    struct ast *ident;
+    struct ast *expr;
+};
+
 struct ast_unexpr {
     struct ast HEAD;
     expr_op_t op;
@@ -139,12 +180,38 @@ struct ast_keyval {
     struct ast* val;
 };
 
+struct ast_import {
+    struct ast HEAD;
+    struct ast *from;
+    struct ast *modules;
+};
+
 struct ast_list {
     struct ast HEAD;
     struct ast **items;
     list_type_t type;
     unsigned int alloc;
     unsigned int count;
+};
+
+struct ast_ifelse {
+    struct ast HEAD;
+    struct ast *cond;
+    struct ast *if_body;
+    struct ast *else_body;
+};
+
+struct ast_while {
+    struct ast HEAD;
+    struct ast *cond;
+    struct ast *body;
+};
+
+struct ast_for {
+    struct ast HEAD;
+    struct ast *var;
+    struct ast *range;
+    struct ast *body;
 };
 
 
@@ -160,7 +227,12 @@ struct ast* ast_make_import(struct ast*, struct ast*);
 
 struct ast* ast_make_typedef(type_t*, struct ast* id);
 
-struct ast* ast_make_decl(type_t*, struct ast*);
+struct ast* ast_make_type(struct ast*);
+struct ast* ast_make_list_type(struct ast*);
+struct ast* ast_make_map_type(struct ast*, struct ast*);
+
+struct ast* ast_make_decl(decl_type_t, struct ast*, struct ast*);
+struct ast* ast_make_initialization(struct ast*, struct ast*);
 struct ast* ast_make_unexpr(expr_op_t, struct ast*);
 struct ast* ast_make_binexpr(struct ast*, expr_op_t, struct ast*);
 
@@ -174,7 +246,6 @@ struct ast* ast_make_contassign(struct ast*, struct ast*, assign_op_t, struct as
 
 struct ast* ast_make_ifelse(struct ast*, struct ast*, struct ast*);
 struct ast* ast_make_while(struct ast*, struct ast*);
-struct ast* ast_make_until(struct ast*, struct ast*);
 struct ast* ast_make_for(struct ast*, struct ast*, struct ast*);
 struct ast* ast_make_call(struct ast*, struct ast*);
 struct ast* ast_make_member(struct ast*, struct ast*);

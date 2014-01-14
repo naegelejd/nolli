@@ -1,5 +1,3 @@
-module intro
-
 import math, hello, world, goodbye
 
 struct shape {

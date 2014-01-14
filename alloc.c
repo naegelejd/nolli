@@ -5,8 +5,7 @@ void *nalloc(size_t bytes)
     assert(bytes);
     void* block = calloc(1, bytes);
     if (block == NULL) {
-        fprintf(stderr, "Alloc failed\n");
-        exit(EXIT_FAILURE);
+        NOLLI_DIE("%s\n", "nalloc failed");
     }
 
     return block;
@@ -19,8 +18,7 @@ void *nrealloc(void* block, size_t bytes)
 
     void* reblock = realloc(block, bytes);
     if (reblock == NULL) {
-        fprintf(stderr, "Alloc failed\n");
-        exit(EXIT_FAILURE);
+        NOLLI_DIE("%s\n", "nrealloc failed");
     }
 
     return reblock;

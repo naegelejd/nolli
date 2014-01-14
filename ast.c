@@ -7,6 +7,16 @@ static struct ast* create_node(ast_type_t type)
     return a;
 }
 
+/* Convenience function for allocating AST node
+ * and setting its type.
+ */
+static void *make_node(size_t size, ast_type_t type)
+{
+    struct ast *node = nalloc(size);
+    node->type = type;
+    return (void*)node;
+}
+
 struct ast* ast_make_bool_lit(bool b)
 {
     struct ast* bn = create_node(AST_BOOL_LIT);
@@ -15,24 +25,21 @@ struct ast* ast_make_bool_lit(bool b)
 
 struct ast* ast_make_char_lit(char c)
 {
-    struct ast_char *node = nalloc(sizeof(*node));
-    node->HEAD.type = AST_CHAR_LIT;
+    struct ast_char *node = make_node(sizeof(*node), AST_CHAR_LIT);
     node->c = c;
     return (struct ast*)node;
 }
 
 struct ast* ast_make_int_num(long l)
 {
-    struct ast_int *node = nalloc(sizeof(*node));
-    node->HEAD.type = AST_INT_NUM;
+    struct ast_int *node = make_node(sizeof(*node), AST_INT_NUM);
     node->l = l;
     return (struct ast*)node;
 }
 
 struct ast* ast_make_real_num(double d)
 {
-    struct ast_real *node = nalloc(sizeof(*node));
-    node->HEAD.type = AST_REAL_NUM;
+    struct ast_real *node = make_node(sizeof(*node), AST_REAL_NUM);
     node->d = d;
     return (struct ast*)node;
 }
@@ -41,8 +48,7 @@ struct ast* ast_make_str_lit(const char *s)
 {
     assert(s);
 
-    struct ast_str *node = nalloc(sizeof(*node));
-    node->HEAD.type = AST_STR_LIT;
+    struct ast_str *node = make_node(sizeof(*node), AST_STR_LIT);
     node->s = strdup(s);
     return (struct ast*)node;
 }
@@ -51,16 +57,17 @@ struct ast* ast_make_ident(const char *s)
 {
     assert(s);
 
-    struct ast_ident *ident = nalloc(sizeof(*ident));
-    ident->HEAD.type = AST_IDENT;
+    struct ast_ident *ident = make_node(sizeof(*ident), AST_IDENT);
     ident->s = strdup(s);
     return (struct ast*)ident;
 }
 
-struct ast* ast_make_import(struct ast* parent, struct ast* names)
+struct ast* ast_make_import(struct ast* from, struct ast* modules)
 {
-    struct ast* node = create_node(AST_IMPORT);
-    return node;
+    struct ast_import* import = make_node(sizeof(*import), AST_IMPORT);
+    import->from = from;
+    import->modules = modules;
+    return (struct ast*)import;
 }
 
 struct ast* ast_make_typedef(type_t* t, struct ast* id)
@@ -69,19 +76,50 @@ struct ast* ast_make_typedef(type_t* t, struct ast* id)
     return node;
 }
 
-struct ast* ast_make_decl(type_t* t, struct ast* id)
+struct ast* ast_make_type(struct ast *name)
 {
-    struct ast* dn = create_node(AST_DECL);
-    return dn;
+    struct ast_type *type = make_node(sizeof(*type), AST_TYPE);
+    type->name = name;
+    return (struct ast*)type;
 }
 
+struct ast* ast_make_list_type(struct ast *name)
+{
+    struct ast_list_type *type = make_node(sizeof(*type), AST_LIST_TYPE);
+    type->name = name;
+    return (struct ast*)type;
+}
+
+struct ast* ast_make_map_type(struct ast *keyname, struct ast *valname)
+{
+    struct ast_map_type *type = make_node(sizeof(*type), AST_MAP_TYPE);
+    type->keyname = keyname;
+    type->valname = valname;
+    return (struct ast*)type;
+}
+
+struct ast* ast_make_decl(decl_type_t tp, struct ast* type, struct ast* name_s)
+{
+    struct ast_decl *decl = make_node(sizeof(*decl), AST_DECL);
+    decl->type = type;
+    decl->name_s = name_s;
+    decl->tp = tp;
+    return (struct ast*)decl;
+}
+
+struct ast* ast_make_initialization(struct ast *ident, struct ast *expr)
+{
+    struct ast_init *init = make_node(sizeof(*init), AST_INIT);
+    init->ident = ident;
+    init->expr = expr;
+    return (struct ast*)init;
+}
 
 struct ast* ast_make_unexpr(expr_op_t op, struct ast* expr)
 {
     assert(expr);
 
-    struct ast_unexpr* unexpr = nalloc(sizeof(*unexpr));
-    unexpr->HEAD.type = AST_UNEXPR;
+    struct ast_unexpr* unexpr = make_node(sizeof(*unexpr), AST_UNEXPR);
     unexpr->op = op;
     unexpr->expr = expr;
     return (struct ast*)unexpr;
@@ -92,8 +130,7 @@ struct ast* ast_make_binexpr(struct ast* lhs, expr_op_t op, struct ast* rhs)
     assert(lhs);
     assert(rhs);
 
-    struct ast_binexpr* binexpr = nalloc(sizeof(*binexpr));
-    binexpr->HEAD.type = AST_BINEXPR;
+    struct ast_binexpr* binexpr = make_node(sizeof(*binexpr), AST_BINEXPR);
     binexpr->op = op;
     binexpr->lhs = lhs;
     binexpr->rhs = rhs;
@@ -102,8 +139,7 @@ struct ast* ast_make_binexpr(struct ast* lhs, expr_op_t op, struct ast* rhs)
 
 struct ast *ast_make_list(list_type_t type)
 {
-    struct ast_list *list = nalloc(sizeof(*list));
-    list->HEAD.type = AST_LIST;
+    struct ast_list *list = make_node(sizeof(*list), AST_LIST);
     list->type = type;
     /* TODO: this could differ based on list type..
      * e.g. statement lists allocate for 8 statements
@@ -121,7 +157,7 @@ struct ast *ast_list_append(struct ast* node, struct ast* item)
     assert(node);
     assert(item);
     struct ast_list* list = (struct ast_list*)node;
-    if (list->count > list->alloc) {
+    if (list->count >= list->alloc) {
         list->alloc *= 2;
         list->items = nrealloc(list->items,
                 list->alloc * sizeof(*list->items));
@@ -133,8 +169,7 @@ struct ast *ast_list_append(struct ast* node, struct ast* item)
 
 struct ast* ast_make_keyval(struct ast* key, struct ast* val)
 {
-    struct ast_keyval* keyval = nalloc(sizeof(*keyval));
-    keyval->HEAD.type = AST_KEYVAL;
+    struct ast_keyval* keyval = make_node(sizeof(*keyval), AST_KEYVAL);
     keyval->key = key;
     keyval->val = val;
     return (struct ast*)keyval;
@@ -151,9 +186,7 @@ struct ast* ast_make_assignment(struct ast* ident, assign_op_t op, struct ast* e
     assert(ident);
     assert(expr);
 
-    struct ast_assignment* assignment = nalloc(sizeof(*assignment));
-    assignment->HEAD.type = AST_ASSIGN;
-
+    struct ast_assignment* assignment = make_node(sizeof(*assignment), AST_ASSIGN);
     assignment->ident = ident;
     assignment->expr = expr;
 
@@ -167,28 +200,31 @@ struct ast* ast_make_contassign(struct ast* cont, struct ast* idx,
     return node;
 }
 
-struct ast* ast_make_ifelse(struct ast* cond, struct ast* t, struct ast* f)
+struct ast* ast_make_ifelse(struct ast* cond,
+        struct ast* if_body, struct ast* else_body)
 {
-    struct ast* node = create_node(AST_IFELSE);
-    return node;
+    struct ast_ifelse* ifelse = make_node(sizeof(*ifelse), AST_IFELSE);
+    ifelse->cond = cond;
+    ifelse->if_body = if_body;
+    ifelse->else_body = else_body;
+    return (struct ast*)ifelse;
 }
 
-struct ast* ast_make_while(struct ast* cond, struct ast* s)
+struct ast* ast_make_while(struct ast* cond, struct ast* body)
 {
-    struct ast* node = create_node(AST_WHILE);
-    return node;
+    struct ast_while* wile = make_node(sizeof(*wile), AST_WHILE);
+    wile->cond = cond;
+    wile->body = body;
+    return (struct ast*)wile;
 }
 
-struct ast* ast_make_until(struct ast* cond, struct ast* s)
+struct ast* ast_make_for(struct ast* var, struct ast* range, struct ast* body)
 {
-    struct ast* node = create_node(AST_UNTIL);
-    return node;
-}
-
-struct ast* ast_make_for(struct ast* id, struct ast* iter, struct ast* s)
-{
-    struct ast* node = create_node(AST_FOR);
-    return node;
+    struct ast_for* fore = make_node(sizeof(*fore), AST_FOR);
+    fore->var = var;
+    fore->range = range;
+    fore->body = body;
+    return (struct ast*)fore;
 }
 
 struct ast* ast_make_call(struct ast* func, struct ast* args)
@@ -196,8 +232,7 @@ struct ast* ast_make_call(struct ast* func, struct ast* args)
     assert(func);
     assert(args);
 
-    struct ast_call *call = nalloc(sizeof(*call));
-    call->HEAD.type = AST_CALL;
+    struct ast_call *call = make_node(sizeof(*call), AST_CALL);
     call->func = func;
     call->args = args;
     return (struct ast*)call;
@@ -239,7 +274,11 @@ static char *ast_name(struct ast* node)
         "IDENT",
         "IMPORT",
         "TYPEDEF",
+        "TYPE",
+        "LIST_TYPE",
+        "MAP_TYPE",
         "DECL",
+        "INIT",
         "UNEXPR",
         "BINEXPR",
         "LIST",
@@ -249,7 +288,6 @@ static char *ast_name(struct ast* node)
         "CONTASSIGN",
         "IFELSE",
         "WHILE",
-        "UNTIL",
         "FOR",
         "CALL",
         "FUNC_DEF",
@@ -261,8 +299,10 @@ static char *ast_name(struct ast* node)
     };
 
     static char *list_names[] = {
+        "LIST_DECLS",
         "LIST_ARGS",
         "LIST_LITERAL",
+        "LIST_IMPORTS",
         "LIST_MAP_ITEMS",
         "LIST_STATEMENTS",
     };
@@ -289,6 +329,15 @@ static void walk_binexpr(struct ast *node, visitor v);
 static void walk_list(struct ast *node, visitor v);
 static void walk_assign(struct ast *node, visitor v);
 static void walk_call(struct ast *node, visitor v);
+static void walk_import(struct ast *node, visitor v);
+static void walk_type(struct ast *node, visitor v);
+static void walk_list_type(struct ast *node, visitor v);
+static void walk_map_type(struct ast *node, visitor v);
+static void walk_decl(struct ast *node, visitor v);
+static void walk_initialization(struct ast *node, visitor v);
+static void walk_ifelse(struct ast *node, visitor v);
+static void walk_while(struct ast *node, visitor v);
+static void walk_for(struct ast *node, visitor v);
 
 void walk(struct ast* root)
 {
@@ -302,9 +351,15 @@ void walk(struct ast* root)
 
         walk_ident,
 
-        NULL, /* walk_import, */
+        walk_import,
         NULL, /* walk_typedef, */
-        NULL, /* walk_decl, */
+
+        walk_type,
+        walk_list_type,
+        walk_map_type,
+
+        walk_decl,
+        walk_initialization,
 
         walk_unexpr,
         walk_binexpr,
@@ -315,10 +370,9 @@ void walk(struct ast* root)
 
         walk_assign,
         NULL, /* walk_contassign, */
-        NULL, /* walk_ifelse, */
-        NULL, /* walk_while, */
-        NULL, /* walk_until, */
-        NULL, /* walk_for, */
+        walk_ifelse,
+        walk_while,
+        walk_for,
         walk_call,
         NULL, /* walk_func_def, */
         NULL, /* walk_struct, */
@@ -331,7 +385,8 @@ void walk(struct ast* root)
 
     visitor v = visit;
 
-    walkers[root->type](root, v);
+    walker w = walkers[root->type];
+    if (w) w(root, v);
 }
 
 
@@ -383,5 +438,85 @@ static void walk_call(struct ast *node, visitor v)
     struct ast_call* call = (struct ast_call*)node;
     walk(call->func);
     walk(call->args);
+    v(node);
+}
+
+static void walk_import(struct ast *node, visitor v)
+{
+    struct ast_import* import = (struct ast_import*)node;
+    if (import->from) {
+        assert(import->from);
+        walk(import->from);
+    }
+
+    assert(import->modules);
+    walk(import->modules);
+
+    v(node);
+}
+
+static void walk_type(struct ast *node, visitor v)
+{
+    struct ast_type *type = (struct ast_type *)node;
+    walk(type->name);
+    v(node);
+}
+
+static void walk_list_type(struct ast *node, visitor v)
+{
+    struct ast_list_type *type = (struct ast_list_type*)node;
+    walk(type->name);
+    v(node);
+}
+
+static void walk_map_type(struct ast *node, visitor v)
+{
+    struct ast_map_type *type = (struct ast_map_type*)node;
+    walk(type->keyname);
+    walk(type->valname);
+    v(node);
+}
+
+static void walk_decl(struct ast *node, visitor v)
+{
+    struct ast_decl *decl = (struct ast_decl *)node;
+    walk(decl->type);
+    walk(decl->name_s);
+    v(node);
+}
+
+static void walk_initialization(struct ast *node, visitor v)
+{
+    struct ast_init *init = (struct ast_init *)node;
+    walk(init->ident);
+    walk(init->expr);
+    v(node);
+}
+
+static void walk_ifelse(struct ast *node, visitor v)
+{
+    struct ast_ifelse *ifelse = (struct ast_ifelse *)node;
+    walk(ifelse->cond);
+    walk(ifelse->if_body);
+    if (ifelse->else_body) {
+        walk(ifelse->else_body);
+    }
+    v(node);
+}
+
+static void walk_while(struct ast *node, visitor v)
+{
+    struct ast_while *wile = (struct ast_while *)node;
+    walk(wile->cond);
+    walk(wile->body);
+    v(node);
+}
+
+static void walk_for(struct ast *node, visitor v)
+{
+    struct ast_for *fore = (struct ast_for *)node;
+    walk(fore->var);
+    walk(fore->range);
+    walk(fore->body);
     v(node);
 }

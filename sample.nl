@@ -1,5 +1,4 @@
-# A working sample of nolli's syntax */
-module std     # all nolli files are members of a module
+# A working sample of nolli's syntax
 
 import math
 from math import PI, E

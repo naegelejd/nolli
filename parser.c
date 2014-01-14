@@ -1,36 +1,31 @@
 #include "parser.h"
 
-static void parse_error(struct parser *parser, char *msg, ...)
-{
-    parser->error = true;
-
-    va_list ap;
-
-    fprintf(stderr, "ERROR (L %d, C %d): ",
-            parser->lexer->line, parser->lexer->col);
-
-    va_start(ap, msg);
-    vfprintf(stderr, msg, ap);
-    va_end(ap);
-
-    fprintf(stderr, "\n");
-
-    /* exit(1); */
-}
-
-static void parse_debug(struct parser *parser, char *msg, ...)
-{
-    va_list ap;
-
-    fprintf(stderr, "DEBUG (L %d, C %d): ",
-            parser->lexer->line, parser->lexer->col);
-
-    va_start(ap, msg);
-    vfprintf(stderr, msg, ap);
-    va_end(ap);
-
-    fprintf(stderr, "\n");
-}
+static struct ast *statements(struct parser *parser);
+static struct ast *statement(struct parser *parser);
+static struct ast *ident_statement(struct parser *parser);
+static struct ast *expression(struct parser *parser);
+static struct ast *term(struct parser *parser);
+static struct ast *list_literal(struct parser *parser);
+static struct ast *map_literal(struct parser *parser);
+static struct ast *arguments(struct parser *parser);
+static struct ast *member(struct parser *parser);
+static struct ast *body(struct parser *parser);
+static struct ast *ifelse(struct parser *parser);
+static struct ast *whileloop(struct parser *parser);
+static struct ast *forloop(struct parser *parser);
+static struct ast *var_declaration(struct parser *parser);
+static struct ast *const_declaration(struct parser *parser);
+static struct ast *declaration_type(struct parser *parser);
+static struct ast *declaration_names(struct parser *parser);
+static struct ast *funcdef(struct parser *parser);
+static struct ast *typedefinition(struct parser *parser);
+static struct ast *import(struct parser *parser);
+static struct ast *structtype(struct parser *parser);
+static struct ast *interface(struct parser *parser);
+static void parse_error(struct parser *parser, char *msg, ...);
+static void parse_debug(struct parser *parser, char *msg, ...);
+static int accept(struct parser *parser, int tok);
+static int expect(struct parser *parser, int tok);
 
 #undef next
 #define next(p)         ((p)->cur = gettok((p)->lexer))
@@ -56,19 +51,6 @@ static int expect(struct parser *parser, int tok)
     return 0;
 }
 
-
-static struct ast *statements(struct parser *parser);
-static struct ast *statement(struct parser *parser);
-static struct ast *ident_statement(struct parser *parser);
-static struct ast *expression(struct parser *parser);
-static struct ast *term(struct parser *parser);
-static struct ast *list_literal(struct parser *parser);
-static struct ast *map_literal(struct parser *parser);
-static struct ast *arguments(struct parser *parser);
-static struct ast *member(struct parser *parser);
-static struct ast *imports(struct parser *parser);
-static struct ast *structtype(struct parser *parser);
-static struct ast *interface(struct parser *parser);
 
 void parser_init(struct parser **parser_addr, struct lexer *lex)
 {
@@ -100,6 +82,118 @@ static struct ast *statements(struct parser *parser)
         stmt = statement(parser);
     }
     return statements;
+}
+
+/* int x; int y = 2 + 2; x = 1; x(y) */
+static struct ast *statement(struct parser *parser)
+{
+    if (accept(parser, TOK_VAR)) {
+        return var_declaration(parser);
+    } else if (accept(parser, TOK_CONST)) {
+        return const_declaration(parser);
+    } else if (accept(parser, TOK_IDENT)) {
+        return ident_statement(parser);
+    } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
+        return import(parser);
+    } else if (accept(parser, TOK_STRUCT)) {
+        return structtype(parser);
+    } else if (accept(parser, TOK_IFACE)) {
+        return interface(parser);
+    } else if (check(parser, TOK_IF)) {
+        return ifelse(parser);
+    } else if (check(parser, TOK_WHILE)) {
+        return whileloop(parser);
+    } else if (check(parser, TOK_FOR)) {
+        return forloop(parser);
+    } else if (check(parser, TOK_FUNC)) {
+        funcdef(parser);
+    } else if (accept(parser, TOK_RET)) {
+        /* TODO: empty return statements? */
+        expression(parser);
+        parse_debug(parser, "Parsed a return statement");
+    } else if (accept(parser, TOK_BREAK)) {
+        ;
+    } else if (accept(parser, TOK_CONT)) {
+        ;
+    } else if (accept(parser, TOK_TYPEDEF)) {
+        typedefinition(parser);
+    } else {
+        return NULL;
+    }
+    return NULL;
+}
+
+static struct ast *var_declaration(struct parser *parser)
+{
+    struct ast *type = declaration_type(parser);
+    struct ast *names = declaration_names(parser);
+
+    return ast_make_decl(DECL_VAR, type, names);
+}
+
+static struct ast *const_declaration(struct parser *parser)
+{
+    struct ast *type = declaration_type(parser);
+    struct ast *names = declaration_names(parser);
+
+    return ast_make_decl(DECL_CONST, type, names);
+}
+
+static struct ast *declaration_type(struct parser *parser)
+{
+    struct ast *type = NULL;
+
+    if (accept(parser, TOK_LSQUARE)) {
+        expect(parser, TOK_TYPE);
+        struct ast *listtype = ast_make_ident(parser->buffer);
+        expect(parser, TOK_RSQUARE);
+        type = ast_make_list_type(listtype);
+    } else if (accept(parser, TOK_LCURLY)) {
+        expect(parser, TOK_TYPE);
+        struct ast *keytype = ast_make_ident(parser->buffer);
+        expect(parser, TOK_COMMA);
+        expect(parser, TOK_TYPE);
+        struct ast *valtype = ast_make_ident(parser->buffer);
+        expect(parser, TOK_RCURLY);
+        type = ast_make_map_type(keytype, valtype);
+    } else {
+        expect(parser, TOK_TYPE);
+        struct ast *typename = ast_make_ident(parser->buffer);
+        type = ast_make_type(typename);
+    }
+
+    return type;
+}
+
+static struct ast *declaration_name(struct parser *parser)
+{
+    expect(parser, TOK_IDENT);
+    struct ast *ident = ast_make_ident(parser->buffer);
+    if (accept(parser, TOK_ASS)) {
+        struct ast *expr = expression(parser);
+        parse_debug(parser, "Parsed initialization");
+        return ast_make_initialization(ident, expr);
+    } else {
+        parse_debug(parser, "Parsed declaration");
+        return ident;
+    }
+}
+
+static struct ast *declaration_names(struct parser *parser)
+{
+    struct ast *name = declaration_name(parser);
+
+    /* only make a declaration list if more than one name is declared */
+    if (accept(parser, TOK_COMMA)) {
+        struct ast *list = ast_make_list(LIST_DECLS);
+        list = ast_list_append(list, name);
+        do {
+            list = ast_list_append(list, declaration_name(parser));
+        } while (accept(parser, TOK_COMMA));
+        return list;
+    }
+
+    return name;
 }
 
 static struct ast *ident_statement(struct parser *parser)
@@ -290,102 +384,65 @@ static struct ast *member(struct parser *parser)
  * Accept either multiple statements between curly braces, or
  * a single statement
  */
-static void body(struct parser *parser)
+static struct ast *body(struct parser *parser)
 {
+    struct ast *bod = NULL;
     if (accept(parser, TOK_LCURLY)) {
-        statements(parser);
+        bod = statements(parser);
         expect(parser, TOK_RCURLY);
     } else {
-        statement(parser);
+        bod = statement(parser);
     }
+    return bod;
 }
 
-static void ifelse(struct parser *parser)
+static struct ast *ifelse(struct parser *parser)
 {
     accept(parser, TOK_IF);
-    expression(parser);
-    body(parser);
+    struct ast *cond = expression(parser);
+    struct ast *if_body = body(parser);
 
     if (accept(parser, TOK_ELSE)) {
-        body(parser);
+        struct ast *else_body = body(parser);
         parse_debug(parser, "Parsed `if+else` construct");
+        return ast_make_ifelse(cond, if_body, else_body);
     } else {
         parse_debug(parser, "Parsed `if` construct");
+        return ast_make_ifelse(cond, if_body, NULL);
     }
 }
 
-static void whileloop(struct parser *parser)
+static struct ast *whileloop(struct parser *parser)
 {
     accept(parser, TOK_WHILE);
-    expression(parser);
-    body(parser);
+    struct ast *cond = expression(parser);
+    struct ast *bod = body(parser);
     parse_debug(parser, "Parsed `while` loop");
+    return ast_make_while(cond, bod);
 }
 
-static void forloop(struct parser *parser)
+static struct ast *forloop(struct parser *parser)
 {
     accept(parser, TOK_FOR);
     expect(parser, TOK_IDENT);
+    struct ast *var = ast_make_ident(parser->buffer);
     expect(parser, TOK_IN);
-    expression(parser);
-    body(parser);
+    struct ast *range = expression(parser);
+    struct ast *bod = body(parser);
     parse_debug(parser, "Parsed `for` loop");
-}
-
-static void declaration_type(struct parser *parser)
-{
-    if (accept(parser, TOK_LSQUARE)) {
-        expect(parser, TOK_TYPE);
-        expect(parser, TOK_RSQUARE);
-    } else if (accept(parser, TOK_LCURLY)) {
-        expect(parser, TOK_TYPE);
-        expect(parser, TOK_COMMA);
-        expect(parser, TOK_TYPE);
-        expect(parser, TOK_RCURLY);
-    } else {
-        expect(parser, TOK_TYPE);
-    }
-}
-
-static void declaration_name(struct parser *parser)
-{
-    expect(parser, TOK_IDENT);
-    if (accept(parser, TOK_ASS)) {
-        expression(parser);
-        parse_debug(parser, "Parsed initialization");
-    } else {
-        parse_debug(parser, "Parsed declaration");
-    }
-}
-
-static void declaration_names(struct parser *parser)
-{
-    do {
-        declaration_name(parser);
-    } while (accept(parser, TOK_COMMA));
-}
-
-static void declarations(struct parser *parser)
-{
-    declaration_type(parser);
-    declaration_name(parser);
-}
-
-static void declaration(struct parser *parser)
-{
-    declaration_type(parser);
-    declaration_name(parser);
+    return ast_make_for(var, range, bod);
 }
 
 static void parameters(struct parser *parser)
 {
     /* 1 decl, or many comma-separated decls */
     do {
-        declaration(parser);
+        declaration_type(parser);
+        declaration_name(parser);
     } while (accept(parser, TOK_COMMA));
 }
 
-static void funcdef(struct parser *parser)
+static struct ast *funcdef(struct parser *parser)
 {
     accept(parser, TOK_FUNC);
 
@@ -406,6 +463,8 @@ static void funcdef(struct parser *parser)
     expect(parser, TOK_RCURLY);
 
     parse_debug(parser, "Parsed function definition");
+
+    return NULL;    /* FIXME */
 }
 
 static void funcdecl(struct parser *parser)
@@ -430,7 +489,7 @@ static void funcdecl(struct parser *parser)
     parse_debug(parser, "Parsed function declaration");
 }
 
-static void typedefinition(struct parser *parser)
+static struct ast *typedefinition(struct parser *parser)
 {
     if (check(parser, TOK_FUNC)) {
         funcdecl(parser);
@@ -438,80 +497,34 @@ static void typedefinition(struct parser *parser)
         expect(parser, TOK_TYPE);
     }
     expect(parser, TOK_IDENT);
-    parse_debug(parser, "Parsed type definition");
+    parse_debug(parser, "Parsed `typedef`");
+
+    return NULL; /* FIXME */
 }
 
-static struct ast *statement(struct parser *parser)
+static struct ast *import(struct parser *parser)
 {
-/*
-int x;
-int y = 2 + 2;
-x = 1;
-x(y)
-*/
-    if (accept(parser, TOK_IDENT)) {
-        if (check(parser, TOK_IDENT)) {
-            declaration_names(parser);
-        } else {
-            return ident_statement(parser);
-        }
-    } else if (check(parser, TOK_LSQUARE) || check(parser, TOK_LCURLY)) {
-        declarations(parser);
-    } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
-        imports(parser);
-    } else if (accept(parser, TOK_STRUCT)) {
-        structtype(parser);
-    } else if (accept(parser, TOK_IFACE)) {
-        interface(parser);
-    } else if (check(parser, TOK_IF)) {
-        ifelse(parser);
-    } else if (check(parser, TOK_WHILE)) {
-        whileloop(parser);
-    } else if (check(parser, TOK_FOR)) {
-        forloop(parser);
-    } else if (check(parser, TOK_FUNC)) {
-        funcdef(parser);
-    } else if (accept(parser, TOK_RET)) {
-        /* TODO: empty return statements? */
-        expression(parser);
-        parse_debug(parser, "Parsed a return statement");
-    } else if (accept(parser, TOK_BREAK)) {
-        ;
-    } else if (accept(parser, TOK_CONT)) {
-        ;
-    } else if (accept(parser, TOK_TYPEDEF)) {
-        typedefinition(parser);
-    } else {
-        return NULL;
-    }
-    return NULL;
-}
+    struct ast *list = ast_make_list(LIST_IMPORTS);
+    struct ast *from = NULL;
 
-static int import(struct parser *parser)
-{
-    if (accept(parser, TOK_IMPORT)) {
-        ;
-    } else if (accept(parser, TOK_FROM)) {
+    if (accept(parser, TOK_FROM)) {
         expect(parser, TOK_IDENT);
+        from = ast_make_ident(parser->buffer);
         expect(parser, TOK_IMPORT);
     } else {
-        return 0;
+        expect(parser, TOK_IMPORT);
     }
 
     do {
         expect(parser, TOK_IDENT);
+        struct ast *module = ast_make_ident(parser->buffer);
+        list = ast_list_append(list, module);
     } while (accept(parser, TOK_COMMA));
 
     parse_debug(parser, "Parsed `import`");
 
-    return 1;
-}
-
-static struct ast *imports(struct parser *parser)
-{
-    while (import(parser) != 0) ;
-
-    return NULL; /* FIXME */
+    struct ast *imp = ast_make_import(from, list);
+    return imp;
 }
 
 static struct ast *structtype(struct parser *parser)
@@ -523,7 +536,8 @@ static struct ast *structtype(struct parser *parser)
         if (check(parser, TOK_FUNC)) {
             funcdecl(parser);
         } else {
-            declarations(parser);
+            declaration_type(parser);
+            declaration_names(parser);
         }
     }
     expect(parser, TOK_RCURLY);
@@ -544,4 +558,36 @@ static struct ast *interface(struct parser *parser)
     parse_debug(parser, "Parsed `iface`");
 
     return NULL; /* FIXME */
+}
+
+static void parse_error(struct parser *parser, char *msg, ...)
+{
+    parser->error = true;
+
+    va_list ap;
+
+    fprintf(stderr, "ERROR (L %d, C %d): ",
+            parser->lexer->line, parser->lexer->col);
+
+    va_start(ap, msg);
+    vfprintf(stderr, msg, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
+
+    /* exit(1); */
+}
+
+static void parse_debug(struct parser *parser, char *msg, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "DEBUG (L %d, C %d): ",
+            parser->lexer->line, parser->lexer->col);
+
+    va_start(ap, msg);
+    vfprintf(stderr, msg, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
 }
