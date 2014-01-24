@@ -19,7 +19,6 @@ set(NOLLI_SOURCES
     parser.c
     ast.c
     type.c
-    symtable.c
 )
 
 set(NOLLI_HEADERS
@@ -29,7 +28,6 @@ set(NOLLI_HEADERS
     lexer.h
     parser.h
     ast.h
-    symtable.h
 )
 
 #include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})

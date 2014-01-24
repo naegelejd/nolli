@@ -203,23 +203,6 @@ struct ast* ast_make_assignment(struct ast* ident, assign_op_t op, struct ast* e
     return (struct ast*)assignment;
 }
 
-struct ast* ast_make_contassign(struct ast* ident, struct ast* index,
-        assign_op_t op, struct ast* expr)
-{
-    assert(ident);
-    assert(index);
-    assert(expr);
-
-    struct ast_contassign* contassign = make_node(
-            sizeof(*contassign), AST_CONTASSIGN);
-    contassign->ident = ident;
-    contassign->index = index;
-    contassign->expr = expr;
-    contassign->op = op;
-
-    return (struct ast*)contassign;
-}
-
 struct ast* ast_make_ifelse(struct ast* cond,
         struct ast* if_body, struct ast* else_body)
 {
@@ -260,8 +243,13 @@ struct ast* ast_make_call(struct ast* func, struct ast* args)
 
 struct ast* ast_make_member(struct ast* parent, struct ast* child)
 {
-    struct ast* node = create_node(AST_MEMBER);
-    return node;
+    assert(parent);
+    assert(child);
+
+    struct ast_member *member = make_node(sizeof(*member), AST_MEMBER);
+    member->parent = parent;
+    member->child = child;
+    return (struct ast*)member;
 }
 
 struct ast* ast_make_return(struct ast* expr)
@@ -306,7 +294,6 @@ static char *ast_name(struct ast* node)
         "KEYVAL",
         "CONTACCESS",
         "ASSIGN",
-        "CONTASSIGN",
         "IFELSE",
         "WHILE",
         "FOR",
@@ -344,6 +331,7 @@ void visit(struct ast* node)
 }
 
 static void walk_int_num(struct ast *node, visitor v);
+static void walk_str_lit(struct ast *node, visitor v);
 static void walk_ident(struct ast *node, visitor v);
 static void walk_unexpr(struct ast *node, visitor v);
 static void walk_binexpr(struct ast *node, visitor v);
@@ -351,6 +339,7 @@ static void walk_list(struct ast *node, visitor v);
 static void walk_keyval(struct ast *node, visitor v);
 static void walk_assign(struct ast *node, visitor v);
 static void walk_call(struct ast *node, visitor v);
+static void walk_member(struct ast *node, visitor v);
 static void walk_import(struct ast *node, visitor v);
 static void walk_type(struct ast *node, visitor v);
 static void walk_list_type(struct ast *node, visitor v);
@@ -365,7 +354,6 @@ static void walk_return(struct ast *node, visitor v);
 static void walk_break(struct ast *node, visitor v);
 static void walk_continue(struct ast *node, visitor v);
 static void walk_contaccess(struct ast *node, visitor v);
-static void walk_contassign(struct ast *node, visitor v);
 
 void walk(struct ast* root)
 {
@@ -375,7 +363,7 @@ void walk(struct ast* root)
         NULL, /* walk_char_lit, */
         walk_int_num,
         NULL, /* walk_real_num, */
-        NULL, /* walk_str_lit, */
+        walk_str_lit,
 
         walk_ident,
 
@@ -397,14 +385,13 @@ void walk(struct ast* root)
         walk_contaccess,
 
         walk_assign,
-        walk_contassign,
         walk_ifelse,
         walk_while,
         walk_for,
         walk_call,
         NULL, /* walk_func_def, */
         NULL, /* walk_struct, */
-        NULL, /* walk_member, */
+        walk_member,
 
         walk_return,
         walk_break,
@@ -419,6 +406,11 @@ void walk(struct ast* root)
 
 
 static void walk_int_num(struct ast *node, visitor v)
+{
+    v(node);
+}
+
+static void walk_str_lit(struct ast *node, visitor v)
 {
     v(node);
 }
@@ -474,6 +466,14 @@ static void walk_call(struct ast *node, visitor v)
     struct ast_call* call = (struct ast_call*)node;
     walk(call->func);
     walk(call->args);
+    v(node);
+}
+
+static void walk_member(struct ast *node, visitor v)
+{
+    struct ast_member* member = (struct ast_member*)node;
+    walk(member->parent);
+    walk(member->child);
     v(node);
 }
 
@@ -587,14 +587,5 @@ static void walk_contaccess(struct ast *node, visitor v)
     struct ast_contaccess *ca = (struct ast_contaccess*)node;
     walk(ca->ident);
     walk(ca->index);
-    v(node);
-}
-
-static void walk_contassign(struct ast *node, visitor v)
-{
-    struct ast_contassign *ca = (struct ast_contassign*)node;
-    walk(ca->ident);
-    walk(ca->index);
-    walk(ca->expr);
     v(node);
 }

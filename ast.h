@@ -32,7 +32,6 @@ typedef enum {
     AST_CONTACCESS,
 
     AST_ASSIGN,
-    AST_CONTASSIGN,
     AST_IFELSE,
     AST_WHILE,
     AST_FOR,
@@ -166,6 +165,12 @@ struct ast_call {
     struct ast* args;
 };
 
+struct ast_member {
+    struct ast HEAD;
+    struct ast* parent;
+    struct ast* child;
+};
+
 struct ast_assignment {
     struct ast HEAD;
     struct ast* ident;
@@ -238,14 +243,6 @@ struct ast_contaccess {
     struct ast *index;
 };
 
-struct ast_contassign {
-    struct ast HEAD;
-    struct ast *ident;
-    struct ast *index;
-    struct ast *expr;
-    assign_op_t op;
-};
-
 
 struct ast* ast_make_bool_lit(bool b);
 struct ast* ast_make_char_lit(char c);
@@ -274,7 +271,6 @@ struct ast* ast_make_keyval(struct ast* key, struct ast* val);
 struct ast* ast_make_contaccess(struct ast*, struct ast*);
 
 struct ast* ast_make_assignment(struct ast*, assign_op_t, struct ast*);
-struct ast* ast_make_contassign(struct ast*, struct ast*, assign_op_t, struct ast*);
 
 struct ast* ast_make_ifelse(struct ast*, struct ast*, struct ast*);
 struct ast* ast_make_while(struct ast*, struct ast*);
