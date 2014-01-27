@@ -1,35 +1,35 @@
 import math, hello, world, goodbye
 
-struct shape {
-    int area, perimeter
-    str name = "circle"
-}
+# struct shape {
+#     int area, perimeter
+#     str name = "circle"
+# }
 
-iface buffer {
-    func show ()
-    func int read (file)
-}
+# iface buffer {
+#     func show ()
+#     func int read (file)
+# }
 
 func int main(str args)
 {
-    bool b, f = false
-    char c, d = 'x'
-    int i,x = 3,y=4
-    real r = 3.14
-    str s = "hello",w
+    var bool b, f = false
+    const char c, d = 'x'
+    var int i,x = 3,y=4
+    const real r = 3.14
+    var str s = "hello",w
 
-    [int] l = [0, 1, 2, 3, 4]
+    var [int] l = [0, 1, 2, 3, 4]
 
-    {str,int} m = {"hello":5, "all":3}
+    var {str,int} m = {"hello":5, "all":3}
 
-    int len = range(l)
+    var int len = range(l)
 
     if 1 + 1 < 3
         print("true")
     else
         print("false")
 
-    int i = 3
+    var int i = 3
     while (i > 0) {
         print(i)
     }
@@ -38,7 +38,7 @@ func int main(str args)
     temp()
 
     typedef func int (str) main_t
-    [main_t] mains = [main, main, main]
+    var [main_t] mains = [main, main, main]
     for m in mains {
         main("hello world")
     }

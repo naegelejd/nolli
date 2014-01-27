@@ -17,7 +17,8 @@ int main(int argc, char **argv)
     struct lexer *lex = NULL;
     lexer_init(&lex, fin);
 
-    struct parser *parser = NULL;calloc(1, sizeof(*parser));
+    struct parser *parser = NULL;
+    calloc(1, sizeof(*parser));
     parser_init(&parser, lex);
 
     struct ast *root = NULL;
@@ -34,6 +35,7 @@ int main(int argc, char **argv)
     }
 
     if (parser->error) {
+        fprintf(stderr, "Parse errors... cannot continue\n");
         return ERR_PARSE;
     }
 

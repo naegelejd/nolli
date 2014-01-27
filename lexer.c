@@ -30,7 +30,6 @@ static char *tok_type_names[] = {
     "module", "import", "from",
 };
 
-
 #define next(lex) \
     do { \
         lex->cur = getc(lex->input); \
@@ -258,8 +257,10 @@ static int lex_symbol(struct lexer *lex)
         }
     }
 
+    appendc(lex, lex->cur);
     next(lex);
     if (lex->cur == '=') {
+        appendc(lex, lex->cur);
         next(lex);
         /* in-place operations follow their base op equivalent */
         return tok + 1;
