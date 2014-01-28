@@ -100,6 +100,14 @@ struct ast* ast_make_map_type(struct ast *keyname, struct ast *valname)
     return (struct ast*)type;
 }
 
+struct ast* ast_make_func_type(struct ast *ret_type, struct ast *param_types)
+{
+    struct ast_func_type *type = make_node(sizeof(*type), AST_FUNC_TYPE);
+    type->ret_type = ret_type;
+    type->param_types = param_types;
+    return (struct ast*)type;
+}
+
 struct ast* ast_make_decl(decl_type_t tp, struct ast* type, struct ast* name_s)
 {
     struct ast_decl *decl = make_node(sizeof(*decl), AST_DECL);
@@ -241,17 +249,6 @@ struct ast* ast_make_call(struct ast* func, struct ast* args)
     return (struct ast*)call;
 }
 
-struct ast* ast_make_member(struct ast* parent, struct ast* child)
-{
-    assert(parent);
-    assert(child);
-
-    struct ast_member *member = make_node(sizeof(*member), AST_MEMBER);
-    member->parent = parent;
-    member->child = child;
-    return (struct ast*)member;
-}
-
 struct ast* ast_make_return(struct ast* expr)
 {
     struct ast_return *ret = make_node(sizeof(*ret), AST_RETURN);
@@ -271,6 +268,29 @@ struct ast* ast_make_continue(void)
     return (struct ast*)cont;
 }
 
+struct ast* ast_make_funcdef(struct ast *ret_type, struct ast *name,
+        struct ast *params, struct ast *body)
+{
+    struct ast_funcdef *f = make_node(sizeof(*f), AST_FUNCDEF);
+    f->ret_type = ret_type;
+    f->name = name;
+    f->params = params;
+    f->body = body;
+
+    return (struct ast*)f;
+}
+
+struct ast* ast_make_funclit(struct ast *ret_type, struct ast *params,
+        struct ast *body)
+{
+    struct ast_funclit *f = make_node(sizeof(*f), AST_FUNCLIT);
+    f->ret_type = ret_type;
+    f->params = params;
+    f->body = body;
+
+    return (struct ast*)f;
+}
+
 static char *ast_name(struct ast* node)
 {
     static char *names[] = {
@@ -286,6 +306,7 @@ static char *ast_name(struct ast* node)
         "TYPE",
         "LIST_TYPE",
         "MAP_TYPE",
+        "FUNC_TYPE",
         "DECL",
         "INIT",
         "UNEXPR",
@@ -298,9 +319,9 @@ static char *ast_name(struct ast* node)
         "WHILE",
         "FOR",
         "CALL",
-        "FUNC_DEF",
+        "FUNCLIT",
+        "FUNCDEF",
         "STRUCT",
-        "MEMBER",
         "RETURN",
         "BREAK",
         "CONTINUE",
@@ -309,9 +330,12 @@ static char *ast_name(struct ast* node)
     static char *list_names[] = {
         "LIST_DECLS",
         "LIST_ARGS",
+        "LIST_PARAMS",
+        "LIST_TYPES",
         "LIST_LITERAL",
         "LIST_IMPORTS",
         "LIST_MAP_ITEMS",
+        "LIST_SELECTORS",
         "LIST_STATEMENTS",
     };
 
@@ -339,11 +363,11 @@ static void walk_list(struct ast *node, visitor v);
 static void walk_keyval(struct ast *node, visitor v);
 static void walk_assign(struct ast *node, visitor v);
 static void walk_call(struct ast *node, visitor v);
-static void walk_member(struct ast *node, visitor v);
 static void walk_import(struct ast *node, visitor v);
 static void walk_type(struct ast *node, visitor v);
 static void walk_list_type(struct ast *node, visitor v);
 static void walk_map_type(struct ast *node, visitor v);
+static void walk_func_type(struct ast *node, visitor v);
 static void walk_decl(struct ast *node, visitor v);
 static void walk_initialization(struct ast *node, visitor v);
 static void walk_ifelse(struct ast *node, visitor v);
@@ -354,6 +378,8 @@ static void walk_return(struct ast *node, visitor v);
 static void walk_break(struct ast *node, visitor v);
 static void walk_continue(struct ast *node, visitor v);
 static void walk_contaccess(struct ast *node, visitor v);
+static void walk_funclit(struct ast *node, visitor v);
+static void walk_funcdef(struct ast *node, visitor v);
 
 void walk(struct ast* root)
 {
@@ -373,6 +399,7 @@ void walk(struct ast* root)
         walk_type,
         walk_list_type,
         walk_map_type,
+        walk_func_type,
 
         walk_decl,
         walk_initialization,
@@ -389,9 +416,9 @@ void walk(struct ast* root)
         walk_while,
         walk_for,
         walk_call,
-        NULL, /* walk_func_def, */
+        walk_funclit,
+        walk_funcdef,
         NULL, /* walk_struct, */
-        walk_member,
 
         walk_return,
         walk_break,
@@ -469,14 +496,6 @@ static void walk_call(struct ast *node, visitor v)
     v(node);
 }
 
-static void walk_member(struct ast *node, visitor v)
-{
-    struct ast_member* member = (struct ast_member*)node;
-    walk(member->parent);
-    walk(member->child);
-    v(node);
-}
-
 static void walk_import(struct ast *node, visitor v)
 {
     struct ast_import* import = (struct ast_import*)node;
@@ -510,6 +529,14 @@ static void walk_map_type(struct ast *node, visitor v)
     struct ast_map_type *type = (struct ast_map_type*)node;
     walk(type->keyname);
     walk(type->valname);
+    v(node);
+}
+
+static void walk_func_type(struct ast *node, visitor v)
+{
+    struct ast_func_type *type = (struct ast_func_type*)node;
+    walk(type->ret_type);
+    walk(type->param_types);
     v(node);
 }
 
@@ -587,5 +614,24 @@ static void walk_contaccess(struct ast *node, visitor v)
     struct ast_contaccess *ca = (struct ast_contaccess*)node;
     walk(ca->ident);
     walk(ca->index);
+    v(node);
+}
+
+static void walk_funclit(struct ast *node, visitor v)
+{
+    struct ast_funclit *f = (struct ast_funclit*)node;
+    walk(f->ret_type);
+    walk(f->params);
+    walk(f->body);
+    v(node);
+}
+
+static void walk_funcdef(struct ast *node, visitor v)
+{
+    struct ast_funcdef *f = (struct ast_funcdef*)node;
+    walk(f->ret_type);
+    walk(f->name);
+    walk(f->params);
+    walk(f->body);
     v(node);
 }

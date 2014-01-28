@@ -19,6 +19,7 @@ typedef enum {
     AST_TYPE,
     AST_LIST_TYPE,
     AST_MAP_TYPE,
+    AST_FUNC_TYPE,
 
     AST_DECL,
     AST_INIT,
@@ -36,9 +37,9 @@ typedef enum {
     AST_WHILE,
     AST_FOR,
     AST_CALL,
-    AST_FUNC_DEF,
+    AST_FUNCLIT,
+    AST_FUNCDEF,
     AST_STRUCT,
-    AST_MEMBER,
 
     AST_RETURN,
     AST_BREAK,
@@ -82,9 +83,12 @@ typedef enum {
 typedef enum {
     LIST_DECLS,
     LIST_ARGS,
+    LIST_PARAMS,
+    LIST_TYPES,
     LIST_LITERAL,
     LIST_IMPORTS,
     LIST_MAP_ITEMS,
+    LIST_SELECTORS,
     LIST_STATEMENTS,
 } list_type_t;
 
@@ -133,6 +137,12 @@ struct ast_map_type {
     struct ast *valname;
 };
 
+struct ast_func_type {
+    struct ast HEAD;
+    struct ast *ret_type;
+    struct ast *param_types;
+};
+
 struct ast_decl {
     struct ast HEAD;
     struct ast *type;
@@ -163,12 +173,6 @@ struct ast_call {
     struct ast HEAD;
     struct ast* func;
     struct ast* args;
-};
-
-struct ast_member {
-    struct ast HEAD;
-    struct ast* parent;
-    struct ast* child;
 };
 
 struct ast_assignment {
@@ -243,6 +247,20 @@ struct ast_contaccess {
     struct ast *index;
 };
 
+struct ast_funcdef {
+    struct ast HEAD;
+    struct ast *ret_type;
+    struct ast *name;
+    struct ast *params;
+    struct ast *body;
+};
+
+struct ast_funclit {
+    struct ast HEAD;
+    struct ast *ret_type;
+    struct ast *params;
+    struct ast *body;
+};
 
 struct ast* ast_make_bool_lit(bool b);
 struct ast* ast_make_char_lit(char c);
@@ -259,6 +277,7 @@ struct ast* ast_make_typedef(struct ast*, struct ast*);
 struct ast* ast_make_type(struct ast*);
 struct ast* ast_make_list_type(struct ast*);
 struct ast* ast_make_map_type(struct ast*, struct ast*);
+struct ast* ast_make_func_type(struct ast*, struct ast*);
 
 struct ast* ast_make_decl(decl_type_t, struct ast*, struct ast*);
 struct ast* ast_make_initialization(struct ast*, struct ast*);
@@ -276,11 +295,13 @@ struct ast* ast_make_ifelse(struct ast*, struct ast*, struct ast*);
 struct ast* ast_make_while(struct ast*, struct ast*);
 struct ast* ast_make_for(struct ast*, struct ast*, struct ast*);
 struct ast* ast_make_call(struct ast*, struct ast*);
-struct ast* ast_make_member(struct ast*, struct ast*);
 
 struct ast* ast_make_break(void);
 struct ast* ast_make_continue(void);
 struct ast* ast_make_return(struct ast*);
+
+struct ast* ast_make_funclit(struct ast*, struct ast*, struct ast*);
+struct ast* ast_make_funcdef(struct ast*, struct ast*, struct ast*, struct ast*);
 
 struct ast* ast_make_statement_list(struct ast*, struct ast*);
 
