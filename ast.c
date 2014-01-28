@@ -108,6 +108,22 @@ struct ast* ast_make_func_type(struct ast *ret_type, struct ast *param_types)
     return (struct ast*)type;
 }
 
+struct ast* ast_make_struct_type(struct ast *name, struct ast *members)
+{
+    struct ast_struct_type *type = make_node(sizeof(*type), AST_STRUCT_TYPE);
+    type->name = name;
+    type->members = members;
+    return (struct ast*)type;
+}
+
+struct ast* ast_make_iface_type(struct ast *name, struct ast *methods)
+{
+    struct ast_iface_type *type = make_node(sizeof(*type), AST_IFACE_TYPE);
+    type->name = name;
+    type->methods = methods;
+    return (struct ast*)type;
+}
+
 struct ast* ast_make_decl(decl_type_t tp, struct ast* type, struct ast* name_s)
 {
     struct ast_decl *decl = make_node(sizeof(*decl), AST_DECL);
@@ -336,6 +352,8 @@ static char *ast_name(struct ast* node)
         "LIST_IMPORTS",
         "LIST_MAP_ITEMS",
         "LIST_SELECTORS",
+        "LIST_MEMBERS",
+        "LIST_METHODS",
         "LIST_STATEMENTS",
     };
 
@@ -368,6 +386,8 @@ static void walk_type(struct ast *node, visitor v);
 static void walk_list_type(struct ast *node, visitor v);
 static void walk_map_type(struct ast *node, visitor v);
 static void walk_func_type(struct ast *node, visitor v);
+static void walk_struct_type(struct ast *node, visitor v);
+static void walk_iface_type(struct ast *node, visitor v);
 static void walk_decl(struct ast *node, visitor v);
 static void walk_initialization(struct ast *node, visitor v);
 static void walk_ifelse(struct ast *node, visitor v);
@@ -400,6 +420,8 @@ void walk(struct ast* root)
         walk_list_type,
         walk_map_type,
         walk_func_type,
+        walk_struct_type,
+        walk_iface_type,
 
         walk_decl,
         walk_initialization,
@@ -535,8 +557,28 @@ static void walk_map_type(struct ast *node, visitor v)
 static void walk_func_type(struct ast *node, visitor v)
 {
     struct ast_func_type *type = (struct ast_func_type*)node;
-    walk(type->ret_type);
-    walk(type->param_types);
+    if (type->ret_type) {
+        walk(type->ret_type);
+    }
+    if (type->param_types) {
+        walk(type->param_types);
+    }
+    v(node);
+}
+
+static void walk_struct_type(struct ast *node, visitor v)
+{
+    struct ast_struct_type *type = (struct ast_struct_type*)node;
+    walk(type->name);
+    walk(type->members);
+    v(node);
+}
+
+static void walk_iface_type(struct ast *node, visitor v)
+{
+    struct ast_iface_type *type = (struct ast_iface_type*)node;
+    walk(type->name);
+    walk(type->methods);
     v(node);
 }
 
@@ -620,8 +662,13 @@ static void walk_contaccess(struct ast *node, visitor v)
 static void walk_funclit(struct ast *node, visitor v)
 {
     struct ast_funclit *f = (struct ast_funclit*)node;
-    walk(f->ret_type);
-    walk(f->params);
+
+    if (f->ret_type) {
+        walk(f->ret_type);
+    }
+    if (f->params) {
+        walk(f->params);
+    }
     walk(f->body);
     v(node);
 }
@@ -629,9 +676,16 @@ static void walk_funclit(struct ast *node, visitor v)
 static void walk_funcdef(struct ast *node, visitor v)
 {
     struct ast_funcdef *f = (struct ast_funcdef*)node;
-    walk(f->ret_type);
+
+    if (f->ret_type) {
+        walk(f->ret_type);
+    }
+
     walk(f->name);
-    walk(f->params);
+
+    if (f->params) {
+        walk(f->params);
+    }
     walk(f->body);
     v(node);
 }

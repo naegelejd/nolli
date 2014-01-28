@@ -20,6 +20,8 @@ typedef enum {
     AST_LIST_TYPE,
     AST_MAP_TYPE,
     AST_FUNC_TYPE,
+    AST_STRUCT_TYPE,
+    AST_IFACE_TYPE,
 
     AST_DECL,
     AST_INIT,
@@ -89,6 +91,8 @@ typedef enum {
     LIST_IMPORTS,
     LIST_MAP_ITEMS,
     LIST_SELECTORS,
+    LIST_MEMBERS,
+    LIST_METHODS,
     LIST_STATEMENTS,
 } list_type_t;
 
@@ -141,6 +145,18 @@ struct ast_func_type {
     struct ast HEAD;
     struct ast *ret_type;
     struct ast *param_types;
+};
+
+struct ast_struct_type {
+    struct ast HEAD;
+    struct ast *name;
+    struct ast *members;
+};
+
+struct ast_iface_type {
+    struct ast HEAD;
+    struct ast *name;
+    struct ast *methods;
 };
 
 struct ast_decl {
@@ -278,6 +294,8 @@ struct ast* ast_make_type(struct ast*);
 struct ast* ast_make_list_type(struct ast*);
 struct ast* ast_make_map_type(struct ast*, struct ast*);
 struct ast* ast_make_func_type(struct ast*, struct ast*);
+struct ast* ast_make_struct_type(struct ast*, struct ast*);
+struct ast* ast_make_iface_type(struct ast*, struct ast*);
 
 struct ast* ast_make_decl(decl_type_t, struct ast*, struct ast*);
 struct ast* ast_make_initialization(struct ast*, struct ast*);

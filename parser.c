@@ -102,9 +102,9 @@ static struct ast *statement(struct parser *parser)
         /* return ident_statement(parser); */
     } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
         return import(parser);
-    } else if (accept(parser, TOK_STRUCT)) {
+    } else if (check(parser, TOK_STRUCT)) {
         return structtype(parser);
-    } else if (accept(parser, TOK_IFACE)) {
+    } else if (check(parser, TOK_IFACE)) {
         return interface(parser);
     } else if (check(parser, TOK_IF)) {
         return ifelse(parser);
@@ -657,35 +657,43 @@ static struct ast *import(struct parser *parser)
 
 static struct ast *structtype(struct parser *parser)
 {
+    accept(parser, TOK_STRUCT);
     expect(parser, TOK_IDENT);
+    struct ast *name = ast_make_ident(parser->buffer);
 
     expect(parser, TOK_LCURLY);
+    struct ast *members = ast_make_list(LIST_MEMBERS);
     while (!check(parser, TOK_RCURLY)) {
+        struct ast *member = NULL;
         if (check(parser, TOK_FUNC)) {
-            funcdecl(parser);
+            member = funcdecl(parser);
         } else {
-            declaration_type(parser);
-            declaration_names(parser);
+            member = var_declaration(parser);
         }
+        members = ast_list_append(members, member);
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `struct`");
 
-    return NULL; /* FIXME */
+    return ast_make_struct_type(name, members);
 }
 
 static struct ast *interface(struct parser *parser)
 {
+    accept(parser, TOK_IFACE);
     expect(parser, TOK_IDENT);
+    struct ast *name = ast_make_ident(parser->buffer);
 
     expect(parser, TOK_LCURLY);
+    struct ast *methods = ast_make_list(LIST_METHODS);
     while (!check(parser, TOK_RCURLY)) {
-        funcdecl(parser);
+        struct ast *fd = funcdecl(parser);
+        methods = ast_list_append(methods, fd);
     }
     expect(parser, TOK_RCURLY);
     parse_debug(parser, "Parsed `iface`");
 
-    return NULL; /* FIXME */
+    return ast_make_iface_type(name, methods);
 }
 
 static void parse_error(struct parser *parser, char *msg, ...)
