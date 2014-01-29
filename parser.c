@@ -84,6 +84,7 @@ static struct ast *statements(struct parser *parser)
     struct ast* stmt = statement(parser);
 
     while (stmt != NULL) {
+        expect(parser, TOK_SEMI);
         statements = ast_list_append(statements, stmt);
         /* add statement to list */
         stmt = statement(parser);
@@ -108,39 +109,32 @@ static struct ast *statement(struct parser *parser)
         return forloop(parser);
     } else if (check(parser, TOK_FUNC)) {
         return funcdef(parser);
-    }
-
-    struct ast *stmt = NULL;
-    if (accept(parser, TOK_VAR)) {
-        stmt = var_declaration(parser);
+    } else if (accept(parser, TOK_VAR)) {
+        return var_declaration(parser);
     } else if (accept(parser, TOK_CONST)) {
-        stmt = const_declaration(parser);
+        return const_declaration(parser);
     /* } else if (check(parser, TOK_IDENT)) { */
-        /* stmt = ident_statement(parser); */
+        /* return ident_statement(parser); */
     } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
-        stmt = import(parser);
+        return import(parser);
     } else if (accept(parser, TOK_RET)) {
         struct ast *expr = NULL;
         if (!check(parser, TOK_SEMI)) {
             expr = expression(parser);
         }
         parse_debug(parser, "Parsed a return statement");
-        stmt = ast_make_return(expr);
+        return ast_make_return(expr);
     } else if (accept(parser, TOK_BREAK)) {
-        stmt = ast_make_break();
+        return ast_make_break();
     } else if (accept(parser, TOK_CONT)) {
-        stmt = ast_make_continue();
+        return ast_make_continue();
     } else if (accept(parser, TOK_TYPEDEF)) {
-        stmt = typedefinition(parser);
+        return typedefinition(parser);
     } else if (!check(parser, TOK_RCURLY)) {
-        stmt = assignment(parser);
+        return assignment(parser);
     } else {
         return NULL;
     }
-
-    expect(parser, TOK_SEMI);
-
-    return stmt;
 }
 
 static struct ast *var_declaration(struct parser *parser)
@@ -432,13 +426,9 @@ static struct ast *arguments(struct parser *parser)
 static struct ast *body(struct parser *parser)
 {
     struct ast *bod = NULL;
-    if (accept(parser, TOK_LCURLY)) {
-        bod = statements(parser);
-        expect(parser, TOK_RCURLY);
-        accept(parser, TOK_SEMI);
-    } else {
-        bod = statement(parser);
-    }
+    expect(parser, TOK_LCURLY);
+    bod = statements(parser);
+    expect(parser, TOK_RCURLY);
     return bod;
 }
 
@@ -449,7 +439,12 @@ static struct ast *ifelse(struct parser *parser)
     struct ast *if_body = body(parser);
 
     if (accept(parser, TOK_ELSE)) {
-        struct ast *else_body = body(parser);
+        struct ast *else_body = NULL;
+        if (check(parser, TOK_IF)) {
+            else_body = ifelse(parser);
+        } else {
+            else_body = body(parser);
+        }
         parse_debug(parser, "Parsed `if+else` construct");
         return ast_make_ifelse(cond, if_body, else_body);
     } else {
@@ -682,7 +677,6 @@ static struct ast *structtype(struct parser *parser)
         members = ast_list_append(members, member);
     }
     expect(parser, TOK_RCURLY);
-    accept(parser, TOK_SEMI);
     parse_debug(parser, "Parsed `struct`");
 
     return ast_make_struct_type(name, members);
@@ -702,7 +696,6 @@ static struct ast *interface(struct parser *parser)
         methods = ast_list_append(methods, fd);
     }
     expect(parser, TOK_RCURLY);
-    accept(parser, TOK_SEMI);
     parse_debug(parser, "Parsed `iface`");
 
     return ast_make_iface_type(name, methods);

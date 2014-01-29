@@ -36,7 +36,6 @@ print(a.b.c)
 var int a = func int () { return 42; }()
 
 var fn f = func int () { return 42; }
-;
 
 func int sum ([int] l) {
     sum = 0
