@@ -16,7 +16,6 @@ typedef enum {
 
     AST_TYPEDEF,
 
-    AST_TYPE,
     AST_LIST_TYPE,
     AST_MAP_TYPE,
     AST_FUNC_TYPE,
@@ -123,11 +122,6 @@ struct ast_str {
 struct ast_ident {
     struct ast HEAD;
     char *s;
-};
-
-struct ast_type {
-    struct ast HEAD;
-    struct ast *name;
 };
 
 struct ast_list_type {
@@ -290,7 +284,6 @@ struct ast* ast_make_import(struct ast*, struct ast*);
 
 struct ast* ast_make_typedef(struct ast*, struct ast*);
 
-struct ast* ast_make_type(struct ast*);
 struct ast* ast_make_list_type(struct ast*);
 struct ast* ast_make_map_type(struct ast*, struct ast*);
 struct ast* ast_make_func_type(struct ast*, struct ast*);

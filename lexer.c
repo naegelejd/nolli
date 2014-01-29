@@ -3,7 +3,7 @@
 static char *tok_type_names[] = {
     "EOF",
     "identifier",
-    "bool", "char", "int", "real", "string", "file",
+    "bool", "char", "int", "real", "string",
 
     "'+'", "'+='",
     "'-'", "'-='",
@@ -17,7 +17,7 @@ static char *tok_type_names[] = {
     "'>'", "'>='",
 
     "'('", "')'", "'['", "']'", "'{'", "'}'",
-    "','", "'.'", "':'", "';'",
+    "','", "':'", "';'", "'.'",
 
     "var", "const",
     "if", "else",
@@ -245,7 +245,7 @@ static int lex_symbol(struct lexer *lex)
         case '<': tok = TOK_LT; break;
         case '>': tok = TOK_GT; break;
         default: {
-            static char symbols[] = "()[]{},.:;";
+            static char symbols[] = "()[]{},:;.";
             char *at = NULL;
             if ((at = strchr(symbols, lex->cur))) {
                 appendc(lex, lex->cur);
@@ -278,11 +278,22 @@ int gettok(struct lexer *lex)
     }
 
     while (true) {
-        if (lex->cur == '\n' || lex->cur == '\r') {
+        int tok = TOK_EOF;
+
+        if (lex->cur == '\n') {     /* FIXME: line-endings */
             lex->line++;
             lex->col = 0;
             next(lex);
-            continue;
+
+            switch (lex->lasttok) {
+                case TOK_IDENT: case TOK_BOOL: case TOK_CHAR: case TOK_INT:
+                case TOK_REAL: case TOK_STRING: case TOK_RPAREN: case TOK_RCURLY:
+                case TOK_RSQUARE: case TOK_RET: case TOK_BREAK: case TOK_CONT:
+                    tok = TOK_SEMI;
+                    break;
+                default:
+                    continue;
+            }
         }
         /* eat whitespace */
         else if (isspace(lex->cur)) {
@@ -290,7 +301,7 @@ int gettok(struct lexer *lex)
             continue;
         }
         else if (isdigit(lex->cur)) {
-            return lex_integer(lex);
+            tok = lex_integer(lex);
         }
         /* eat comments */
         else if (lex->cur == '#') {
@@ -305,31 +316,35 @@ int gettok(struct lexer *lex)
             appendc(lex, lex->cur);
             next(lex);
             next(lex);  /* skip closing ' */
-            return TOK_CHAR;
+            tok = TOK_CHAR;
         }
         else if (lex->cur == '"') {
-            return lex_string(lex);
+            tok = lex_string(lex);
         }
         else if (isalpha(lex->cur) || lex->cur == '_') {
-            return lex_ident(lex);
+            tok = lex_ident(lex);
         }
         /* stupid floating points with no leading zero (e.g. '.123') */
-        /* else if (lex->cur == '.') { */
-        /*     appendc(lex, lex->cur); */
-        /*     next(lex); */
-        /*     if (isdigit(lex->cur)) { */
-        /*         return lex_real(lex); */
-        /*     } else { */
-        /*         return TOK_DOT; */
-        /*     } */
-        /* } */
+        else if (lex->cur == '.') {
+            appendc(lex, lex->cur);
+            next(lex);
+            if (isdigit(lex->cur)) {
+                tok = lex_real(lex);
+            } else {
+                tok = TOK_DOT;
+            }
+        }
         else if (lex->cur == EOF) {
-            return TOK_EOF;
+            tok = TOK_EOF;
         }
         /* all that's left is symbols */
         else {
-            return lex_symbol(lex);
+            tok = lex_symbol(lex);
         }
+
+        /* return the scanned token */
+        lex->lasttok = tok;
+        return tok;
     }
 
     return TOK_EOF;
@@ -337,6 +352,7 @@ int gettok(struct lexer *lex)
 
 const char *get_tok_name(int tok)
 {
+    assert(tok >= TOK_EOF);
     return tok_type_names[tok];
 }
 

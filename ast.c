@@ -78,13 +78,6 @@ struct ast* ast_make_typedef(struct ast* type, struct ast* alias)
     return (struct ast*)tdef;
 }
 
-struct ast* ast_make_type(struct ast *name)
-{
-    struct ast_type *type = make_node(sizeof(*type), AST_TYPE);
-    type->name = name;
-    return (struct ast*)type;
-}
-
 struct ast* ast_make_list_type(struct ast *name)
 {
     struct ast_list_type *type = make_node(sizeof(*type), AST_LIST_TYPE);
@@ -319,10 +312,11 @@ static char *ast_name(struct ast* node)
         "IDENT",
         "IMPORT",
         "TYPEDEF",
-        "TYPE",
         "LIST_TYPE",
         "MAP_TYPE",
         "FUNC_TYPE",
+        "STRUCT_TYPE",
+        "IFACE_TYPE",
         "DECL",
         "INIT",
         "UNEXPR",
@@ -382,7 +376,6 @@ static void walk_keyval(struct ast *node, visitor v);
 static void walk_assign(struct ast *node, visitor v);
 static void walk_call(struct ast *node, visitor v);
 static void walk_import(struct ast *node, visitor v);
-static void walk_type(struct ast *node, visitor v);
 static void walk_list_type(struct ast *node, visitor v);
 static void walk_map_type(struct ast *node, visitor v);
 static void walk_func_type(struct ast *node, visitor v);
@@ -416,7 +409,6 @@ void walk(struct ast* root)
         walk_import,
         walk_typedef,
 
-        walk_type,
         walk_list_type,
         walk_map_type,
         walk_func_type,
@@ -532,13 +524,6 @@ static void walk_import(struct ast *node, visitor v)
     v(node);
 }
 
-static void walk_type(struct ast *node, visitor v)
-{
-    struct ast_type *type = (struct ast_type *)node;
-    walk(type->name);
-    v(node);
-}
-
 static void walk_list_type(struct ast *node, visitor v)
 {
     struct ast_list_type *type = (struct ast_list_type*)node;
@@ -637,7 +622,9 @@ static void walk_typedef(struct ast *node, visitor v)
 static void walk_return(struct ast *node, visitor v)
 {
     struct ast_return *ret = (struct ast_return*)node;
-    walk(ret->expr);
+    if (ret->expr) {
+        walk(ret->expr);
+    }
     v(node);
 }
 

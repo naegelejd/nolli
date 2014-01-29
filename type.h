@@ -1,6 +1,20 @@
 #ifndef NOLLI_TYPE_H
 #define NOLLI_TYPE_H
 
+#include "nolli.h"
+
+struct typetable {
+    char **names;
+    int *ids;
+
+    unsigned long count;
+    unsigned long size;
+    unsigned int size_idx;
+};
+
+enum {TYPETABLE_SEARCH = 0, TYPETABLE_INSERT = 1};
+enum {TYPENAME_MAXLEN = 32};
+
 typedef enum {
     TYPE_start,
     TYPE_BOOL,

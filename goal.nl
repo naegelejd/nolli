@@ -1,17 +1,16 @@
 import math, hello, world, goodbye
 
-# struct shape {
-#     int area, perimeter
-#     str name = "circle"
-# }
+struct shape {
+    int area, perimeter
+    str name# = "circle"
+}
 
-# iface buffer {
-#     func show ()
-#     func int read (file)
-# }
+iface buffer {
+    func show ()
+    func int read (file)
+}
 
-func int main(str args)
-{
+func int main(str args) {
     var bool b, f = false
     const char c, d = 'x'
     var int i,x = 3,y=4
@@ -24,18 +23,19 @@ func int main(str args)
 
     var int len = range(l)
 
-    if 1 + 1 < 3
+    if 1 + 1 < 3 {
         print("true")
-    else
+    } else {
         print("false")
+    }
 
     var int i = 3
     while (i > 0) {
         print(i)
     }
 
-    func say () { print("temp") }
-    temp()
+    func say () { print("temp"); }
+    say()
 
     typedef func int (str) main_t
     var [main_t] mains = [main, main, main]

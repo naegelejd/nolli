@@ -72,7 +72,7 @@ struct ast *parse(struct parser *parser)
 
     struct ast *root = statements(parser);
 
-    parse_debug(parser, "Parsed entire file");
+    parse_debug(parser, "Finished parsing");
 
     return root;
 }
@@ -80,7 +80,9 @@ struct ast *parse(struct parser *parser)
 static struct ast *statements(struct parser *parser)
 {
     struct ast *statements = ast_make_list(LIST_STATEMENTS);
+
     struct ast* stmt = statement(parser);
+
     while (stmt != NULL) {
         statements = ast_list_append(statements, stmt);
         /* add statement to list */
@@ -94,14 +96,6 @@ static struct ast *statement(struct parser *parser)
 {
     if (accept(parser, TOK_EOF)) {
         return NULL;    /* sentinel */
-    } else if (accept(parser, TOK_VAR)) {
-        return var_declaration(parser);
-    } else if (accept(parser, TOK_CONST)) {
-        return const_declaration(parser);
-    /* } else if (check(parser, TOK_IDENT)) { */
-        /* return ident_statement(parser); */
-    } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
-        return import(parser);
     } else if (check(parser, TOK_STRUCT)) {
         return structtype(parser);
     } else if (check(parser, TOK_IFACE)) {
@@ -113,24 +107,40 @@ static struct ast *statement(struct parser *parser)
     } else if (check(parser, TOK_FOR)) {
         return forloop(parser);
     } else if (check(parser, TOK_FUNC)) {
-        return funcdef(parser); /* FIXME */
-    } else if (accept(parser, TOK_RET)) {
-        /* TODO: empty return statements? */
-        struct ast *expr = expression(parser);
-        parse_debug(parser, "Parsed a return statement");
-        return ast_make_return(expr);
-    } else if (accept(parser, TOK_BREAK)) {
-        return ast_make_break();
-    } else if (accept(parser, TOK_CONT)) {
-        return ast_make_continue();
-    } else if (accept(parser, TOK_TYPEDEF)) {
-        return typedefinition(parser);
-    } else if (!check(parser, TOK_RCURLY)) {
-        return assignment(parser);
+        return funcdef(parser);
     }
 
-    /* should be a '}', ending a series of statements */
-    return NULL;
+    struct ast *stmt = NULL;
+    if (accept(parser, TOK_VAR)) {
+        stmt = var_declaration(parser);
+    } else if (accept(parser, TOK_CONST)) {
+        stmt = const_declaration(parser);
+    /* } else if (check(parser, TOK_IDENT)) { */
+        /* stmt = ident_statement(parser); */
+    } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
+        stmt = import(parser);
+    } else if (accept(parser, TOK_RET)) {
+        struct ast *expr = NULL;
+        if (!check(parser, TOK_SEMI)) {
+            expr = expression(parser);
+        }
+        parse_debug(parser, "Parsed a return statement");
+        stmt = ast_make_return(expr);
+    } else if (accept(parser, TOK_BREAK)) {
+        stmt = ast_make_break();
+    } else if (accept(parser, TOK_CONT)) {
+        stmt = ast_make_continue();
+    } else if (accept(parser, TOK_TYPEDEF)) {
+        stmt = typedefinition(parser);
+    } else if (!check(parser, TOK_RCURLY)) {
+        stmt = assignment(parser);
+    } else {
+        return NULL;
+    }
+
+    expect(parser, TOK_SEMI);
+
+    return stmt;
 }
 
 static struct ast *var_declaration(struct parser *parser)
@@ -170,8 +180,7 @@ static struct ast *declaration_type(struct parser *parser)
         type = functype(parser);
     } else {
         expect(parser, TOK_TYPE);
-        struct ast *typename = ast_make_ident(parser->buffer);
-        type = ast_make_type(typename);
+        type = ast_make_ident(parser->buffer);
     }
 
     return type;
@@ -226,7 +235,7 @@ static struct ast *assignment(struct parser *parser)
         struct ast *assignment = ast_make_assignment(lhs, ass, expr);
         parse_debug(parser, "Parsed assignment");
         return assignment;
-    } else if (lhs->type == AST_CALL) {
+    } else if (lhs && lhs->type == AST_CALL) {
         /* The only type of expression that can double as a statement is
         * a function call (disregarding the return value) */
         return lhs;
@@ -359,7 +368,7 @@ static struct ast *operand(struct parser *parser)
     } else if (check(parser, TOK_FUNC)) {
         return func_literal(parser);
     } else {
-        parse_error(parser, "Invalid literal: %s", parser->buffer);
+        parse_error(parser, "Invalid operand: %s", parser->buffer);
         next(parser);
         return NULL;
     }
@@ -426,6 +435,7 @@ static struct ast *body(struct parser *parser)
     if (accept(parser, TOK_LCURLY)) {
         bod = statements(parser);
         expect(parser, TOK_RCURLY);
+        accept(parser, TOK_SEMI);
     } else {
         bod = statement(parser);
     }
@@ -500,13 +510,11 @@ static struct ast *func_literal(struct parser *parser)
     }
     expect(parser, TOK_RPAREN);
 
-    expect(parser, TOK_LCURLY);
-    struct ast *body = statements(parser);
-    expect(parser, TOK_RCURLY);
+    struct ast *bod = body(parser);
 
     parse_debug(parser, "Parsed function literal");
 
-    return ast_make_funclit(ret_type, params, body);
+    return ast_make_funclit(ret_type, params, bod);
 }
 
 static struct ast *funcdef(struct parser *parser)
@@ -536,13 +544,11 @@ static struct ast *funcdef(struct parser *parser)
     }
     expect(parser, TOK_RPAREN);
 
-    expect(parser, TOK_LCURLY);
-    struct ast *body = statements(parser);
-    expect(parser, TOK_RCURLY);
+    struct ast *bod = body(parser);
 
     parse_debug(parser, "Parsed function definition");
 
-    return ast_make_funcdef(ret_type, name, params, body);
+    return ast_make_funcdef(ret_type, name, params, bod);
 }
 
 static struct ast *functype(struct parser *parser)
@@ -560,6 +566,7 @@ static struct ast *functype(struct parser *parser)
     expect(parser, TOK_LPAREN);
 
     struct ast *param_types = NULL;
+
     if (!check(parser, TOK_RPAREN)) {
         param_types = ast_make_list(LIST_TYPES);
         do {
@@ -591,6 +598,7 @@ static struct ast *funcdecl(struct parser *parser)
         name = ret_type;
         ret_type = NULL;
     } else {
+        printf("%d\n", ret_type->type);
         parse_error(parser, "Invalid function name");
     }
 
@@ -618,7 +626,7 @@ static struct ast *typedefinition(struct parser *parser)
 {
     struct ast *type = NULL;
     if (check(parser, TOK_FUNC)) {
-        funcdecl(parser); /* FIXME */
+        type = funcdecl(parser);
     } else {
         expect(parser, TOK_TYPE);
         type = ast_make_ident(parser->buffer);
@@ -670,9 +678,11 @@ static struct ast *structtype(struct parser *parser)
         } else {
             member = var_declaration(parser);
         }
+        expect(parser, TOK_SEMI);
         members = ast_list_append(members, member);
     }
     expect(parser, TOK_RCURLY);
+    accept(parser, TOK_SEMI);
     parse_debug(parser, "Parsed `struct`");
 
     return ast_make_struct_type(name, members);
@@ -688,9 +698,11 @@ static struct ast *interface(struct parser *parser)
     struct ast *methods = ast_make_list(LIST_METHODS);
     while (!check(parser, TOK_RCURLY)) {
         struct ast *fd = funcdecl(parser);
+        expect(parser, TOK_SEMI);
         methods = ast_list_append(methods, fd);
     }
     expect(parser, TOK_RCURLY);
+    accept(parser, TOK_SEMI);
     parse_debug(parser, "Parsed `iface`");
 
     return ast_make_iface_type(name, methods);

@@ -1,4 +1,4 @@
-#include "nolli.h"
+#include "type.h"
 
 
 int check_type(struct typetable *typetable, const char *name);

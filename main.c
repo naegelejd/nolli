@@ -14,6 +14,11 @@ int main(int argc, char **argv)
         }
     }
 
+    bool scanonly = false;
+    if (argc >= 3 && strncmp(argv[2], "-l", 3) == 0) {
+        scanonly = true;
+    }
+
     struct lexer *lex = NULL;
     lexer_init(&lex, fin);
 
@@ -23,7 +28,6 @@ int main(int argc, char **argv)
 
     struct ast *root = NULL;
 
-    bool scanonly = false;
     if (scanonly) {
         lexer_scan_all(lex);
     } else {
