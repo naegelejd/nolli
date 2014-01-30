@@ -18,7 +18,6 @@ set(NOLLI_SOURCES
     lexer.c
     parser.c
     ast.c
-    type.c
 )
 
 set(NOLLI_HEADERS

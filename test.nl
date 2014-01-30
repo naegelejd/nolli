@@ -37,6 +37,8 @@ var int a = func int () { return 42; }()
 
 var fn f = func int () { return 42; }
 
+var std.file f = open("helloworld.txt")
+
 func int sum ([int] l) {
     sum = 0
     for x in l {

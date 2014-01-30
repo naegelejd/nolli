@@ -1,6 +1,8 @@
 #ifndef NOLLI_AST_H
 #define NOLLI_AST_H
 
+#include "nolli.h"
+
 typedef enum {
     AST_BAD_TYPE,
 
@@ -40,7 +42,6 @@ typedef enum {
     AST_CALL,
     AST_FUNCLIT,
     AST_FUNCDEF,
-    AST_STRUCT,
 
     AST_RETURN,
     AST_BREAK,
@@ -97,6 +98,11 @@ typedef enum {
 
 struct ast {
     int type;
+};
+
+struct ast_bool {
+    struct ast HEAD;
+    bool b;
 };
 
 struct ast_char {

@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <assert.h>
+#include <setjmp.h>
 
 #include "debug.h"
 #include "alloc.h"

@@ -1,11 +1,5 @@
-#include "nolli.h"
+#include "ast.h"
 
-static struct ast* create_node(ast_type_t type)
-{
-    struct ast* a = nalloc(sizeof(*a));
-    a->type = type;
-    return a;
-}
 
 /* Convenience function for allocating AST node
  * and setting its type.
@@ -19,8 +13,9 @@ static void *make_node(size_t size, ast_type_t type)
 
 struct ast* ast_make_bool_lit(bool b)
 {
-    struct ast* bn = create_node(AST_BOOL_LIT);
-    return bn;
+    struct ast_bool *node = make_node(sizeof(*node), AST_BOOL_LIT);
+    node->b = b;
+    return (struct ast*)node;
 }
 
 struct ast* ast_make_char_lit(char c)
@@ -366,7 +361,10 @@ void visit(struct ast* node)
     printf("%s\n", ast_name(node));
 }
 
+static void walk_bool_lit(struct ast *node, visitor v);
+static void walk_char_lit(struct ast *node, visitor v);
 static void walk_int_num(struct ast *node, visitor v);
+static void walk_real_num(struct ast *node, visitor v);
 static void walk_str_lit(struct ast *node, visitor v);
 static void walk_ident(struct ast *node, visitor v);
 static void walk_unexpr(struct ast *node, visitor v);
@@ -398,10 +396,10 @@ void walk(struct ast* root)
 {
     static walker walkers[] = {
         NULL, /* not a valid AST node */
-        NULL, /* walk_bool_lit, */
-        NULL, /* walk_char_lit, */
+        walk_bool_lit,
+        walk_char_lit,
         walk_int_num,
-        NULL, /* walk_real_num, */
+        walk_real_num,
         walk_str_lit,
 
         walk_ident,
@@ -432,7 +430,6 @@ void walk(struct ast* root)
         walk_call,
         walk_funclit,
         walk_funcdef,
-        NULL, /* walk_struct, */
 
         walk_return,
         walk_break,
@@ -446,7 +443,22 @@ void walk(struct ast* root)
 }
 
 
+static void walk_bool_lit(struct ast *node, visitor v)
+{
+    v(node);
+}
+
+static void walk_char_lit(struct ast *node, visitor v)
+{
+    v(node);
+}
+
 static void walk_int_num(struct ast *node, visitor v)
+{
+    v(node);
+}
+
+static void walk_real_num(struct ast *node, visitor v)
 {
     v(node);
 }
