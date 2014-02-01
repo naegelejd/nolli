@@ -1,5 +1,19 @@
 #include "lexer.h"
 
+#define LEX_ERRORF(L, fmt, ...) \
+    do { \
+        NOLLI_ERRORF("(L %d, C %d): " fmt, (L)->line, (L)->col, __VA_ARGS__); \
+        exit(EXIT_FAILURE); \
+    } while (0)
+
+#define LEX_ERROR(L, S) LEX_ERRORF(L, "%s", S)
+
+#define next(lex) \
+    do { \
+        lex->cur = getc(lex->input); \
+        lex->col++; \
+    } while (false)
+
 static char *tok_type_names[] = {
     "EOF",
     "identifier",
@@ -29,27 +43,6 @@ static char *tok_type_names[] = {
     "struct", "iface",
     "module", "import", "from",
 };
-
-#define next(lex) \
-    do { \
-        lex->cur = getc(lex->input); \
-        lex->col++; \
-    } while (false)
-
-void lexerror(struct lexer *lex, char *msg, ...)
-{
-    va_list ap;
-
-    fprintf(stderr, "Error at line %d, column %d: ", lex->line, lex->col);
-
-    va_start(ap, msg);
-    vfprintf(stderr, msg, ap);
-    va_end(ap);
-
-    fprintf(stderr, "\n");
-
-    exit(1);
-}
 
 /* returns former length of string in buffer */
 static int rotate_buffers(struct lexer *lex)
@@ -151,15 +144,15 @@ static int lex_string(struct lexer *lex)
     do {
         switch (lex->cur) {
         case EOF:
-            lexerror(lex, "Unexpected EOF");
+            LEX_ERROR(lex, "Unexpected EOF");
             break;
         case '\n': case '\r':
-            lexerror(lex, "Unterminated string literal");
+            LEX_ERROR(lex, "Unterminated string literal");
             break;
         case '\\': {
             int c = lex->cur;
             next(lex);
-            switch (c) {
+            switch (lex->cur) {
             case '"': goto next_append;
             case '\\': goto next_append;
             case 'a': c = '\a'; goto next_append;
@@ -170,7 +163,7 @@ static int lex_string(struct lexer *lex)
             case 't': c = '\t'; goto next_append;
             case 'v': c = '\v'; goto next_append;
             case EOF:
-                lexerror(lex, "Unexpected EOF in string literal");
+                LEX_ERROR(lex, "Unexpected EOF in string literal");
                 break;
             case '\n': case '\r':
                 lex->line++;
@@ -178,7 +171,7 @@ static int lex_string(struct lexer *lex)
                 appendc(lex, lex->cur);
                 break;
             default:
-                lexerror(lex, "Invalid escape character %c", lex->cur);
+                LEX_ERRORF(lex, "Invalid escape sequence \\%c", lex->cur);
             }
         next_append:
             next(lex);
@@ -252,7 +245,7 @@ static int lex_symbol(struct lexer *lex)
                 next(lex);
                 return (at - symbols) + TOK_LPAREN;
             } else {
-                lexerror(lex, "Invalid symbol %c", lex->cur);
+                LEX_ERRORF(lex, "Invalid symbol %c", lex->cur);
             }
         }
     }

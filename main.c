@@ -10,7 +10,8 @@ int main(int argc, char **argv)
     if (argc >= 2) {
         filename = argv[1];
         if (!(fin = fopen(filename, "r"))) {
-            NOLLI_DIE("Can't read from file %s\n", filename);
+            fprintf(stderr, "Can't read from file %s\n", filename);
+            return EXIT_FAILURE;
         }
     }
 
@@ -35,7 +36,8 @@ int main(int argc, char **argv)
     }
 
     if (fclose(fin) != 0) {
-        NOLLI_DIE("Failed to close file %s\n", filename);
+        fprintf(stderr, "Failed to close file %s\n", filename);
+        return EXIT_FAILURE;
     }
 
     if (parser->error) {
@@ -44,7 +46,8 @@ int main(int argc, char **argv)
     }
 
     if (root == NULL) {
-        NOLLI_DIE("%s\n", "Failed to construct AST");
+        fprintf(stderr, "Failed to construct AST");
+        return EXIT_FAILURE;
     }
 
     walk(root);

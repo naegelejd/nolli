@@ -322,6 +322,4 @@ struct ast* ast_make_funcdef(struct ast*, struct ast*, struct ast*, struct ast*)
 
 struct ast* ast_make_statement_list(struct ast*, struct ast*);
 
-void walk(struct ast* root);
-
 #endif /* NOLLI_AST_H */

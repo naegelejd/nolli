@@ -3,16 +3,6 @@
 
 #include "nolli.h"
 
-struct typetable {
-    char **names;
-    int *ids;
-
-    unsigned long count;
-    unsigned long size;
-    unsigned int size_idx;
-};
-
-enum {TYPETABLE_SEARCH = 0, TYPETABLE_INSERT = 1};
 enum {TYPENAME_MAXLEN = 32};
 
 typedef enum {

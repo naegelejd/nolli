@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 2.8)
 
 project(nolli)
 
-#set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
-
 add_definitions(-Wall)# -Weverything -pedantic)
 
-# Uncomment the next line to enable lots of debug output during runtime
-add_definitions(-DDEBUG)
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Default to Debug Build Type" FORCE)
+endif (NOT CMAKE_BUILD_TYPE)
+
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 
 set(NOLLI_EXE nolli)
 
@@ -18,6 +18,9 @@ set(NOLLI_SOURCES
     lexer.c
     parser.c
     ast.c
+    walk.c
+    symtable.c
+    type.c
 )
 
 set(NOLLI_HEADERS
@@ -27,6 +30,9 @@ set(NOLLI_HEADERS
     lexer.h
     parser.h
     ast.h
+    walk.h
+    symtable.h
+    type.h
 )
 
 #include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})

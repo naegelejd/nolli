@@ -1,49 +1,53 @@
 #ifndef NOLLI_DEBUG_H
 #define NOLLI_DEBUG_H
 
-#define NOLLI_ERROR(fmt, ...) \
-    do { \
-        fprintf(stderr, "ERROR: %s(): " fmt, \
-                __func__, __VA_ARGS__); \
-    } while (0)
+#define ANSI_RED        "\x1b[31m"
+#define ANSI_GREEN      "\x1b[32m"
+#define ANSI_YELLOW     "\x1b[33m"
+#define ANSI_BLUE       "\x1b[34m"
+#define ANSI_MAGENTA    "\x1b[35m"
+#define ANSI_CYAN       "\x1b[36m"
+#define ANSI_BOLD       "\x1b[1m"
+#define ANSI_RESET      "\x1b[0m"
 
-/**
- * Verbosely prints error information prior to exiting
- *
- * @param fmt C-style formatting
- * @param ... everything to print
- */
-#define NOLLI_DIE(fmt, ...) \
-    do { \
-        fprintf(stderr, "FATAL: %s:%d:%s(): " fmt, \
-                __FILE__, __LINE__, __func__, __VA_ARGS__); \
-        exit(1); \
-    } while (0)
+#define BLUE_DEBUG      ANSI_BOLD ANSI_BLUE "Debug" ANSI_RESET ": "
+#define RED_ERROR       ANSI_BOLD ANSI_RED "Error" ANSI_RESET ": "
+#define RED_FATAL       ANSI_BOLD ANSI_RED "Fatal" ANSI_RESET ": "
 
 #ifdef DEBUG
 
-/**
- * Verbosely prints debug information
- *
- * @param fmt C-style formatting
- * @param ... everything to print
- */
-#define NOLLI_DEBUG(fmt, ...) \
+#define NOLLI_DEBUGF(fmt, ...) \
+        fprintf(stdout, BLUE_DEBUG "[%s]: " fmt "\n", \
+                __func__, __VA_ARGS__)
+
+#define NOLLI_ERRORF(fmt, ...) \
+        fprintf(stderr, RED_ERROR "[%s]: " fmt "\n", \
+                __func__, __VA_ARGS__)
+
+#define NOLLI_DIEF(fmt, ...) \
     do { \
-        fprintf(stdout, "DEBUG: %s(): " fmt, \
-                __func__, __VA_ARGS__); \
+        fprintf(stderr, RED_FATAL "[%s:%d:%s]: " fmt "\n", \
+                __FILE__, __LINE__, __func__, __VA_ARGS__); \
+        exit(EXIT_FAILURE); \
     } while (0)
 
 #else   /* DEBUG */
 
-/**
- * Does not print any debug information.
- *
- * @param fmt C-style formatting
- * @param ... everything to not print
- */
-#define NOLLI_DEBUG(fmt, ...)
+#define NOLLI_DEBUGF(fmt, ...)
+
+#define NOLLI_ERRORF(fmt, ...) \
+        fprintf(stderr, RED_ERROR fmt "\n", __VA_ARGS__)
+
+#define NOLLI_DIEF(fmt, ...) \
+    do { \
+        fprintf(stderr, RED_FATAL fmt "\n", __VA_ARGS__); \
+        exit(EXIT_FAILURE); \
+    } while (0)
 
 #endif  /* DEBUG */
+
+#define NOLLI_DEBUG(S) NOLLI_DEBUGF("%s", S)
+#define NOLLI_ERROR(S) NOLLI_ERROR("%s", S)
+#define NOLLI_DIE(S) NOLLI_DIEF("%s", S)
 
 #endif /* NOLLI_DEBUG_H */
