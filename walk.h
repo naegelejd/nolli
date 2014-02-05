@@ -3,6 +3,6 @@
 
 #include "nolli.h"
 
-void walk(struct ast* root);
+void type_check(struct ast* root);
 
 #endif /* NOLLI_WALK_H */

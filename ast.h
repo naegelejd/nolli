@@ -82,22 +82,23 @@ typedef enum {
     DECL_CONST
 } decl_type_t;
 
-typedef enum {
-    LIST_DECLS,
-    LIST_ARGS,
-    LIST_PARAMS,
-    LIST_TYPES,
+enum {
+    LIST_DECL,
+    LIST_ARG,
+    LIST_PARAM,
+    LIST_TYPE,
     LIST_LITERAL,
-    LIST_IMPORTS,
-    LIST_MAP_ITEMS,
-    LIST_SELECTORS,
-    LIST_MEMBERS,
-    LIST_METHODS,
-    LIST_STATEMENTS,
-} list_type_t;
+    LIST_IMPORT,
+    LIST_MAP_ITEM,
+    LIST_SELECTOR,
+    LIST_MEMBER,
+    LIST_METHOD,
+    LIST_STATEMENT,
+};
 
 struct ast {
     int type;
+    int lineno;
 };
 
 struct ast_bool {
@@ -232,7 +233,7 @@ struct ast_cont {
 struct ast_list {
     struct ast HEAD;
     struct ast **items;
-    list_type_t type;
+    int type;
     unsigned int alloc;
     unsigned int count;
 };
@@ -301,8 +302,9 @@ struct ast* ast_make_initialization(struct ast*, struct ast*);
 struct ast* ast_make_unexpr(expr_op_t, struct ast*);
 struct ast* ast_make_binexpr(struct ast*, expr_op_t, struct ast*);
 
-struct ast* ast_make_list(list_type_t);
+struct ast *ast_make_list(int type);
 struct ast* ast_list_append(struct ast*, struct ast*);
+
 struct ast* ast_make_keyval(struct ast* key, struct ast* val);
 struct ast* ast_make_contaccess(struct ast*, struct ast*);
 
@@ -319,7 +321,5 @@ struct ast* ast_make_return(struct ast*);
 
 struct ast* ast_make_funclit(struct ast*, struct ast*, struct ast*);
 struct ast* ast_make_funcdef(struct ast*, struct ast*, struct ast*, struct ast*);
-
-struct ast* ast_make_statement_list(struct ast*, struct ast*);
 
 #endif /* NOLLI_AST_H */

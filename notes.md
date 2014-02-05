@@ -45,6 +45,12 @@ This phase is also where 'type-inference' could be handled if added to the langu
 ### Code Generation
 The type-checked AST is then traversed to generate... TBD.
 
+## TODO
+
+- the parser needs to respect operator precedence. I plan to use the
+  Shunting Yard algorithm to parse expressions.
+- the parser needs better error recovery (synch on semicolons, setjmp, etc.)
+
 ## Feature Ideas
 
 - shorthand variable initialization (i.e. `name := "joe"`)

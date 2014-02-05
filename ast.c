@@ -1,6 +1,7 @@
 #include "ast.h"
 
 
+
 /* Convenience function for allocating AST node
  * and setting its type.
  */
@@ -151,7 +152,7 @@ struct ast* ast_make_binexpr(struct ast* lhs, expr_op_t op, struct ast* rhs)
     return (struct ast*)binexpr;
 }
 
-struct ast *ast_make_list(list_type_t type)
+struct ast *ast_make_list(int type)
 {
     struct ast_list *list = make_node(sizeof(*list), AST_LIST);
     list->type = type;

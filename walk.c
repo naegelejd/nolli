@@ -4,41 +4,530 @@ struct irstate {
     struct symtable *symtable;
 };
 
-typedef void (*visitor) (struct ast*);
-typedef void (*walker) (struct ast*, visitor);
+typedef struct type* (*walker) (struct ast*, struct irstate*);
 
-static void walk_bool_lit(struct ast *node, visitor v);
-static void walk_char_lit(struct ast *node, visitor v);
-static void walk_int_num(struct ast *node, visitor v);
-static void walk_real_num(struct ast *node, visitor v);
-static void walk_str_lit(struct ast *node, visitor v);
-static void walk_ident(struct ast *node, visitor v);
-static void walk_unexpr(struct ast *node, visitor v);
-static void walk_binexpr(struct ast *node, visitor v);
-static void walk_list(struct ast *node, visitor v);
-static void walk_keyval(struct ast *node, visitor v);
-static void walk_assign(struct ast *node, visitor v);
-static void walk_call(struct ast *node, visitor v);
-static void walk_import(struct ast *node, visitor v);
-static void walk_list_type(struct ast *node, visitor v);
-static void walk_map_type(struct ast *node, visitor v);
-static void walk_func_type(struct ast *node, visitor v);
-static void walk_struct_type(struct ast *node, visitor v);
-static void walk_iface_type(struct ast *node, visitor v);
-static void walk_decl(struct ast *node, visitor v);
-static void walk_initialization(struct ast *node, visitor v);
-static void walk_ifelse(struct ast *node, visitor v);
-static void walk_while(struct ast *node, visitor v);
-static void walk_for(struct ast *node, visitor v);
-static void walk_typedef(struct ast *node, visitor v);
-static void walk_return(struct ast *node, visitor v);
-static void walk_break(struct ast *node, visitor v);
-static void walk_continue(struct ast *node, visitor v);
-static void walk_contaccess(struct ast *node, visitor v);
-static void walk_funclit(struct ast *node, visitor v);
-static void walk_funcdef(struct ast *node, visitor v);
+static struct type *walk_bool_lit(struct ast*, struct irstate*);
+static struct type *walk_char_lit(struct ast*, struct irstate*);
+static struct type *walk_int_num(struct ast*, struct irstate*);
+static struct type *walk_real_num(struct ast*, struct irstate*);
+static struct type *walk_str_lit(struct ast*, struct irstate*);
+static struct type *walk_ident(struct ast*, struct irstate*);
+static struct type *walk_unexpr(struct ast*, struct irstate*);
+static struct type *walk_binexpr(struct ast*, struct irstate*);
+static struct type *walk_list(struct ast*, struct irstate*);
+static struct type *walk_keyval(struct ast*, struct irstate*);
+static struct type *walk_assign(struct ast*, struct irstate*);
+static struct type *walk_call(struct ast*, struct irstate*);
+static struct type *walk_import(struct ast*, struct irstate*);
+static struct type *walk_list_type(struct ast*, struct irstate*);
+static struct type *walk_map_type(struct ast*, struct irstate*);
+static struct type *walk_func_type(struct ast*, struct irstate*);
+static struct type *walk_struct_type(struct ast*, struct irstate*);
+static struct type *walk_iface_type(struct ast*, struct irstate*);
+static struct type *walk_decl(struct ast*, struct irstate*);
+static struct type *walk_initialization(struct ast*, struct irstate*);
+static struct type *walk_ifelse(struct ast*, struct irstate*);
+static struct type *walk_while(struct ast*, struct irstate*);
+static struct type *walk_for(struct ast*, struct irstate*);
+static struct type *walk_typedef(struct ast*, struct irstate*);
+static struct type *walk_return(struct ast*, struct irstate*);
+static struct type *walk_break(struct ast*, struct irstate*);
+static struct type *walk_continue(struct ast*, struct irstate*);
+static struct type *walk_contaccess(struct ast*, struct irstate*);
+static struct type *walk_funclit(struct ast*, struct irstate*);
+static struct type *walk_funcdef(struct ast*, struct irstate*);
 
-static void walk_ast(struct ast *root, struct irstate *state);
+static struct type *walk_decl_list(struct ast *node, struct irstate *irs);
+static struct type *walk_arg_list(struct ast *node, struct irstate *irs);
+static struct type *walk_param_list(struct ast *node, struct irstate *irs);
+static struct type *walk_type_list(struct ast *node, struct irstate *irs);
+static struct type *walk_literal_list(struct ast *node, struct irstate *irs);
+static struct type *walk_import_list(struct ast *node, struct irstate *irs);
+static struct type *walk_map_item_list(struct ast *node, struct irstate *irs);
+static struct type *walk_selector_list(struct ast *node, struct irstate *irs);
+static struct type *walk_member_list(struct ast *node, struct irstate *irs);
+static struct type *walk_method_list(struct ast *node, struct irstate *irs);
+static struct type *walk_statement_list(struct ast *node, struct irstate *irs);
+
+static struct type *walk(struct ast *root, struct irstate *irs);
+
+void type_check(struct ast* root)
+{
+    struct irstate state;
+    state.symtable = symtable_create();
+    walk(root, &state);
+}
+
+static struct type *walk(struct ast *root, struct irstate *irs)
+{
+    static walker walkers[] = {
+        NULL, /* not a valid AST node */
+        walk_bool_lit,
+        walk_char_lit,
+        walk_int_num,
+        walk_real_num,
+        walk_str_lit,
+
+        walk_ident,
+
+        walk_import,
+        walk_typedef,
+
+        walk_list_type,
+        walk_map_type,
+        walk_func_type,
+        walk_struct_type,
+        walk_iface_type,
+
+        walk_decl,
+        walk_initialization,
+
+        walk_unexpr,
+        walk_binexpr,
+        walk_list,
+
+        walk_keyval,
+        walk_contaccess,
+
+        walk_assign,
+        walk_ifelse,
+        walk_while,
+        walk_for,
+        walk_call,
+        walk_funclit,
+        walk_funcdef,
+
+        walk_return,
+        walk_break,
+        walk_continue,
+    };
+
+    walker w = walkers[root->type];
+    assert(w);
+    return w(root, irs);
+}
+
+
+static struct type *walk_bool_lit(struct ast *node, struct irstate *irs)
+{
+
+    return &bool_type;
+}
+
+static struct type *walk_char_lit(struct ast *node, struct irstate *irs)
+{
+
+    return &char_type;
+}
+
+static struct type *walk_int_num(struct ast *node, struct irstate *irs)
+{
+
+    return &int_type;
+}
+
+static struct type *walk_real_num(struct ast *node, struct irstate *irs)
+{
+
+    return &real_type;
+}
+
+static struct type *walk_str_lit(struct ast *node, struct irstate *irs)
+{
+
+    return &str_type;
+}
+
+static struct type *walk_ident(struct ast *node, struct irstate *irs)
+{
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_unexpr(struct ast *node, struct irstate *irs)
+{
+    struct ast_unexpr* unexpr = (struct ast_unexpr*)node;
+    walk(unexpr->expr, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_binexpr(struct ast *node, struct irstate *irs)
+{
+    struct ast_binexpr* binexpr = (struct ast_binexpr*)node;
+    struct type *rhs = walk(binexpr->lhs, irs);
+    struct type *lhs = walk(binexpr->rhs, irs);
+    if (rhs != lhs) {
+        NOLLI_DIE("Type mismatch in binary expression");
+    }
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_decl_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_arg_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_param_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_type_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_literal_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_import_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_map_item_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_selector_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_member_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_method_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
+static struct type *walk_statement_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        struct ast *item = list->items[i];
+        if (item->type == AST_FUNCDEF) {
+            struct ast_funcdef *funcdef = (struct ast_funcdef *)item;
+            struct ast_ident *name = (struct ast_ident*)funcdef->name;
+            NOLLI_DEBUGF("Function: %s", name->s);
+        } else {
+            walk(list->items[i], irs);
+        }
+    }
+    return NULL;
+}
+
+static struct type *walk_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    static walker walkers[] = {
+        walk_decl_list,
+        walk_arg_list,
+        walk_param_list,
+        walk_type_list,
+        walk_literal_list,
+        walk_import_list,
+        walk_map_item_list,
+        walk_selector_list,
+        walk_member_list,
+        walk_method_list,
+        walk_statement_list,
+    };
+
+    walker w = walkers[list->type];
+    assert(w);
+    return w(node, irs);
+}
+
+static struct type *walk_keyval(struct ast *node, struct irstate *irs)
+{
+    struct ast_keyval* keyval = (struct ast_keyval*)node;
+    walk(keyval->key, irs);
+    walk(keyval->val, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_assign(struct ast *node, struct irstate *irs)
+{
+    struct ast_assignment* assignment = (struct ast_assignment*)node;
+    walk(assignment->ident, irs);
+    walk(assignment->expr, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_call(struct ast *node, struct irstate *irs)
+{
+    struct ast_call* call = (struct ast_call*)node;
+    walk(call->func, irs);
+    walk(call->args, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_import(struct ast *node, struct irstate *irs)
+{
+    struct ast_import* import = (struct ast_import*)node;
+    if (import->from) {
+        assert(import->from);
+        walk(import->from, irs);
+    }
+
+    assert(import->modules);
+    walk(import->modules, irs);
+
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_list_type(struct ast *node, struct irstate *irs)
+{
+    struct ast_list_type *type = (struct ast_list_type*)node;
+    walk(type->name, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_map_type(struct ast *node, struct irstate *irs)
+{
+    struct ast_map_type *type = (struct ast_map_type*)node;
+    walk(type->keyname, irs);
+    walk(type->valname, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_func_type(struct ast *node, struct irstate *irs)
+{
+    struct ast_func_type *type = (struct ast_func_type*)node;
+    if (type->ret_type) {
+        walk(type->ret_type, irs);
+    }
+    if (type->param_types) {
+        walk(type->param_types, irs);
+    }
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_struct_type(struct ast *node, struct irstate *irs)
+{
+    struct ast_struct_type *type = (struct ast_struct_type*)node;
+    walk(type->name, irs);
+    walk(type->members, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_iface_type(struct ast *node, struct irstate *irs)
+{
+    struct ast_iface_type *type = (struct ast_iface_type*)node;
+    walk(type->name, irs);
+    walk(type->methods, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_decl(struct ast *node, struct irstate *irs)
+{
+    struct ast_decl *decl = (struct ast_decl *)node;
+    walk(decl->type, irs);
+    walk(decl->name_s, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_initialization(struct ast *node, struct irstate *irs)
+{
+    struct ast_init *init = (struct ast_init *)node;
+    walk(init->ident, irs);
+    walk(init->expr, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_ifelse(struct ast *node, struct irstate *irs)
+{
+    struct ast_ifelse *ifelse = (struct ast_ifelse *)node;
+    walk(ifelse->cond, irs);
+    walk(ifelse->if_body, irs);
+    if (ifelse->else_body) {
+        walk(ifelse->else_body, irs);
+    }
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_while(struct ast *node, struct irstate *irs)
+{
+    struct ast_while *wile = (struct ast_while *)node;
+    walk(wile->cond, irs);
+    walk(wile->body, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_for(struct ast *node, struct irstate *irs)
+{
+    struct ast_for *fore = (struct ast_for *)node;
+    walk(fore->var, irs);
+    walk(fore->range, irs);
+    walk(fore->body, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_typedef(struct ast *node, struct irstate *irs)
+{
+    struct ast_typedef *tdef = (struct ast_typedef*)node;
+    walk(tdef->type, irs);
+    walk(tdef->alias, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_return(struct ast *node, struct irstate *irs)
+{
+    struct ast_return *ret = (struct ast_return*)node;
+    if (ret->expr) {
+        walk(ret->expr, irs);
+    }
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_break(struct ast *node, struct irstate *irs)
+{
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_continue(struct ast *node, struct irstate *irs)
+{
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_contaccess(struct ast *node, struct irstate *irs)
+{
+    struct ast_contaccess *ca = (struct ast_contaccess*)node;
+    walk(ca->ident, irs);
+    walk(ca->index, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_funclit(struct ast *node, struct irstate *irs)
+{
+    struct ast_funclit *f = (struct ast_funclit*)node;
+
+    if (f->ret_type) {
+        walk(f->ret_type, irs);
+    }
+    if (f->params) {
+        walk(f->params, irs);
+    }
+    walk(f->body, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_funcdef(struct ast *node, struct irstate *irs)
+{
+    struct ast_funcdef *f = (struct ast_funcdef*)node;
+
+    if (f->ret_type) {
+        walk(f->ret_type, irs);
+    }
+
+    walk(f->name, irs);
+
+    if (f->params) {
+        walk(f->params, irs);
+    }
+    walk(f->body, irs);
+
+    return NULL;    /* FIXME */
+}
+
+
 
 static char *ast_name(struct ast* node)
 {
@@ -98,311 +587,9 @@ static char *ast_name(struct ast* node)
     return names[node->type];
 }
 
+typedef void (*visitor) (struct ast*);
+
 static void visit(struct ast* node)
 {
     printf("%s\n", ast_name(node));
-}
-
-void walk(struct ast* root)
-{
-    struct irstate state;
-    state.symtable = symtable_create();
-    walk_ast(root, &state);
-}
-
-static void walk_ast(struct ast *root, struct irstate *state)
-{
-    static walker walkers[] = {
-        NULL, /* not a valid AST node */
-        walk_bool_lit,
-        walk_char_lit,
-        walk_int_num,
-        walk_real_num,
-        walk_str_lit,
-
-        walk_ident,
-
-        walk_import,
-        walk_typedef,
-
-        walk_list_type,
-        walk_map_type,
-        walk_func_type,
-        walk_struct_type,
-        walk_iface_type,
-
-        walk_decl,
-        walk_initialization,
-
-        walk_unexpr,
-        walk_binexpr,
-        walk_list,
-
-        walk_keyval,
-        walk_contaccess,
-
-        walk_assign,
-        walk_ifelse,
-        walk_while,
-        walk_for,
-        walk_call,
-        walk_funclit,
-        walk_funcdef,
-
-        walk_return,
-        walk_break,
-        walk_continue,
-    };
-
-    visitor v = visit;
-
-    walker w = walkers[root->type];
-    if (w) w(root, v);
-}
-
-
-static void walk_bool_lit(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_char_lit(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_int_num(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_real_num(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_str_lit(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_ident(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_unexpr(struct ast *node, visitor v)
-{
-    struct ast_unexpr* unexpr = (struct ast_unexpr*)node;
-    walk(unexpr->expr);
-    v(node);
-}
-
-static void walk_binexpr(struct ast *node, visitor v)
-{
-    struct ast_binexpr* binexpr = (struct ast_binexpr*)node;
-    walk(binexpr->lhs);
-    walk(binexpr->rhs);
-    v(node);
-}
-
-static void walk_list(struct ast *node, visitor v)
-{
-    struct ast_list* list = (struct ast_list*)node;
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i]);
-    }
-    v(node);
-}
-
-static void walk_keyval(struct ast *node, visitor v)
-{
-    struct ast_keyval* keyval = (struct ast_keyval*)node;
-    walk(keyval->key);
-    walk(keyval->val);
-    v(node);
-}
-
-static void walk_assign(struct ast *node, visitor v)
-{
-    struct ast_assignment* assignment = (struct ast_assignment*)node;
-    walk(assignment->ident);
-    walk(assignment->expr);
-    v(node);
-}
-
-static void walk_call(struct ast *node, visitor v)
-{
-    struct ast_call* call = (struct ast_call*)node;
-    walk(call->func);
-    walk(call->args);
-    v(node);
-}
-
-static void walk_import(struct ast *node, visitor v)
-{
-    struct ast_import* import = (struct ast_import*)node;
-    if (import->from) {
-        assert(import->from);
-        walk(import->from);
-    }
-
-    assert(import->modules);
-    walk(import->modules);
-
-    v(node);
-}
-
-static void walk_list_type(struct ast *node, visitor v)
-{
-    struct ast_list_type *type = (struct ast_list_type*)node;
-    walk(type->name);
-    v(node);
-}
-
-static void walk_map_type(struct ast *node, visitor v)
-{
-    struct ast_map_type *type = (struct ast_map_type*)node;
-    walk(type->keyname);
-    walk(type->valname);
-    v(node);
-}
-
-static void walk_func_type(struct ast *node, visitor v)
-{
-    struct ast_func_type *type = (struct ast_func_type*)node;
-    if (type->ret_type) {
-        walk(type->ret_type);
-    }
-    if (type->param_types) {
-        walk(type->param_types);
-    }
-    v(node);
-}
-
-static void walk_struct_type(struct ast *node, visitor v)
-{
-    struct ast_struct_type *type = (struct ast_struct_type*)node;
-    walk(type->name);
-    walk(type->members);
-    v(node);
-}
-
-static void walk_iface_type(struct ast *node, visitor v)
-{
-    struct ast_iface_type *type = (struct ast_iface_type*)node;
-    walk(type->name);
-    walk(type->methods);
-    v(node);
-}
-
-static void walk_decl(struct ast *node, visitor v)
-{
-    struct ast_decl *decl = (struct ast_decl *)node;
-    walk(decl->type);
-    walk(decl->name_s);
-    v(node);
-}
-
-static void walk_initialization(struct ast *node, visitor v)
-{
-    struct ast_init *init = (struct ast_init *)node;
-    walk(init->ident);
-    walk(init->expr);
-    v(node);
-}
-
-static void walk_ifelse(struct ast *node, visitor v)
-{
-    struct ast_ifelse *ifelse = (struct ast_ifelse *)node;
-    walk(ifelse->cond);
-    walk(ifelse->if_body);
-    if (ifelse->else_body) {
-        walk(ifelse->else_body);
-    }
-    v(node);
-}
-
-static void walk_while(struct ast *node, visitor v)
-{
-    struct ast_while *wile = (struct ast_while *)node;
-    walk(wile->cond);
-    walk(wile->body);
-    v(node);
-}
-
-static void walk_for(struct ast *node, visitor v)
-{
-    struct ast_for *fore = (struct ast_for *)node;
-    walk(fore->var);
-    walk(fore->range);
-    walk(fore->body);
-    v(node);
-}
-
-static void walk_typedef(struct ast *node, visitor v)
-{
-    struct ast_typedef *tdef = (struct ast_typedef*)node;
-    walk(tdef->type);
-    walk(tdef->alias);
-    v(node);
-}
-
-static void walk_return(struct ast *node, visitor v)
-{
-    struct ast_return *ret = (struct ast_return*)node;
-    if (ret->expr) {
-        walk(ret->expr);
-    }
-    v(node);
-}
-
-static void walk_break(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_continue(struct ast *node, visitor v)
-{
-    v(node);
-}
-
-static void walk_contaccess(struct ast *node, visitor v)
-{
-    struct ast_contaccess *ca = (struct ast_contaccess*)node;
-    walk(ca->ident);
-    walk(ca->index);
-    v(node);
-}
-
-static void walk_funclit(struct ast *node, visitor v)
-{
-    struct ast_funclit *f = (struct ast_funclit*)node;
-
-    if (f->ret_type) {
-        walk(f->ret_type);
-    }
-    if (f->params) {
-        walk(f->params);
-    }
-    walk(f->body);
-    v(node);
-}
-
-static void walk_funcdef(struct ast *node, visitor v)
-{
-    struct ast_funcdef *f = (struct ast_funcdef*)node;
-
-    if (f->ret_type) {
-        walk(f->ret_type);
-    }
-
-    walk(f->name);
-
-    if (f->params) {
-        walk(f->params);
-    }
-    walk(f->body);
-    v(node);
 }

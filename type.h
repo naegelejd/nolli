@@ -5,7 +5,7 @@
 
 enum {TYPENAME_MAXLEN = 32};
 
-typedef enum {
+enum {
     TYPE_start,
     TYPE_BOOL,
     TYPE_CHAR,
@@ -16,25 +16,25 @@ typedef enum {
     TYPE_LIST,
     TYPE_MAP,
     TYPE_USER
-} typeid_t;
+};
 
-typedef struct type {
-    typeid_t id;
+struct type {
+    int id;
     const char* name;
     struct type** kinds;
     unsigned int n;
-} type_t;
+};
 
-extern type_t bool_type;
-extern type_t char_type;
-extern type_t int_type;
-extern type_t real_type;
-extern type_t str_type;
-extern type_t file_type;
+extern struct type bool_type;
+extern struct type char_type;
+extern struct type int_type;
+extern struct type real_type;
+extern struct type str_type;
+extern struct type file_type;
 
 /* TODO: all types should be hashed when they are first parsed! */
-type_t* new_list_type(type_t* tp);
-type_t* new_map_type(type_t* ktp, type_t* vtp);
-type_t* new_user_type(char *name);
+struct type* new_list_type(struct type* tp);
+struct type* new_map_type(struct type* ktp, struct type* vtp);
+struct type* new_user_type(char *name);
 
 #endif /* NOLLI_TYPE_H */

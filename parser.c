@@ -89,7 +89,7 @@ struct ast *parse(struct parser *parser)
 
 static struct ast *statements(struct parser *parser)
 {
-    struct ast *statements = ast_make_list(LIST_STATEMENTS);
+    struct ast *statements = ast_make_list(LIST_STATEMENT);
 
     struct ast* stmt = statement(parser);
 
@@ -186,7 +186,7 @@ static struct ast *declaration_type(struct parser *parser)
         type = ast_make_ident(parser->buffer);
         /* parse types defined in other modules, e.g. std.file */
         if (accept(parser, TOK_DOT)) {
-            struct ast *extern_type = ast_make_list(LIST_MEMBERS);
+            struct ast *extern_type = ast_make_list(LIST_MEMBER);
             extern_type = ast_list_append(extern_type, type);
             expect(parser, TOK_TYPE);
             type = ast_make_ident(parser->buffer);
@@ -218,7 +218,7 @@ static struct ast *declaration_names(struct parser *parser)
 
     /* only make a declaration list if more than one name is declared */
     if (accept(parser, TOK_COMMA)) {
-        struct ast *list = ast_make_list(LIST_DECLS);
+        struct ast *list = ast_make_list(LIST_DECL);
         list = ast_list_append(list, name);
         do {
             list = ast_list_append(list, declaration_name(parser));
@@ -315,7 +315,7 @@ static struct ast *term(struct parser *parser)
     /* for now, let's build a list of selectors iteratively */
     if (check(parser, TOK_DOT)) {
         struct ast *selector = term;
-        term = ast_make_list(LIST_SELECTORS);
+        term = ast_make_list(LIST_SELECTOR);
         term = ast_list_append(term, selector);
     }
 
@@ -405,7 +405,7 @@ static struct ast *list_literal(struct parser *parser)
 static struct ast *map_literal(struct parser *parser)
 {
     expect(parser, TOK_LCURLY);
-    struct ast* keyval_list = ast_make_list(LIST_MAP_ITEMS);
+    struct ast* keyval_list = ast_make_list(LIST_MAP_ITEM);
     if (check(parser, TOK_RCURLY)) {
         ; /* function call with no args */
     } else {
@@ -424,7 +424,7 @@ static struct ast *map_literal(struct parser *parser)
 static struct ast *arguments(struct parser *parser)
 {
     expect(parser, TOK_LPAREN);
-    struct ast* arg_list = ast_make_list(LIST_ARGS);
+    struct ast* arg_list = ast_make_list(LIST_ARG);
     if (check(parser, TOK_RPAREN)) {
         ; /* function call with no args */
     } else {
@@ -491,7 +491,7 @@ static struct ast *forloop(struct parser *parser)
 
 static struct ast *parameters(struct parser *parser)
 {
-    struct ast *params = ast_make_list(LIST_PARAMS);
+    struct ast *params = ast_make_list(LIST_PARAM);
     /* 1 decl, or many comma-separated decls */
     do {
         struct ast *tp = declaration_type(parser);
@@ -575,7 +575,7 @@ static struct ast *functype(struct parser *parser)
     struct ast *param_types = NULL;
 
     if (!check(parser, TOK_RPAREN)) {
-        param_types = ast_make_list(LIST_TYPES);
+        param_types = ast_make_list(LIST_TYPE);
         do {
             struct ast *tp = declaration_type(parser);
             accept(parser, TOK_TYPE);   /* optional parameter name */
@@ -613,7 +613,7 @@ static struct ast *funcdecl(struct parser *parser)
 
     struct ast *param_types = NULL;
     if (!check(parser, TOK_RPAREN)) {
-        param_types = ast_make_list(LIST_TYPES);
+        param_types = ast_make_list(LIST_TYPE);
         do {
             struct ast *tp = declaration_type(parser);
             accept(parser, TOK_TYPE);   /* optional parameter name */
@@ -647,7 +647,7 @@ static struct ast *typedefinition(struct parser *parser)
 
 static struct ast *import(struct parser *parser)
 {
-    struct ast *list = ast_make_list(LIST_IMPORTS);
+    struct ast *list = ast_make_list(LIST_IMPORT);
     struct ast *from = NULL;
 
     if (accept(parser, TOK_FROM)) {
@@ -676,7 +676,7 @@ static struct ast *structtype(struct parser *parser)
     struct ast *name = ast_make_ident(parser->buffer);
 
     expect(parser, TOK_LCURLY);
-    struct ast *members = ast_make_list(LIST_MEMBERS);
+    struct ast *members = ast_make_list(LIST_MEMBER);
     while (!check(parser, TOK_RCURLY)) {
         struct ast *member = NULL;
         if (check(parser, TOK_FUNC)) {
@@ -699,7 +699,7 @@ static struct ast *interface(struct parser *parser)
     struct ast *name = ast_make_ident(parser->buffer);
 
     expect(parser, TOK_LCURLY);
-    struct ast *methods = ast_make_list(LIST_METHODS);
+    struct ast *methods = ast_make_list(LIST_METHOD);
     while (!check(parser, TOK_RCURLY)) {
         struct ast *fd = funcdecl(parser);
         expect(parser, TOK_SEMI);

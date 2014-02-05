@@ -1,7 +1,7 @@
 import math
 from hell import fire, lightning
 
-var int a = 4 + .4
+var int a = 4.0 + .4
 const int b = sum(5, 6)
 const int c = x
 var {hello, world} m
