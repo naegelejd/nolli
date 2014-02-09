@@ -90,11 +90,6 @@ static int appendc(struct lexer *lex, int c)
 /* to be called with decimal point as lex->cur or already in buffer */
 static int lex_real(struct lexer *lex)
 {
-    do {
-        appendc(lex, lex->cur);
-        next(lex);
-    } while (isdigit(lex->cur));
-
     /* allow 'scientific E notation' */
     if (strchr("eE", lex->cur)) {
         appendc(lex, lex->cur);
@@ -109,6 +104,13 @@ static int lex_real(struct lexer *lex)
             appendc(lex, lex->cur);
             next(lex);
         }
+    } else {
+        /* eat numbers and extra (BAD) decimal points and let `strtod`
+         * handle errors in the parser */
+        do {
+            appendc(lex, lex->cur);
+            next(lex);
+        } while (isdigit(lex->cur) || lex->cur == '.');
     }
 
     return TOK_REAL;
@@ -125,14 +127,19 @@ static int lex_integer(struct lexer *lex)
         return lex_real(lex);
     }
 
-    if (strchr("xX", lex->cur)) {
+    /* eat all numbers/letters and let `strtol` handle errors in parser */
+    while (isalnum(lex->cur)) {
         appendc(lex, lex->cur);
         next(lex);
-        while (strchr("abcdefABCDEF123456890", lex->cur)) {
-            appendc(lex, lex->cur);
-            next(lex);
-        }
     }
+    /* if (strchr("xX", lex->cur)) { */
+    /*     appendc(lex, lex->cur); */
+    /*     next(lex); */
+    /*     while (strchr("abcdefABCDEF123456890", lex->cur)) { */
+    /*         appendc(lex, lex->cur); */
+    /*         next(lex); */
+    /*     } */
+    /* } */
 
     return TOK_INT;
 }

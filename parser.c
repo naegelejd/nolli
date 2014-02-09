@@ -9,6 +9,7 @@
         NOLLI_ERRORF("(L %d, C %d): " fmt, \
                 (P)->lexer->line, (P)->lexer->line, __VA_ARGS__); \
         parser->error = true; \
+        longjmp(parser->jmp, 42); \
     } while (0)
 
 
@@ -61,8 +62,10 @@ static bool expect(struct parser *parser, int tok)
         return true;
     }
 
-    PARSE_ERRORF(parser, "Unexpected token: %s , expecting %s",
+    NOLLI_ERRORF("(L %d, C %d): Unexpected token: %s , expecting %s",
+            parser->lexer->line, parser->lexer->line,
             get_tok_name(parser->cur), get_tok_name(tok));
+    parser->error = true;
     return false;
 }
 
@@ -89,16 +92,32 @@ struct ast *parse(struct parser *parser)
 
 static struct ast *statements(struct parser *parser)
 {
+    jmp_buf orig_jmp;
+    memcpy(&orig_jmp, &parser->jmp, sizeof(orig_jmp));
+
     struct ast *statements = ast_make_list(LIST_STATEMENT);
+    struct ast *stmt = NULL;
 
-    struct ast* stmt = statement(parser);
-
-    while (stmt != NULL) {
-        expect(parser, TOK_SEMI);
-        statements = ast_list_append(statements, stmt);
-        /* add statement to list */
+retry:
+    if (setjmp(parser->jmp) == 0) {
         stmt = statement(parser);
+        while (stmt != NULL) {
+            expect(parser, TOK_SEMI);
+            statements = ast_list_append(statements, stmt);
+            /* add statement to list */
+            stmt = statement(parser);
+        }
+    } else {
+        while (parser->cur != TOK_SEMI && parser->cur != TOK_EOF) {
+            /* printf("synchronizing\n"); */
+            next(parser);
+        }
+        next(parser);
+        goto retry;
     }
+
+    memcpy(&parser->jmp, &orig_jmp, sizeof(parser->jmp));
+
     return statements;
 }
 
@@ -139,7 +158,7 @@ static struct ast *statement(struct parser *parser)
         return ast_make_continue();
     } else if (accept(parser, TOK_TYPEDEF)) {
         return typedefinition(parser);
-    } else if (!check(parser, TOK_RCURLY)) {
+    } else if (!check(parser, TOK_RCURLY) && !check(parser, TOK_SEMI)) {
         return assignment(parser);
     } else {
         return NULL;
@@ -380,8 +399,8 @@ static struct ast *operand(struct parser *parser)
     } else if (check(parser, TOK_FUNC)) {
         return func_literal(parser);
     } else {
-        PARSE_ERRORF(parser, "Invalid operand: %s", parser->buffer);
         next(parser);
+        PARSE_ERRORF(parser, "Invalid operand: %s", parser->buffer);
         return NULL;
     }
 }

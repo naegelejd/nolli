@@ -1,9 +1,12 @@
 #ifndef NOLLI_PARSER_H
 #define NOLLI_PARSER_H
 
-#include "lexer.h"
+#include "nolli.h"
+
+struct lexer;
 
 struct parser {
+    jmp_buf jmp;
     struct lexer *lexer;
     char *buffer;
     int cur;
