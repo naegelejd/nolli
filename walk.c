@@ -16,6 +16,7 @@ static struct type *walk_unexpr(struct ast*, struct irstate*);
 static struct type *walk_binexpr(struct ast*, struct irstate*);
 static struct type *walk_list(struct ast*, struct irstate*);
 static struct type *walk_keyval(struct ast*, struct irstate*);
+static struct type *walk_short_decl(struct ast*, struct irstate*);
 static struct type *walk_assign(struct ast*, struct irstate*);
 static struct type *walk_call(struct ast*, struct irstate*);
 static struct type *walk_import(struct ast*, struct irstate*);
@@ -89,6 +90,7 @@ static struct type *walk(struct ast *root, struct irstate *irs)
         walk_keyval,
         walk_contaccess,
 
+        walk_short_decl,
         walk_assign,
         walk_ifelse,
         walk_while,
@@ -324,6 +326,15 @@ static struct type *walk_keyval(struct ast *node, struct irstate *irs)
     return NULL;    /* FIXME */
 }
 
+static struct type *walk_short_decl(struct ast *node, struct irstate *irs)
+{
+    struct ast_short_decl* short_decl = (struct ast_short_decl*)node;
+    walk(short_decl->ident, irs);
+    walk(short_decl->expr, irs);
+
+    return NULL;    /* FIXME */
+}
+
 static struct type *walk_assign(struct ast *node, struct irstate *irs)
 {
     struct ast_assignment* assignment = (struct ast_assignment*)node;
@@ -553,6 +564,7 @@ static char *ast_name(struct ast* node)
         "LIST",
         "KEYVAL",
         "CONTACCESS",
+        "SHORT_DECL",
         "ASSIGN",
         "IFELSE",
         "WHILE",

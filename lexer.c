@@ -25,13 +25,15 @@ static char *tok_type_names[] = {
     "'/'", "'/='",
     "'%'", "'%='",
     "'^'", "'^='",
+    "'~'", "'~='",
+    "':'", "':='",
     "'='", "'=='",
     "'!'", "'!='",
     "'<'", "'>='",
     "'>'", "'>='",
 
     "'('", "')'", "'['", "']'", "'{'", "'}'",
-    "','", "':'", "';'", "'.'",
+    "','", "';'", "'.'",
 
     "var", "const",
     "if", "else",
@@ -240,12 +242,14 @@ static int lex_symbol(struct lexer *lex)
         case '/': tok = TOK_DIV; break;
         case '%': tok = TOK_MOD; break;
         case '^': tok = TOK_POW; break;
+        case '~': tok = TOK_XOR; break;
+        case ':': tok = TOK_COLON; break;
         case '=': tok = TOK_ASS; break;
         case '!': tok = TOK_NOT; break;
         case '<': tok = TOK_LT; break;
         case '>': tok = TOK_GT; break;
         default: {
-            static char symbols[] = "()[]{},:;.";
+            static char symbols[] = "()[]{},;.";
             char *at = NULL;
             if ((at = strchr(symbols, lex->cur))) {
                 appendc(lex, lex->cur);

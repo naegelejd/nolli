@@ -35,6 +35,7 @@ typedef enum {
     AST_KEYVAL,
     AST_CONTACCESS,
 
+    AST_SHORT_DECL,
     AST_ASSIGN,
     AST_IFELSE,
     AST_WHILE,
@@ -47,35 +48,6 @@ typedef enum {
     AST_BREAK,
     AST_CONTINUE,
 } ast_type_t;
-
-typedef enum {
-    EXPR_ADD,
-    EXPR_SUB,
-    EXPR_MUL,
-    EXPR_DIV,
-    EXPR_MOD,
-    EXPR_POW,
-    EXPR_LT,
-    EXPR_GT,
-    EXPR_LTEQ,
-    EXPR_GTEQ,
-    EXPR_EQ,
-    EXPR_IS,
-    EXPR_AND,
-    EXPR_OR,
-
-    EXPR_NEG,
-    EXPR_NOT
-} expr_op_t;
-
-typedef enum {
-    ASS_DEF,
-    ASS_ADD,
-    ASS_SUB,
-    ASS_MUL,
-    ASS_DIV,
-    ASS_POW
-} assign_op_t;
 
 typedef enum {
     DECL_VAR,
@@ -175,13 +147,13 @@ struct ast_init {
 
 struct ast_unexpr {
     struct ast HEAD;
-    expr_op_t op;
+    int op;
     struct ast* expr;
 };
 
 struct ast_binexpr {
     struct ast HEAD;
-    expr_op_t op;
+    int op;
     struct ast* lhs;
     struct ast* rhs;
 };
@@ -192,11 +164,17 @@ struct ast_call {
     struct ast* args;
 };
 
+struct ast_short_decl {
+    struct ast HEAD;
+    struct ast* ident;
+    struct ast* expr;
+};
+
 struct ast_assignment {
     struct ast HEAD;
     struct ast* ident;
     struct ast* expr;
-    assign_op_t op;
+    int op;
 };
 
 struct ast_keyval {
@@ -279,47 +257,49 @@ struct ast_funclit {
     struct ast *body;
 };
 
-struct ast* ast_make_bool_lit(bool b);
-struct ast* ast_make_char_lit(char c);
-struct ast* ast_make_int_num(long l);
-struct ast* ast_make_real_num(double d);
-struct ast* ast_make_str_lit(const char *s);
+struct ast *ast_make_bool_lit(bool b);
+struct ast *ast_make_char_lit(char c);
+struct ast *ast_make_int_num(long l);
+struct ast *ast_make_real_num(double d);
+struct ast *ast_make_str_lit(const char *s);
 
-struct ast* ast_make_ident(const char *s);
+struct ast *ast_make_ident(const char *s);
 
-struct ast* ast_make_import(struct ast*, struct ast*);
+struct ast *ast_make_import(struct ast*, struct ast*);
 
-struct ast* ast_make_typedef(struct ast*, struct ast*);
+struct ast *ast_make_typedef(struct ast*, struct ast*);
 
-struct ast* ast_make_list_type(struct ast*);
-struct ast* ast_make_map_type(struct ast*, struct ast*);
-struct ast* ast_make_func_type(struct ast*, struct ast*);
-struct ast* ast_make_struct_type(struct ast*, struct ast*);
-struct ast* ast_make_iface_type(struct ast*, struct ast*);
+struct ast *ast_make_list_type(struct ast*);
+struct ast *ast_make_map_type(struct ast*, struct ast*);
+struct ast *ast_make_func_type(struct ast*, struct ast*);
+struct ast *ast_make_struct_type(struct ast*, struct ast*);
+struct ast *ast_make_iface_type(struct ast*, struct ast*);
 
-struct ast* ast_make_decl(decl_type_t, struct ast*, struct ast*);
-struct ast* ast_make_initialization(struct ast*, struct ast*);
-struct ast* ast_make_unexpr(expr_op_t, struct ast*);
-struct ast* ast_make_binexpr(struct ast*, expr_op_t, struct ast*);
+struct ast *ast_make_decl(decl_type_t, struct ast*, struct ast*);
+struct ast *ast_make_initialization(struct ast*, struct ast*);
+struct ast *ast_make_unexpr(int op, struct ast*);
+struct ast *ast_make_binexpr(struct ast*, int op, struct ast*);
 
 struct ast *ast_make_list(int type);
-struct ast* ast_list_append(struct ast*, struct ast*);
+struct ast *ast_list_append(struct ast*, struct ast*);
 
-struct ast* ast_make_keyval(struct ast* key, struct ast* val);
-struct ast* ast_make_contaccess(struct ast*, struct ast*);
+struct ast *ast_make_keyval(struct ast *key, struct ast *val);
+struct ast *ast_make_contaccess(struct ast*, struct ast*);
 
-struct ast* ast_make_assignment(struct ast*, assign_op_t, struct ast*);
+struct ast *ast_make_short_decl(struct ast*, struct ast*);
+struct ast *ast_make_assignment(struct ast*, int op, struct ast*);
 
-struct ast* ast_make_ifelse(struct ast*, struct ast*, struct ast*);
-struct ast* ast_make_while(struct ast*, struct ast*);
-struct ast* ast_make_for(struct ast*, struct ast*, struct ast*);
-struct ast* ast_make_call(struct ast*, struct ast*);
+struct ast *ast_make_ifelse(struct ast*, struct ast*, struct ast*);
+struct ast *ast_make_while(struct ast*, struct ast*);
+struct ast *ast_make_for(struct ast*, struct ast*, struct ast*);
+struct ast *ast_make_call(struct ast*, struct ast*);
 
-struct ast* ast_make_break(void);
-struct ast* ast_make_continue(void);
-struct ast* ast_make_return(struct ast*);
+struct ast *ast_make_break(void);
+struct ast *ast_make_continue(void);
+struct ast *ast_make_return(struct ast*);
 
-struct ast* ast_make_funclit(struct ast*, struct ast*, struct ast*);
-struct ast* ast_make_funcdef(struct ast*, struct ast*, struct ast*, struct ast*);
+struct ast *ast_make_funclit(struct ast*, struct ast*, struct ast*);
+struct ast *ast_make_funcdef(struct ast*, struct ast*, struct ast*, struct ast*);
+struct ast *ast_make_short_decl(struct ast*, struct ast*);
 
 #endif /* NOLLI_AST_H */

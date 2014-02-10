@@ -130,7 +130,7 @@ struct ast* ast_make_initialization(struct ast *ident, struct ast *expr)
     return (struct ast*)init;
 }
 
-struct ast* ast_make_unexpr(expr_op_t op, struct ast* expr)
+struct ast* ast_make_unexpr(int op, struct ast* expr)
 {
     assert(expr);
 
@@ -140,7 +140,7 @@ struct ast* ast_make_unexpr(expr_op_t op, struct ast* expr)
     return (struct ast*)unexpr;
 }
 
-struct ast* ast_make_binexpr(struct ast* lhs, expr_op_t op, struct ast* rhs)
+struct ast* ast_make_binexpr(struct ast* lhs, int op, struct ast* rhs)
 {
     assert(lhs);
     assert(rhs);
@@ -203,7 +203,20 @@ struct ast* ast_make_contaccess(struct ast* ident, struct ast* index)
     return (struct ast*)contaccess;
 }
 
-struct ast* ast_make_assignment(struct ast* ident, assign_op_t op, struct ast* expr)
+struct ast *ast_make_short_decl(struct ast *ident, struct ast *expr)
+{
+    assert(ident);
+    assert(expr);
+
+    struct ast_short_decl* short_decl = make_node(
+            sizeof(*short_decl), AST_SHORT_DECL);
+    short_decl->ident = ident;
+    short_decl->expr = expr;
+
+    return (struct ast*)short_decl;
+}
+
+struct ast* ast_make_assignment(struct ast* ident, int op, struct ast* expr)
 {
     assert(ident);
     assert(expr);
