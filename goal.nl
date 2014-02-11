@@ -68,9 +68,9 @@ main := func int ([str] args) {
     say := func () { print("temp"); }
     say()
 
-    typedef int id
-    typedef {str,real} str_real_map
-    typedef func int (str) main_t
+    alias int id
+    alias {str,real} str_real_map
+    alias func int (str) main_t
     var [main_t] mains = [main, main, main]
     for m in mains {
         main("hello world")

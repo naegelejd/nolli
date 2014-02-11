@@ -1,43 +1,62 @@
 program = { statement } ;
-statement = import | struct | iface | decl | assign | loop |
-        cond | funcdef | call | 'break' | 'continue' | 'return' expr;
-import = 'import' ident { ',' ident } ;
-struct = 'struct' '{' { type ident } '}' ;
-iface = 'iface' '{' { functype ident } '}' ;
+statement = import | struct | iface | decl | assignment | loop |
+        cond | call | alias | 'break' | 'continue' | 'return' [ expr ];
+
+import = 'import' ident { ',' ident } | 'from' ident 'import' ident { ',' ident } ;
+
+struct = 'struct' ident '{' { type ident } '}' ;
+
+iface = 'iface' ident '{' { functype ident } '}' ;
+
 loop = 'while' expr block | 'for' ident 'in' expr block ;
-cond = 'if' expr block [ 'else' block ] ;
+
+cond = 'if' expr block [ 'else' ( cond | block ) ] ;
+
 funcdef = 'func' [type] ident '(' [ params ] ')' block ;
 params = type ident { ',' type ident } ;
 block = statement | '{' statement { statement } '}' ;
-assign = ident assop expr | ident '[' expr ']' assop expr ;
-decl = declkind type ident { ',' ident } [ '=' expr { ',' expr } ] ;
+
+assignment = term assignop expr ;
+
+term = operand | term '[' expr ']' | term '(' args ')' | term '.' term ;
+
+decl = regdecl | shortdecl;
+shortdecl = ident ':=' expr ;
+regdecl = declkind type declval { ',' declval } ;
+declval = ident | ident '=' expr ;
 declkind = 'var' | 'const' ;
-type = ident | listtype | maptype | functype ;
+
+type = ident | ident '.' ident | listtype | maptype | functype ;
 listtype = '[' type ']' ;
 maptype = '{' type ',' type '}' ;
 functype = 'func' [type] '(' [ anonparams ] ')' block ;
-anonparams = type [ ident ] { ',' type } ;
-expr = literal | ident | contidx | '(' expr ')' | unexpr | binexpr | call | selector ;
-contidx = expr '[' expr ']' ;
+anonparams = type [ ident ] { ',' type [ ident ] } ;
+
 call = expr '(' args ')' ;
-selector = expr '.' expr { '.' expr } ;
 args = expr { ',' expr } ;
-unexpr = unop expr ;
+
+alias = 'alias' type ident ;
+
+selector = expr '.' expr { '.' expr } ;
+
+expr = unexpr | binexpr ;
+
 unop = '-' | '!' ;
-assop = ':=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' ;
+assignop = ':=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '~=' ;
+unexpr = unop unexpr | term ;
 binexpr = expr binop expr ;
-binop = '+' | '-' | '*' | '/' | '%' | '^' | '==' | '!=' | '<' | '<=' | '>' | '>=' ;
-literal = bool | char | int | real | string | tuple | list | map | anonfunc ;
-anonfunc = 'func' [type] '(' [ params ] ')' block ;
-tuple = '(' expr { ',' expr } ')' ;
-list = '[' ']' | '[' expr { ',' expr } ']' ;
-map = '{' '}' | '{' pair { ',' pair } '}' ;
+binop = '+' | '-' | '*' | '/' | '%' | '^' | '~' | '==' | '!=' | '<' | '<=' | '>' | '>=' ;
+
+operand = ident | literal | '(' expr ')' ;
+literal = bool | char | int | real | string | listlit | maplit | funclit ;
+listlit = '[' ']' | '[' expr { ',' expr } ']' ;
 pair = expr ':' expr ;
+maplit = '{' '}' | '{' pair { ',' pair } '}' ;
+funclit = 'func' [type] '(' [ params ] ')' block ;
+
 bool = 'true' | 'false' ;
 char = "'" letter "'" ;
 int = number { number } ;
 real = number { number } "." { number } ;
 ident = letter { letter | number } ;
 string = '"' { letter } '"' ;
-letter = ? UTF-8 char ? ;
-number = ? 0 - 9 ? ;

@@ -3,7 +3,7 @@
 
 #include "nolli.h"
 
-typedef enum {
+enum {
     AST_BAD_TYPE,
 
     AST_BOOL_LIT,
@@ -16,7 +16,7 @@ typedef enum {
 
     AST_IMPORT,
 
-    AST_TYPEDEF,
+    AST_ALIAS,
 
     AST_LIST_TYPE,
     AST_MAP_TYPE,
@@ -47,12 +47,12 @@ typedef enum {
     AST_RETURN,
     AST_BREAK,
     AST_CONTINUE,
-} ast_type_t;
+};
 
-typedef enum {
+enum {
     DECL_VAR,
     DECL_CONST
-} decl_type_t;
+};
 
 enum {
     LIST_DECL,
@@ -136,7 +136,7 @@ struct ast_decl {
     struct ast HEAD;
     struct ast *type;
     struct ast *name_s;     /* one ident or a list of idents */
-    decl_type_t tp;
+    int tp;                 /* declaration type (var/const) */
 };
 
 struct ast_init {
@@ -189,10 +189,10 @@ struct ast_import {
     struct ast *modules;
 };
 
-struct ast_typedef {
+struct ast_alias {
     struct ast HEAD;
     struct ast *type;
-    struct ast *alias;
+    struct ast *name;
 };
 
 struct ast_return {
@@ -267,7 +267,7 @@ struct ast *ast_make_ident(const char *s);
 
 struct ast *ast_make_import(struct ast*, struct ast*);
 
-struct ast *ast_make_typedef(struct ast*, struct ast*);
+struct ast *ast_make_alias(struct ast*, struct ast*);
 
 struct ast *ast_make_list_type(struct ast*);
 struct ast *ast_make_map_type(struct ast*, struct ast*);
@@ -275,7 +275,7 @@ struct ast *ast_make_func_type(struct ast*, struct ast*);
 struct ast *ast_make_struct_type(struct ast*, struct ast*);
 struct ast *ast_make_iface_type(struct ast*, struct ast*);
 
-struct ast *ast_make_decl(decl_type_t, struct ast*, struct ast*);
+struct ast *ast_make_decl(int, struct ast*, struct ast*);
 struct ast *ast_make_initialization(struct ast*, struct ast*);
 struct ast *ast_make_unexpr(int op, struct ast*);
 struct ast *ast_make_binexpr(struct ast*, int op, struct ast*);

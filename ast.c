@@ -5,7 +5,7 @@
 /* Convenience function for allocating AST node
  * and setting its type.
  */
-static void *make_node(size_t size, ast_type_t type)
+static void *make_node(size_t size, int type)
 {
     struct ast *node = nalloc(size);
     node->type = type;
@@ -66,12 +66,12 @@ struct ast* ast_make_import(struct ast* from, struct ast* modules)
     return (struct ast*)import;
 }
 
-struct ast* ast_make_typedef(struct ast* type, struct ast* alias)
+struct ast* ast_make_alias(struct ast* type, struct ast* name)
 {
-    struct ast_typedef* tdef = make_node(sizeof(*tdef), AST_TYPEDEF);
-    tdef->type = type;
-    tdef->alias = alias;
-    return (struct ast*)tdef;
+    struct ast_alias* alias = make_node(sizeof(*alias), AST_ALIAS);
+    alias->type = type;
+    alias->name = name;
+    return (struct ast*)alias;
 }
 
 struct ast* ast_make_list_type(struct ast *name)
@@ -113,7 +113,7 @@ struct ast* ast_make_iface_type(struct ast *name, struct ast *methods)
     return (struct ast*)type;
 }
 
-struct ast* ast_make_decl(decl_type_t tp, struct ast* type, struct ast* name_s)
+struct ast* ast_make_decl(int tp, struct ast* type, struct ast* name_s)
 {
     struct ast_decl *decl = make_node(sizeof(*decl), AST_DECL);
     decl->type = type;

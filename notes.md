@@ -54,11 +54,71 @@ The type-checked AST is then traversed to generate... TBD.
 ## Feature Ideas
 
 - shorthand variable initialization (i.e. `name := "joe"`)
-- macros
-- templates
+- macros/templates
 - various backend code generation
     - C code
     - x86 assembly
     - JIT compilation
     - virtual machine bytecode (w/ runtime)
 - use pools for allocating AST nodes?
+
+## Builtin functions
+
+id
+map
+foldl
+foldr
+filter
+zip
+zipWith
+
+## Type notes
+
+### Base Types
+
+bool    - boolean
+chr     - character
+int     - integral number
+real    - real number
+str     - character list
+lst     - homogeneous collection of values
+map     - homogeneous collection of key-value pairs
+tup     - heterogeneous collection of base type instances
+func    - function
+strm    - IO stream (reading/writing)
+
+tup and func types are actually defined by their signature, i.e.
+
+1. every possible grouping combination of base types is an individual `tup` type
+1. every possible combination of return types and parameter types is an individual `func` type
+
+## Keywords
+
+This list of keywords includes builtin type names. A tool like `gperf` could generate a
+perfect hash function for this list, which could then be used in a parser.
+
+bool
+char
+int
+real
+str
+list
+map
+file
+func
+struct
+iface
+module
+import
+from
+alias
+return
+break
+continue
+if
+else
+for
+in
+while
+true
+false

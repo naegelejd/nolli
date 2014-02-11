@@ -30,7 +30,7 @@ static struct type *walk_initialization(struct ast*, struct irstate*);
 static struct type *walk_ifelse(struct ast*, struct irstate*);
 static struct type *walk_while(struct ast*, struct irstate*);
 static struct type *walk_for(struct ast*, struct irstate*);
-static struct type *walk_typedef(struct ast*, struct irstate*);
+static struct type *walk_alias(struct ast*, struct irstate*);
 static struct type *walk_return(struct ast*, struct irstate*);
 static struct type *walk_break(struct ast*, struct irstate*);
 static struct type *walk_continue(struct ast*, struct irstate*);
@@ -72,7 +72,7 @@ static struct type *walk(struct ast *root, struct irstate *irs)
         walk_ident,
 
         walk_import,
-        walk_typedef,
+        walk_alias,
 
         walk_list_type,
         walk_map_type,
@@ -465,11 +465,11 @@ static struct type *walk_for(struct ast *node, struct irstate *irs)
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_typedef(struct ast *node, struct irstate *irs)
+static struct type *walk_alias(struct ast *node, struct irstate *irs)
 {
-    struct ast_typedef *tdef = (struct ast_typedef*)node;
-    walk(tdef->type, irs);
-    walk(tdef->alias, irs);
+    struct ast_alias *alias = (struct ast_alias*)node;
+    walk(alias->type, irs);
+    walk(alias->name, irs);
 
     return NULL;    /* FIXME */
 }
@@ -551,7 +551,7 @@ static char *ast_name(struct ast* node)
         "STR_LIT",
         "IDENT",
         "IMPORT",
-        "TYPEDEF",
+        "ALIAS",
         "LIST_TYPE",
         "MAP_TYPE",
         "FUNC_TYPE",

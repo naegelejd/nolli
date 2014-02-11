@@ -40,7 +40,7 @@ static char *tok_type_names[] = {
     "while", "for",
     "break", "continue",
     "in",
-    "typedef",
+    "alias",
     "func", "return",
     "struct", "iface",
     "module", "import", "from",
@@ -204,7 +204,7 @@ static int lookup_keyword(struct lexer *lex)
     /* TODO: use hash-table or similar O(1) lookup */
     const char *keywords[] = {
         "var", "const", "if", "else", "while", "for", "break",
-        "continue", "in", "typedef", "func", "return",
+        "continue", "in", "alias", "func", "return",
         "struct", "iface", "module", "import", "from",
     };
     unsigned int kidx = 0;

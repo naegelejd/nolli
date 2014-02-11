@@ -34,7 +34,7 @@ static struct ast *const_declaration(struct parser *parser);
 static struct ast *declaration_type(struct parser *parser);
 static struct ast *declaration_names(struct parser *parser);
 static struct ast *functype(struct parser *parser);
-static struct ast *typedefinition(struct parser *parser);
+static struct ast *alias(struct parser *parser);
 static struct ast *import(struct parser *parser);
 static struct ast *structtype(struct parser *parser);
 static struct ast *interface(struct parser *parser);
@@ -152,8 +152,8 @@ static struct ast *statement(struct parser *parser)
         return ast_make_break();
     } else if (accept(parser, TOK_CONT)) {
         return ast_make_continue();
-    } else if (accept(parser, TOK_TYPEDEF)) {
-        return typedefinition(parser);
+    } else if (accept(parser, TOK_ALIAS)) {
+        return alias(parser);
     } else if (!check(parser, TOK_RCURLY) && !check(parser, TOK_SEMI)) {
         return assignment(parser);
     } else {
@@ -577,14 +577,14 @@ static struct ast *functype(struct parser *parser)
     return ast_make_func_type(ret_type, param_types);
 }
 
-static struct ast *typedefinition(struct parser *parser)
+static struct ast *alias(struct parser *parser)
 {
     struct ast *type = declaration_type(parser);
     expect(parser, TOK_IDENT);
-    struct ast *alias = ast_make_ident(parser->buffer);
-    PARSE_DEBUG(parser, "Parsed `typedef`");
+    struct ast *name = ast_make_ident(parser->buffer);
+    PARSE_DEBUG(parser, "Parsed `alias`");
 
-    return ast_make_typedef(type, alias);
+    return ast_make_alias(type, name);
 }
 
 static struct ast *import(struct parser *parser)
