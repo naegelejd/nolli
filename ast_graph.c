@@ -223,12 +223,12 @@ static int graph_import(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
     struct ast_import* import = (struct ast_import*)node;
-    fprintf(fp, "%d [label=\"import\"]\n", rID);
+    fprintf(fp, "%d [label=\"import", rID);
 
     if (import->from) {
-        fprintf(fp, "%d -> %d\n", rID, ++id);
-        id = graph(import->from, fp, id);
+        fprintf(fp, " from %s", import->from);
     }
+    fprintf(fp, "\"]\n");
 
     assert(import->modules);
     struct ast_list *modules = (struct ast_list *)import->modules;
@@ -296,9 +296,7 @@ static int graph_struct_type(struct ast *node, FILE *fp, int id)
     int rID = id;
     struct ast_struct_type *type = (struct ast_struct_type*)node;
 
-    fprintf(fp, "%d [label=\"struct\"]\n", rID);
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(type->name, fp, id);
+    fprintf(fp, "%d [label=\"struct %s\"]\n", rID, type->name);
 
     struct ast_list *members = (struct ast_list*)type->members;
     unsigned int i;
@@ -315,10 +313,7 @@ static int graph_iface_type(struct ast *node, FILE *fp, int id)
     int rID = id;
     struct ast_iface_type *type = (struct ast_iface_type*)node;
 
-    fprintf(fp, "%d [label=\"iface\"]\n", rID);
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(type->name, fp, id);
-
+    fprintf(fp, "%d [label=\"iface %s\"]\n", rID, type->name);
 
     struct ast_list *methods = (struct ast_list*)type->methods;
     unsigned int i;
@@ -424,11 +419,9 @@ static int graph_alias(struct ast *node, FILE *fp, int id)
     int rID = id;
     struct ast_alias *alias = (struct ast_alias*)node;
 
-    fprintf(fp, "%d [label=\"alias\"]\n", rID);
+    fprintf(fp, "%d [label=\"alias %s\"]\n", rID, alias->name);
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(alias->type, fp, id);
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(alias->name, fp, id);
 
     return id;
 }

@@ -581,7 +581,7 @@ static struct ast *alias(struct parser *parser)
 {
     struct ast *type = declaration_type(parser);
     expect(parser, TOK_IDENT);
-    struct ast *name = ast_make_ident(parser->buffer);
+    char *name = strndup(parser->buffer, MAX_IDENT_LENGTH);
     PARSE_DEBUG(parser, "Parsed `alias`");
 
     return ast_make_alias(type, name);
@@ -590,11 +590,11 @@ static struct ast *alias(struct parser *parser)
 static struct ast *import(struct parser *parser)
 {
     struct ast *list = ast_make_list(LIST_IMPORT);
-    struct ast *from = NULL;
+    char *from = NULL;
 
     if (accept(parser, TOK_FROM)) {
         expect(parser, TOK_IDENT);
-        from = ast_make_ident(parser->buffer);
+        from = strndup(parser->buffer, MAX_IDENT_LENGTH);
         expect(parser, TOK_IMPORT);
     } else {
         expect(parser, TOK_IMPORT);
@@ -615,7 +615,7 @@ static struct ast *import(struct parser *parser)
 static struct ast *structtype(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
-    struct ast *name = ast_make_ident(parser->buffer);
+    char *name = strndup(parser->buffer, MAX_IDENT_LENGTH);
 
     expect(parser, TOK_LCURLY);
     struct ast *members = ast_make_list(LIST_MEMBER);
@@ -633,7 +633,7 @@ static struct ast *structtype(struct parser *parser)
 static struct ast *interface(struct parser *parser)
 {
     expect(parser, TOK_IDENT);
-    struct ast *name = ast_make_ident(parser->buffer);
+    char *name = strndup(parser->buffer, MAX_IDENT_LENGTH);
 
     expect(parser, TOK_LCURLY);
     struct ast *methods = ast_make_list(LIST_METHOD);

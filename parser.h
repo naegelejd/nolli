@@ -3,6 +3,8 @@
 
 #include "nolli.h"
 
+enum { MAX_IDENT_LENGTH = 1024 };
+
 struct lexer;
 
 struct parser {

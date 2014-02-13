@@ -58,7 +58,7 @@ struct ast* ast_make_ident(const char *s)
     return (struct ast*)ident;
 }
 
-struct ast* ast_make_import(struct ast* from, struct ast* modules)
+struct ast* ast_make_import(char* from, struct ast* modules)
 {
     struct ast_import* import = make_node(sizeof(*import), AST_IMPORT);
     import->from = from;
@@ -66,7 +66,7 @@ struct ast* ast_make_import(struct ast* from, struct ast* modules)
     return (struct ast*)import;
 }
 
-struct ast* ast_make_alias(struct ast* type, struct ast* name)
+struct ast* ast_make_alias(struct ast* type, char *name)
 {
     struct ast_alias* alias = make_node(sizeof(*alias), AST_ALIAS);
     alias->type = type;
@@ -97,7 +97,7 @@ struct ast* ast_make_func_type(struct ast *ret_type, struct ast *param_types)
     return (struct ast*)type;
 }
 
-struct ast* ast_make_struct_type(struct ast *name, struct ast *members)
+struct ast* ast_make_struct_type(char *name, struct ast *members)
 {
     struct ast_struct_type *type = make_node(sizeof(*type), AST_STRUCT_TYPE);
     type->name = name;
@@ -105,7 +105,7 @@ struct ast* ast_make_struct_type(struct ast *name, struct ast *members)
     return (struct ast*)type;
 }
 
-struct ast* ast_make_iface_type(struct ast *name, struct ast *methods)
+struct ast* ast_make_iface_type(char *name, struct ast *methods)
 {
     struct ast_iface_type *type = make_node(sizeof(*type), AST_IFACE_TYPE);
     type->name = name;

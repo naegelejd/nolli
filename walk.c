@@ -280,7 +280,6 @@ static struct type *walk_statement_list(struct ast *node, struct irstate *irs)
 
     unsigned int i = 0;
     for (i = 0; i < list->count; i++) {
-        struct ast *item = list->items[i];
         walk(list->items[i], irs);
     }
     return NULL;
@@ -349,8 +348,7 @@ static struct type *walk_import(struct ast *node, struct irstate *irs)
 {
     struct ast_import* import = (struct ast_import*)node;
     if (import->from) {
-        assert(import->from);
-        walk(import->from, irs);
+        /* import->from */
     }
 
     assert(import->modules);
@@ -393,7 +391,7 @@ static struct type *walk_func_type(struct ast *node, struct irstate *irs)
 static struct type *walk_struct_type(struct ast *node, struct irstate *irs)
 {
     struct ast_struct_type *type = (struct ast_struct_type*)node;
-    walk(type->name, irs);
+    /* type->name */
     walk(type->members, irs);
 
     return NULL;    /* FIXME */
@@ -402,7 +400,7 @@ static struct type *walk_struct_type(struct ast *node, struct irstate *irs)
 static struct type *walk_iface_type(struct ast *node, struct irstate *irs)
 {
     struct ast_iface_type *type = (struct ast_iface_type*)node;
-    walk(type->name, irs);
+    /* type->name */
     walk(type->methods, irs);
 
     return NULL;    /* FIXME */
@@ -461,7 +459,7 @@ static struct type *walk_alias(struct ast *node, struct irstate *irs)
 {
     struct ast_alias *alias = (struct ast_alias*)node;
     walk(alias->type, irs);
-    walk(alias->name, irs);
+    /* alias->name */
 
     return NULL;    /* FIXME */
 }
@@ -568,11 +566,4 @@ static char *ast_name(struct ast* node)
         return list_names[list->type];
     }
     return names[node->type];
-}
-
-typedef void (*visitor) (struct ast*);
-
-static void visit(struct ast* node)
-{
-    printf("%s\n", ast_name(node));
 }

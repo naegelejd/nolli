@@ -121,13 +121,13 @@ struct ast_func_type {
 
 struct ast_struct_type {
     struct ast HEAD;
-    struct ast *name;
+    char *name;
     struct ast *members;
 };
 
 struct ast_iface_type {
     struct ast HEAD;
-    struct ast *name;
+    char *name;
     struct ast *methods;
 };
 
@@ -184,14 +184,14 @@ struct ast_keyval {
 
 struct ast_import {
     struct ast HEAD;
-    struct ast *from;
+    char *from;
     struct ast *modules;
 };
 
 struct ast_alias {
     struct ast HEAD;
     struct ast *type;
-    struct ast *name;
+    char *name;
 };
 
 struct ast_return {
@@ -264,15 +264,15 @@ struct ast *ast_make_str_lit(const char *s);
 
 struct ast *ast_make_ident(const char *s);
 
-struct ast *ast_make_import(struct ast*, struct ast*);
+struct ast *ast_make_import(char *, struct ast*);
 
-struct ast *ast_make_alias(struct ast*, struct ast*);
+struct ast *ast_make_alias(struct ast*, char *);
 
 struct ast *ast_make_list_type(struct ast*);
 struct ast *ast_make_map_type(struct ast*, struct ast*);
 struct ast *ast_make_func_type(struct ast*, struct ast*);
-struct ast *ast_make_struct_type(struct ast*, struct ast*);
-struct ast *ast_make_iface_type(struct ast*, struct ast*);
+struct ast *ast_make_struct_type(char *, struct ast*);
+struct ast *ast_make_iface_type(char *, struct ast*);
 
 struct ast *ast_make_decl(int, struct ast*, struct ast*);
 struct ast *ast_make_initialization(struct ast*, struct ast*);
@@ -298,6 +298,5 @@ struct ast *ast_make_continue(void);
 struct ast *ast_make_return(struct ast*);
 
 struct ast *ast_make_funclit(struct ast*, struct ast*, struct ast*);
-struct ast *ast_make_short_decl(struct ast*, struct ast*);
 
 #endif /* NOLLI_AST_H */
