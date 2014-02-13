@@ -19,6 +19,7 @@
 #include "type.h"
 #include "symtable.h"
 #include "ast.h"
+#include "ast_graph.h"
 #include "walk.h"
 
 struct nolli_state { };

@@ -42,7 +42,6 @@ enum {
     AST_FOR,
     AST_CALL,
     AST_FUNCLIT,
-    AST_FUNCDEF,
 
     AST_RETURN,
     AST_BREAK,
@@ -299,7 +298,6 @@ struct ast *ast_make_continue(void);
 struct ast *ast_make_return(struct ast*);
 
 struct ast *ast_make_funclit(struct ast*, struct ast*, struct ast*);
-struct ast *ast_make_funcdef(struct ast*, struct ast*, struct ast*, struct ast*);
 struct ast *ast_make_short_decl(struct ast*, struct ast*);
 
 #endif /* NOLLI_AST_H */

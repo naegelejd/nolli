@@ -36,7 +36,6 @@ static struct type *walk_break(struct ast*, struct irstate*);
 static struct type *walk_continue(struct ast*, struct irstate*);
 static struct type *walk_contaccess(struct ast*, struct irstate*);
 static struct type *walk_funclit(struct ast*, struct irstate*);
-static struct type *walk_funcdef(struct ast*, struct irstate*);
 
 static struct type *walk_decl_list(struct ast *node, struct irstate *irs);
 static struct type *walk_arg_list(struct ast *node, struct irstate *irs);
@@ -97,7 +96,6 @@ static struct type *walk(struct ast *root, struct irstate *irs)
         walk_for,
         walk_call,
         walk_funclit,
-        walk_funcdef,
 
         walk_return,
         walk_break,
@@ -283,13 +281,7 @@ static struct type *walk_statement_list(struct ast *node, struct irstate *irs)
     unsigned int i = 0;
     for (i = 0; i < list->count; i++) {
         struct ast *item = list->items[i];
-        if (item->type == AST_FUNCDEF) {
-            struct ast_funcdef *funcdef = (struct ast_funcdef *)item;
-            struct ast_ident *name = (struct ast_ident*)funcdef->name;
-            NOLLI_DEBUGF("Function: %s", name->s);
-        } else {
-            walk(list->items[i], irs);
-        }
+        walk(list->items[i], irs);
     }
     return NULL;
 }
@@ -520,26 +512,6 @@ static struct type *walk_funclit(struct ast *node, struct irstate *irs)
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_funcdef(struct ast *node, struct irstate *irs)
-{
-    struct ast_funcdef *f = (struct ast_funcdef*)node;
-
-    if (f->ret_type) {
-        walk(f->ret_type, irs);
-    }
-
-    walk(f->name, irs);
-
-    if (f->params) {
-        walk(f->params, irs);
-    }
-    walk(f->body, irs);
-
-    return NULL;    /* FIXME */
-}
-
-
-
 static char *ast_name(struct ast* node)
 {
     static char *names[] = {
@@ -571,7 +543,6 @@ static char *ast_name(struct ast* node)
         "FOR",
         "CALL",
         "FUNCLIT",
-        "FUNCDEF",
         "STRUCT",
         "RETURN",
         "BREAK",

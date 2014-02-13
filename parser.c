@@ -201,7 +201,7 @@ static struct ast *declaration_type(struct parser *parser)
         type = ast_make_ident(parser->buffer);
         /* parse types defined in other modules, e.g. std.file */
         if (accept(parser, TOK_DOT)) {
-            struct ast *extern_type = ast_make_list(LIST_MEMBER);
+            struct ast *extern_type = ast_make_list(LIST_SELECTOR);
             extern_type = ast_list_append(extern_type, type);
             expect(parser, TOK_TYPE);
             type = ast_make_ident(parser->buffer);

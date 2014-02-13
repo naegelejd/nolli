@@ -18,6 +18,7 @@ set(NOLLI_SOURCES
     lexer.c
     parser.c
     ast.c
+    ast_graph.c
     walk.c
     symtable.c
     type.c
@@ -30,6 +31,7 @@ set(NOLLI_HEADERS
     lexer.h
     parser.h
     ast.h
+    ast_graph.h
     walk.h
     symtable.h
     type.h

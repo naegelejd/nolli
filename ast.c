@@ -286,18 +286,6 @@ struct ast* ast_make_continue(void)
     return (struct ast*)cont;
 }
 
-struct ast* ast_make_funcdef(struct ast *ret_type, struct ast *name,
-        struct ast *params, struct ast *body)
-{
-    struct ast_funcdef *f = make_node(sizeof(*f), AST_FUNCDEF);
-    f->ret_type = ret_type;
-    f->name = name;
-    f->params = params;
-    f->body = body;
-
-    return (struct ast*)f;
-}
-
 struct ast* ast_make_funclit(struct ast *ret_type, struct ast *params,
         struct ast *body)
 {
