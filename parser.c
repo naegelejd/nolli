@@ -254,8 +254,7 @@ static struct ast *assignment(struct parser *parser)
 
     if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
             parser->cur == TOK_ISUB || parser->cur == TOK_IMUL ||
-            parser->cur == TOK_IDIV || parser->cur == TOK_IMOD ||
-            parser->cur == TOK_IPOW || parser->cur == TOK_IXOR) {
+            parser->cur == TOK_IDIV || parser->cur == TOK_IMOD) {
         int ass = parser->cur; /* save assignment operator */
         next(parser);   /* eat assignment operator */
         struct ast *expr = expression(parser);
@@ -295,12 +294,19 @@ static struct ast *unary_expr(struct parser *parser)
 static int precedence(int op)
 {
     switch (op) {
+        case TOK_OR:
+            return 1; break;
+        case TOK_AND:
+            return 2; break;
+        case TOK_EQ: case TOK_NEQ: case TOK_LT:
+        case TOK_LTE: case TOK_GT: case TOK_GTE:
+            return 3; break;
         case TOK_ADD: case TOK_SUB:
-            return 1;
-            break;
-        case TOK_MUL: case TOK_DIV:
-            return 2;
-            break;
+            return 4; break;
+        case TOK_MUL: case TOK_DIV: case TOK_MOD:
+            return 5; break;
+        case TOK_POW:
+            return 6; break;
         default:
             return 0;
     }
@@ -370,7 +376,6 @@ static int shunter_op_empty(struct shunter *shunter)
 
 static struct ast *expression(struct parser *parser)
 {
-    printf("parsing new expression\n");
     struct ast *expr = unary_expr(parser);
 
     struct shunter shunter;
@@ -378,30 +383,34 @@ static struct ast *expression(struct parser *parser)
 
     while (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
             parser->cur == TOK_MUL || parser->cur == TOK_DIV ||
-            parser->cur == TOK_POW || parser->cur == TOK_XOR ||
-            parser->cur == TOK_MOD ||
+            parser->cur == TOK_MOD || parser->cur == TOK_POW ||
             parser->cur == TOK_EQ || parser->cur == TOK_NEQ ||
             parser->cur == TOK_LT || parser->cur == TOK_LTE ||
-            parser->cur == TOK_GT || parser->cur == TOK_GTE) {
+            parser->cur == TOK_GT || parser->cur == TOK_GTE ||
+            parser->cur == TOK_OR || parser->cur == TOK_AND) {
 
         /* push operand on stack */
         shunter_term_push(&shunter, expr);
-        printf("pushing term\n");
 
         int op = parser->cur;
         next(parser);
 
-        while (!shunter_op_empty(&shunter) && (precedence(shunter_op_top(&shunter)) >= precedence(op))) {
-            printf("popping op, making binexpr, pushing it\n");
-            int thisop = shunter_op_pop(&shunter);
-            /* pop RHS off first */
-            struct ast *rhs = shunter_term_pop(&shunter);
-            struct ast *lhs = shunter_term_pop(&shunter);
-            struct ast *expr = ast_make_binexpr(lhs, thisop, rhs);
-            shunter_term_push(&shunter, expr);
+        while (!shunter_op_empty(&shunter)) {
+            int prec = precedence(op);
+            int top = shunter_op_top(&shunter);
+            int top_prec = precedence(top);
+            if ((top != TOK_POW && top_prec >= prec) || top_prec > prec) {
+                int thisop = shunter_op_pop(&shunter);
+                /* pop RHS off first */
+                struct ast *rhs = shunter_term_pop(&shunter);
+                struct ast *lhs = shunter_term_pop(&shunter);
+                struct ast *expr = ast_make_binexpr(lhs, thisop, rhs);
+                shunter_term_push(&shunter, expr);
+            } else {
+                break;
+            }
         }
         shunter_op_push(&shunter, op);
-        printf("pushing op\n");
 
         expr = unary_expr(parser);
     }

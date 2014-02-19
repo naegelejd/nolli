@@ -19,18 +19,18 @@ static char *tok_type_names[] = {
     "identifier",
     "bool", "char", "int", "real", "string",
 
-    "'+'", "'+='",
-    "'-'", "'-='",
-    "'*'", "'*='",
-    "'/'", "'/='",
-    "'%'", "'%='",
-    "'^'", "'^='",
-    "'~'", "'~='",
-    "':'", "':='",
-    "'='", "'=='",
-    "'!'", "'!='",
-    "'<'", "'>='",
-    "'>'", "'>='",
+    "+", "+=",
+    "-", "-=",
+    "*", "*=",
+    "/", "/=",
+    "%", "%=",
+    "^", "^=",
+    ":", ":=",
+    "=", "==",
+    "!", "!=",
+    "<", ">=",
+    ">", ">=",
+    "||", "&&",
 
     "'('", "')'", "'['", "']'", "'{'", "'}'",
     "','", "';'", "'.'",
@@ -203,8 +203,8 @@ static int lookup_keyword(struct lexer *lex)
 {
     /* TODO: use hash-table or similar O(1) lookup */
     const char *keywords[] = {
-        "var", "const", "if", "else", "while", "for", "break",
-        "continue", "in", "alias", "func", "return",
+        "var", "const", "if", "else", "while", "for",
+        "break", "continue", "in", "alias", "func", "return",
         "struct", "iface", "module", "import", "from",
     };
     unsigned int kidx = 0;
@@ -242,12 +242,31 @@ static int lex_symbol(struct lexer *lex)
         case '/': tok = TOK_DIV; break;
         case '%': tok = TOK_MOD; break;
         case '^': tok = TOK_POW; break;
-        case '~': tok = TOK_XOR; break;
         case ':': tok = TOK_COLON; break;
         case '=': tok = TOK_ASS; break;
         case '!': tok = TOK_NOT; break;
         case '<': tok = TOK_LT; break;
         case '>': tok = TOK_GT; break;
+        case '|':
+            appendc(lex, lex->cur);
+            next(lex);
+            if (lex->cur != '|') {
+                LEX_ERRORF(lex, "Invalid symbol |%c", lex->cur);
+            }
+            appendc(lex, lex->cur);
+            next(lex);
+            return TOK_OR;
+            break;
+        case '&':
+            appendc(lex, lex->cur);
+            next(lex);
+            if (lex->cur != '&') {
+                LEX_ERRORF(lex, "Invalid symbol &%c", lex->cur);
+            }
+            appendc(lex, lex->cur);
+            next(lex);
+            return TOK_AND;
+            break;
         default: {
             static char symbols[] = "()[]{},;.";
             char *at = NULL;
@@ -268,9 +287,8 @@ static int lex_symbol(struct lexer *lex)
         next(lex);
         /* in-place operations follow their base op equivalent */
         return tok + 1;
-    } else {
-        return tok;
     }
+    return tok;
 }
 
 int gettok(struct lexer *lex)
