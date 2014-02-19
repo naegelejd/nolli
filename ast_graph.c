@@ -63,7 +63,7 @@ static int graph_binexpr(struct ast *node, FILE *fp, int id)
     int rID = id;
     struct ast_binexpr* binexpr = (struct ast_binexpr*)node;
 
-    fprintf(fp, "%d [label=\"binexpr\"]\n", rID);
+    fprintf(fp, "%d [label=\"%s\"]\n", rID, get_tok_name(binexpr->op));
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(binexpr->lhs, fp, id);
     fprintf(fp, "%d -> %d\n", rID, ++id);

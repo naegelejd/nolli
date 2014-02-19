@@ -20,6 +20,13 @@ cool := func func int (str) () {
     return main
 }
 
+dumb := func func int (str) () {
+    hi := "hello, world"
+    return func int (str s) {
+        return len(s) + len(hi)
+    }
+}
+
 sum := func int ([int] l) {
     sum = 0
     for x in l {

@@ -292,27 +292,127 @@ static struct ast *unary_expr(struct parser *parser)
     }
 }
 
-/*
- * TODO: Use Shunting Yard algorithm to parse respecting operator precedence
- */
+static int precedence(int op)
+{
+    switch (op) {
+        case TOK_ADD: case TOK_SUB:
+            return 1;
+            break;
+        case TOK_MUL: case TOK_DIV:
+            return 2;
+            break;
+        default:
+            return 0;
+    }
+}
+
+struct shunter {
+    struct ast **term_stk;
+    int *op_stk;
+    int term_top;
+    int term_size;
+    int op_top;
+    int op_size;
+};
+
+static void shunter_init(struct shunter *shunter)
+{
+    shunter->op_top = 0;
+    shunter->op_size = 8;
+    shunter->op_stk = nalloc(shunter->op_size * sizeof(*shunter->op_stk));
+    shunter->term_top = 0;
+    shunter->term_size = 8;
+    shunter->term_stk = nalloc(shunter->term_size * sizeof(*shunter->term_stk));
+
+}
+
+static struct ast* shunter_term_push(struct shunter *shunter, struct ast *term)
+{
+    shunter->term_stk[shunter->term_top++] = term;
+    if (shunter->term_top >= shunter->term_size) {
+        shunter->term_size *= 2;
+        shunter->term_stk = nrealloc(shunter->term_stk,
+                shunter->term_size * sizeof(*shunter->term_stk));
+    }
+    return term;
+}
+
+static struct ast *shunter_term_pop(struct shunter *shunter)
+{
+    return shunter->term_stk[--shunter->term_top];
+}
+
+static int shunter_op_push(struct shunter *shunter, int op)
+{
+    shunter->op_stk[shunter->op_top++] = op;
+    if (shunter->op_top >= shunter->op_size) {
+        shunter->op_size *= 2;
+        shunter->op_stk = nrealloc(shunter->op_stk,
+                shunter->op_size * sizeof(*shunter->op_stk));
+    }
+    return op;
+}
+
+static int shunter_op_pop(struct shunter *shunter)
+{
+    return shunter->op_stk[--shunter->op_top];
+}
+
+static int shunter_op_top(struct shunter *shunter)
+{
+    return shunter->op_stk[shunter->op_top - 1];
+}
+
+static int shunter_op_empty(struct shunter *shunter)
+{
+    return shunter->op_top == 0;
+}
+
 static struct ast *expression(struct parser *parser)
 {
-    struct ast *lhs = unary_expr(parser);
+    printf("parsing new expression\n");
+    struct ast *expr = unary_expr(parser);
 
-    if (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
+    struct shunter shunter;
+    shunter_init(&shunter);
+
+    while (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
             parser->cur == TOK_MUL || parser->cur == TOK_DIV ||
             parser->cur == TOK_POW || parser->cur == TOK_XOR ||
             parser->cur == TOK_MOD ||
             parser->cur == TOK_EQ || parser->cur == TOK_NEQ ||
             parser->cur == TOK_LT || parser->cur == TOK_LTE ||
             parser->cur == TOK_GT || parser->cur == TOK_GTE) {
+
+        /* push operand on stack */
+        shunter_term_push(&shunter, expr);
+        printf("pushing term\n");
+
         int op = parser->cur;
         next(parser);
-        struct ast *rhs = expression(parser);
-        return ast_make_binexpr(lhs, op, rhs);
-    } else {
-        return lhs;
+
+        while (!shunter_op_empty(&shunter) && (precedence(shunter_op_top(&shunter)) >= precedence(op))) {
+            printf("popping op, making binexpr, pushing it\n");
+            int thisop = shunter_op_pop(&shunter);
+            /* pop RHS off first */
+            struct ast *rhs = shunter_term_pop(&shunter);
+            struct ast *lhs = shunter_term_pop(&shunter);
+            struct ast *expr = ast_make_binexpr(lhs, thisop, rhs);
+            shunter_term_push(&shunter, expr);
+        }
+        shunter_op_push(&shunter, op);
+        printf("pushing op\n");
+
+        expr = unary_expr(parser);
     }
+
+    while (!shunter_op_empty(&shunter)) {
+        int op = shunter_op_pop(&shunter);
+        struct ast *lhs = shunter_term_pop(&shunter);
+        expr = ast_make_binexpr(lhs, op, expr);
+    }
+
+    return expr;
 }
 
 static struct ast *term(struct parser *parser)
