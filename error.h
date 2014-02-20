@@ -2,7 +2,9 @@
 #define NOLLI_ERROR_H
 
 enum {
-    ERR_PARSE = 1,
+    NO_ERR = 0,
+    ERR_PARSE,
+    ERR_AST
 };
 
 #endif /* NOLLI_ERROR_H */

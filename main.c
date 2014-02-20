@@ -2,9 +2,6 @@
 
 int main(int argc, char **argv)
 {
-    struct nolli_state nstate;
-    memset(&nstate, 0, sizeof(nstate));
-
     FILE *fin = stdin;
     const char *filename = "stdin";
     if (argc >= 2) {
@@ -15,44 +12,26 @@ int main(int argc, char **argv)
         }
     }
 
-    bool scanonly = false;
-    if (argc >= 3 && strncmp(argv[2], "-l", 3) == 0) {
-        scanonly = true;
-    }
+    struct nolli_state nstate;
+    nolli_init(&nstate, fin);
 
-    struct lexer *lex = NULL;
-    lexer_init(&lex, fin);
-
-    struct parser *parser = NULL;
-    calloc(1, sizeof(*parser));
-    parser_init(&parser, lex);
-
-    struct ast *root = NULL;
-
-    if (scanonly) {
-        lexer_scan_all(lex);
-    } else {
-        root = parse(parser);
-    }
+    int p = parse(&nstate);
 
     if (fclose(fin) != 0) {
         fprintf(stderr, "Failed to close file %s\n", filename);
         return EXIT_FAILURE;
     }
 
-    if (parser->error) {
+    if (p == ERR_PARSE) {
         fprintf(stderr, "Parse errors... cannot continue\n");
-        return ERR_PARSE;
+        return p;
+    } else if (p == ERR_AST) {
+        fprintf(stderr, "Failed to construct AST... cannot continue\n");
+        return p;
     }
 
-    if (root == NULL) {
-        fprintf(stderr, "Failed to construct AST");
-        return EXIT_FAILURE;
-    }
-
-    dump_ast_graph(root);
-
-    type_check(root);
+    dump_ast_graph(&nstate);
+    type_check(&nstate);
 
     return EXIT_SUCCESS;
 }

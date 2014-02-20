@@ -11,6 +11,18 @@
 #include <assert.h>
 #include <setjmp.h>
 
+struct lexer;
+struct parser;
+struct root;
+
+struct nolli_state {
+    struct lexer *lexer;
+    struct parser *parser;
+    struct ast *root;
+};
+
+void nolli_init(struct nolli_state *state, FILE *fin);
+
 #include "debug.h"
 #include "alloc.h"
 #include "error.h"
@@ -21,7 +33,5 @@
 #include "ast.h"
 #include "ast_graph.h"
 #include "walk.h"
-
-struct nolli_state { };
 
 #endif /* NOLLI_H */

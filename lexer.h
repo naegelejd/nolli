@@ -53,7 +53,7 @@ struct lexer {
 
 
 int gettok(struct lexer *lex);
-void lexer_init(struct lexer **lexaddr, FILE *file);
+void lexer_init(struct lexer *lexer, FILE *file);
 int lexer_scan_all(struct lexer *lex);
 const char *get_tok_name(int tok);
 

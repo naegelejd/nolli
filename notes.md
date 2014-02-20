@@ -47,6 +47,15 @@ The type-checked AST is then traversed to generate... TBD.
 
 ## TODO
 
+- the parser need to respect operator associativity (POW symbol is right-associative)
+- type check
+- 'libify' - make sure nolli is always embeddable, re-entrant
+- register-based VM (bytecode)
+- garbage collector
+- coroutines
+
+## Complete
+
 - the parser needs to respect operator precedence. I plan to use the
   Shunting Yard algorithm to parse expressions.
 - the parser needs better error recovery (synch on semicolons, setjmp, etc.)
@@ -61,6 +70,7 @@ The type-checked AST is then traversed to generate... TBD.
     - JIT compilation
     - virtual machine bytecode (w/ runtime)
 - use pools for allocating AST nodes?
+- exceptions
 
 ## Builtin functions
 

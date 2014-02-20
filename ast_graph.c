@@ -542,8 +542,12 @@ static int graph(struct ast *root, FILE *fp, int id)
     return g(root, fp, id);
 }
 
-void dump_ast_graph(struct ast* root)
+void dump_ast_graph(struct nolli_state *state)
 {
+    assert(state);
+    struct ast* root = state->root;
+    assert(root);
+
     FILE *fp = NULL;
 
     fp = fopen("astdump.dot", "w");

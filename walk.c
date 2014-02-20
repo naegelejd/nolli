@@ -51,8 +51,12 @@ static struct type *walk_statement_list(struct ast *node, struct irstate *irs);
 
 static struct type *walk(struct ast *root, struct irstate *irs);
 
-void type_check(struct ast* root)
+void type_check(struct nolli_state *nstate)
 {
+    assert(nstate);
+    struct ast* root = nstate->root;
+    assert(root);
+
     struct irstate state;
     state.symtable = symtable_create();
     walk(root, &state);

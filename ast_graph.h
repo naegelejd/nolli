@@ -3,6 +3,6 @@
 
 #include "nolli.h"
 
-void dump_ast_graph(struct ast* root);
+void dump_ast_graph(struct nolli_state *);
 
 #endif /* NOLLI_AST_GRAPH_H */

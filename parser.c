@@ -68,24 +68,32 @@ static bool expect(struct parser *parser, int tok)
 }
 
 
-void parser_init(struct parser **parser_addr, struct lexer *lex)
+void parser_init(struct parser *parser, struct lexer *lex)
 {
-    struct parser *parser = nalloc(sizeof(*parser));
+    assert(parser);
+    assert(lex);
+
     parser->lexer = lex;
     parser->buffer = lex->lastbuff;
-
-    *parser_addr = parser;
 }
 
-struct ast *parse(struct parser *parser)
+int parse(struct nolli_state *state)
 {
+    struct parser *parser = state->parser;
+
+    /* read first char */
     next(parser);
 
-    struct ast *root = statements(parser);
+    state->root = statements(parser);
 
     PARSE_DEBUG(parser, "Finished parsing");
 
-    return root;
+    if (parser->error) {
+        return ERR_PARSE;
+    } else if (state->root == NULL) {
+        return ERR_AST;
+    }
+    return NO_ERR;
 }
 
 static struct ast *statements(struct parser *parser)

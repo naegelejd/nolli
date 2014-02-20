@@ -15,7 +15,7 @@ struct parser {
     bool error;
 };
 
-void parser_init(struct parser **parser_addr, struct lexer *lexer);
-struct ast *parse(struct parser *parser);
+void parser_init(struct parser *parser, struct lexer *lexer);
+int parse(struct nolli_state *);
 
 #endif /* NOLLI_PARSER_H */

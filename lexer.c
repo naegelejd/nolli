@@ -378,21 +378,20 @@ const char *get_tok_name(int tok)
     return tok_type_names[tok];
 }
 
-void lexer_init(struct lexer **lexaddr, FILE *file)
+void lexer_init(struct lexer *lexer, FILE *file)
 {
-    struct lexer *lex = nalloc(sizeof(*lex));
-    lex->input = file;
+    assert(lexer);
+
+    lexer->input = file;
 
     size_t bufsize = 16;
-    lex->curbuff = nalloc(bufsize);
-    lex->lastbuff = nalloc(bufsize);
-    lex->blen = 0;
-    lex->balloc = bufsize;
+    lexer->curbuff = nalloc(bufsize);
+    lexer->lastbuff = nalloc(bufsize);
+    lexer->blen = 0;
+    lexer->balloc = bufsize;
 
-    lex->line = 1;
-    lex->col = 0;
-
-    *lexaddr = lex;
+    lexer->line = 1;
+    lexer->col = 0;
 }
 
 int lexer_scan_all(struct lexer *lex)

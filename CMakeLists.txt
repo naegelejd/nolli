@@ -10,10 +10,10 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 
-set(NOLLI_EXE nolli)
+set(NOLLI_NAME nolli)
 
 set(NOLLI_SOURCES
-    main.c
+    init.c
     alloc.c
     lexer.c
     parser.c
@@ -37,13 +37,15 @@ set(NOLLI_HEADERS
     type.h
 )
 
-#include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-add_executable(${NOLLI_EXE} ${NOLLI_SOURCES})
-
+add_library(nolli ${NOLLI_SOURCES})
 # link only against math library
-target_link_libraries(${NOLLI_EXE} m)
+target_link_libraries(nolli m)
+install(TARGETS nolli DESTINATION lib)
 
-install(TARGETS ${NOLLI_EXE} DESTINATION bin)
+add_executable(nolli-exe main.c)
+set_target_properties(nolli-exe PROPERTIES OUTPUT_NAME nolli)
+target_link_libraries(nolli-exe nolli)
+install(TARGETS nolli-exe DESTINATION bin)
 
 set_source_files_properties(tags PROPERTIES GENERATED true)
 add_custom_command(
