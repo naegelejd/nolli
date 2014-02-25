@@ -10,23 +10,16 @@ void completion(const char *buf, linenoiseCompletions *lc) {
 char *find_history(void)
 {
     char *histfile = ".nollihist";
-    unsigned long HOMEDIR_MAX_LEN = 128;
 
 #ifdef WIN32
     char *homedrive = getenv("HOMEDRIVE");
     char *homepath = getenv("HOMEPATH");
-    char *home = nalloc(strnlen(homedrive, HOMEDIR_MAX_LEN) +
-            strnlen(HOMEPATH, HOMEDIR_MAX_LEN) + 1);
-    home = strcat(home, homedrive);
-    home = strcat(home, homepath);
+    char *home = os.path.join(homedrive, homepath);
 #else
     char *home = getenv("HOME");
 #endif
 
-    char *histpath = nalloc(strnlen(home, HOMEDIR_MAX_LEN) + strlen(histfile) + 2);
-    histpath = strcat(histpath, home);
-    histpath = strcat(histpath, "/");
-    histpath = strcat(histpath, histfile);
+    char *histpath = os.path.join(home, histfile);
 
     return histpath;
 }

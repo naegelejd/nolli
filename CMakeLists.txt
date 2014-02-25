@@ -22,6 +22,7 @@ set(NOLLI_SOURCES
     walk.c
     symtable.c
     type.c
+    os.c
 )
 
 set(NOLLI_HEADERS
@@ -35,6 +36,7 @@ set(NOLLI_HEADERS
     walk.h
     symtable.h
     type.h
+    os.h
 )
 
 add_library(nolli ${NOLLI_SOURCES})

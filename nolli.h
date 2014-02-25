@@ -32,5 +32,6 @@ void nolli_init(struct nolli_state *state);
 #include "ast.h"
 #include "ast_graph.h"
 #include "walk.h"
+#include "os.h"
 
 #endif /* NOLLI_H */
