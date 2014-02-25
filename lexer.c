@@ -8,9 +8,10 @@
 
 #define LEX_ERROR(L, S) LEX_ERRORF(L, "%s", S)
 
+#undef next
 #define next(lex) \
     do { \
-        lex->cur = getc(lex->input); \
+        lex->cur = lex->finput ? getc(lex->finput) : *lex->sptr++; \
         lex->col++; \
     } while (false)
 
@@ -152,7 +153,7 @@ static int lex_string(struct lexer *lex)
     next(lex);
     do {
         switch (lex->cur) {
-        case EOF:
+        case EOF: case 0:
             LEX_ERROR(lex, "Unexpected EOF");
             break;
         case '\n': case '\r':
@@ -171,7 +172,7 @@ static int lex_string(struct lexer *lex)
             case 'r': c = '\r'; goto next_append;
             case 't': c = '\t'; goto next_append;
             case 'v': c = '\v'; goto next_append;
-            case EOF:
+            case EOF: case 0:
                 LEX_ERROR(lex, "Unexpected EOF in string literal");
                 break;
             case '\n': case '\r':
@@ -295,10 +296,6 @@ int gettok(struct lexer *lex)
 {
     rotate_buffers(lex);    /* clear the lexer's current string buffer */
 
-    if (lex->cur == 0) {
-        next(lex);
-    }
-
     while (true) {
         int tok = TOK_EOF;
 
@@ -356,7 +353,7 @@ int gettok(struct lexer *lex)
                 tok = TOK_DOT;
             }
         }
-        else if (lex->cur == EOF) {
+        else if (lex->cur == EOF || lex->cur == '\0') {
             tok = TOK_EOF;
         }
         /* all that's left is symbols */
@@ -378,11 +375,9 @@ const char *get_tok_name(int tok)
     return tok_type_names[tok];
 }
 
-void lexer_init(struct lexer *lexer, FILE *file)
+void lexer_init(struct lexer *lexer)
 {
     assert(lexer);
-
-    lexer->input = file;
 
     size_t bufsize = 16;
     lexer->curbuff = nalloc(bufsize);
@@ -392,6 +387,31 @@ void lexer_init(struct lexer *lexer, FILE *file)
 
     lexer->line = 1;
     lexer->col = 0;
+}
+
+int lexer_set(struct lexer *lexer, void *data, int type)
+{
+    assert(lexer);
+    assert(data);
+
+    switch (type) {
+        case LEX_FILE:
+            lexer->finput = (FILE*)data;
+            lexer->sinput = NULL;
+            lexer->sptr = NULL;
+            break;
+        case LEX_STRING:
+            lexer->sinput = (char*)data;
+            lexer->sptr = lexer->sinput;
+            lexer->finput = NULL;
+            break;
+        default:
+            return ERR_LEX;
+    }
+    /* sync lexer on first char in input */
+    next(lexer);
+
+    return NO_ERR;
 }
 
 int lexer_scan_all(struct lexer *lex)

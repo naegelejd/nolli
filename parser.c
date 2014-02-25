@@ -13,6 +13,7 @@
     } while (0)
 
 
+static int parse(struct nolli_state *state);
 static struct ast *statements(struct parser *parser);
 static struct ast *statement(struct parser *parser);
 static struct ast *assignment(struct parser *parser);
@@ -60,33 +61,58 @@ static bool expect(struct parser *parser, int tok)
         return true;
     }
 
-    NOLLI_ERRORF("(L %d, C %d): Unexpected token: %s , expecting %s",
+    PARSE_ERRORF(parser, "(L %d, C %d): Unexpected token: %s , expecting %s",
             parser->lexer->line, parser->lexer->line,
             get_tok_name(parser->cur), get_tok_name(tok));
-    parser->error = true;
     return false;
 }
 
 
-void parser_init(struct parser *parser, struct lexer *lex)
+void parser_init(struct parser *parser)
 {
     assert(parser);
-    assert(lex);
 
-    parser->lexer = lex;
-    parser->buffer = lex->lastbuff;
+    parser->lexer = nalloc(sizeof(*parser->lexer));
+    lexer_init(parser->lexer);
+
+    parser->buffer = parser->lexer->lastbuff;
 }
 
-int parse(struct nolli_state *state)
+int parse_file(struct nolli_state *state, FILE *fin)
 {
     struct parser *parser = state->parser;
+    assert(parser);
+
+    int ret = lexer_set(parser->lexer, fin, LEX_FILE);
+    if (ret != NO_ERR) {
+        return ret;
+    }
+    return parse(state);
+}
+
+int parse_string(struct nolli_state *state, char *s)
+{
+    struct parser *parser = state->parser;
+    assert(parser);
+
+    int ret = lexer_set(parser->lexer, s, LEX_STRING);
+    if (ret != NO_ERR) {
+        return ret;
+    }
+    return parse(state);
+}
+
+static int parse(struct nolli_state *state)
+{
+    struct parser *parser = state->parser;
+    assert(parser);
 
     /* read first char */
     next(parser);
 
     state->root = statements(parser);
 
-    PARSE_DEBUG(parser, "Finished parsing");
+    /* PARSE_DEBUG(parser, "Finished parsing"); */
 
     if (parser->error) {
         return ERR_PARSE;
@@ -145,8 +171,6 @@ static struct ast *statement(struct parser *parser)
         return var_declaration(parser);
     } else if (accept(parser, TOK_CONST)) {
         return const_declaration(parser);
-    /* } else if (check(parser, TOK_IDENT)) { */
-        /* return ident_statement(parser); */
     } else if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
         return import(parser);
     } else if (accept(parser, TOK_RET)) {

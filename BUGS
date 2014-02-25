@@ -1,0 +1,2 @@
+- Parser does not collect the correct buffer for a TOKEN, namely when TOK_STRING and TOK_IDENT are parsed as operands.
+- Enable -Weverything in CMakeLists.txt, then clean up all the warnings.

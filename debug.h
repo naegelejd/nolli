@@ -47,7 +47,7 @@
 #endif  /* DEBUG */
 
 #define NOLLI_DEBUG(S) NOLLI_DEBUGF("%s", S)
-#define NOLLI_ERROR(S) NOLLI_ERROR("%s", S)
+#define NOLLI_ERROR(S) NOLLI_ERRORF("%s", S)
 #define NOLLI_DIE(S) NOLLI_DIEF("%s", S)
 
 #endif /* NOLLI_DEBUG_H */

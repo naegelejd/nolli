@@ -16,12 +16,11 @@ struct parser;
 struct root;
 
 struct nolli_state {
-    struct lexer *lexer;
     struct parser *parser;
     struct ast *root;
 };
 
-void nolli_init(struct nolli_state *state, FILE *fin);
+void nolli_init(struct nolli_state *state);
 
 #include "debug.h"
 #include "alloc.h"

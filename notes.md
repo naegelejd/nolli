@@ -9,11 +9,11 @@ take some type of state `struct` as their first argument.
 ### Lexical Scanning/Tokenizing
 Nolli's lexical scanner is very similar to that of the Lua scripting language.
 The code is very easy to read and understand as it does not use any lookup tables
-to implement a state machine. The `gettok` function reads one `char` at a time
-from an input file, constructing and returning tokens when possible.
+to implement a state machine. The `gettok` function must read one `char` at a time
+from either an input file or a `char*`, constructing and returning tokens when possible.
 
 ### Parsing
-Nolli uses a simple recursive descent, single token lookahead parser.
+Nolli uses a simple, recursive-descent, single token lookahead parser.
 The parser constructs an abstract syntax tree (AST) using a family of AST creation
 functions. The parser (and lexer) are not type-aware, so type names are parsed as
 identifiers themselves.

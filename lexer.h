@@ -36,8 +36,13 @@ enum {
     TOK_MODULE, TOK_IMPORT, TOK_FROM
 };
 
+enum LEX_TYPE { LEX_FILE, LEX_STRING };
+
 struct lexer {
-    FILE* input;
+    FILE *finput;
+
+    char *sinput;
+    char *sptr;
 
     char *curbuff;
     char *lastbuff;
@@ -52,9 +57,12 @@ struct lexer {
 };
 
 
+void lexer_init(struct lexer *lexer);
+int lexer_set(struct lexer *lexer, void *data, int lex_type);
+
 int gettok(struct lexer *lex);
-void lexer_init(struct lexer *lexer, FILE *file);
-int lexer_scan_all(struct lexer *lex);
 const char *get_tok_name(int tok);
+
+int lexer_scan_all(struct lexer *lex);
 
 #endif /* NOLLI_LEXER_H */
