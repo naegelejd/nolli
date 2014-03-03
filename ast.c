@@ -42,8 +42,6 @@ struct ast* ast_make_real_num(double d)
 
 struct ast* ast_make_str_lit(const char *s)
 {
-    assert(s);
-
     struct ast_str *node = make_node(sizeof(*node), AST_STR_LIT);
     node->s = strdup(s);
     return (struct ast*)node;
@@ -51,8 +49,6 @@ struct ast* ast_make_str_lit(const char *s)
 
 struct ast* ast_make_ident(const char *s)
 {
-    assert(s);
-
     struct ast_ident *ident = make_node(sizeof(*ident), AST_IDENT);
     ident->s = strdup(s);
     return (struct ast*)ident;
@@ -132,8 +128,6 @@ struct ast* ast_make_initialization(struct ast *ident, struct ast *expr)
 
 struct ast* ast_make_unexpr(int op, struct ast* expr)
 {
-    assert(expr);
-
     struct ast_unexpr* unexpr = make_node(sizeof(*unexpr), AST_UNEXPR);
     unexpr->op = op;
     unexpr->expr = expr;
@@ -142,9 +136,6 @@ struct ast* ast_make_unexpr(int op, struct ast* expr)
 
 struct ast* ast_make_binexpr(struct ast* lhs, int op, struct ast* rhs)
 {
-    assert(lhs);
-    assert(rhs);
-
     struct ast_binexpr* binexpr = make_node(sizeof(*binexpr), AST_BINEXPR);
     binexpr->op = op;
     binexpr->lhs = lhs;
@@ -170,7 +161,6 @@ struct ast *ast_make_list(int type)
 struct ast *ast_list_append(struct ast* node, struct ast* item)
 {
     assert(node);
-    assert(item);
     struct ast_list* list = (struct ast_list*)node;
     if (list->count >= list->alloc) {
         list->alloc *= 2;
@@ -192,9 +182,6 @@ struct ast* ast_make_keyval(struct ast* key, struct ast* val)
 
 struct ast* ast_make_contaccess(struct ast* ident, struct ast* index)
 {
-    assert(ident);
-    assert(index);
-
     struct ast_contaccess* contaccess = make_node(
             sizeof(*contaccess), AST_CONTACCESS);
     contaccess->ident = ident;
@@ -205,9 +192,6 @@ struct ast* ast_make_contaccess(struct ast* ident, struct ast* index)
 
 struct ast *ast_make_short_decl(struct ast *ident, struct ast *expr)
 {
-    assert(ident);
-    assert(expr);
-
     struct ast_short_decl* short_decl = make_node(
             sizeof(*short_decl), AST_SHORT_DECL);
     short_decl->ident = ident;
@@ -218,9 +202,6 @@ struct ast *ast_make_short_decl(struct ast *ident, struct ast *expr)
 
 struct ast* ast_make_assignment(struct ast* ident, int op, struct ast* expr)
 {
-    assert(ident);
-    assert(expr);
-
     struct ast_assignment* assignment = make_node(sizeof(*assignment), AST_ASSIGN);
     assignment->ident = ident;
     assignment->expr = expr;
@@ -258,9 +239,6 @@ struct ast* ast_make_for(struct ast* var, struct ast* range, struct ast* body)
 
 struct ast* ast_make_call(struct ast* func, struct ast* args)
 {
-    assert(func);
-    assert(args);
-
     struct ast_call *call = make_node(sizeof(*call), AST_CALL);
     call->func = func;
     call->args = args;
