@@ -25,20 +25,6 @@ set(NOLLI_SOURCES
     os.c
 )
 
-set(NOLLI_HEADERS
-    nolli.h
-    error.h
-    alloc.h
-    lexer.h
-    parser.h
-    ast.h
-    ast_graph.h
-    walk.h
-    symtable.h
-    type.h
-    os.h
-)
-
 add_library(nolli ${NOLLI_SOURCES})
 # link only against math library
 target_link_libraries(nolli m)
@@ -52,7 +38,7 @@ install(TARGETS nolli-exe DESTINATION bin)
 set_source_files_properties(tags PROPERTIES GENERATED true)
 add_custom_command(
     OUTPUT tags
-    COMMAND ctags ${NOLLI_SOURCES} ${NOLLI_HEADERS}
+    COMMAND ctags -R
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 add_custom_target(ctags DEPENDS tags)

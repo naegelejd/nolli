@@ -50,9 +50,6 @@ int dofile(struct nolli_state *nstate, const char *filename)
     if (p == ERR_PARSE) {
         NOLLI_ERROR("Parse errors... cannot continue");
         return p;
-    } else if (p == ERR_AST) {
-        NOLLI_ERROR("Failed to construct AST... cannot continue");
-        return p;
     }
 
     dump_ast_graph(nstate);
@@ -70,14 +67,40 @@ int interactive(struct nolli_state *nstate)
     NOLLI_DEBUGF("History: %s", histpath);
     linenoiseHistoryLoad(histpath);
 
-    char *line;
-    while ((line = linenoise("nl: ")) != NULL) {
-        int p = parse_string(nstate, line);
-        linenoiseHistoryAdd(line);
+    const char *normprompt = "nl> ";
+    const char *contprompt = "nl>>> ";
+    const char *prompt = normprompt;
+
+    size_t bufcap = 1024, buflen = 0;
+    char *buffer = nalloc(bufcap);
+    char *line = NULL;
+    while ((line = linenoise(prompt)) != NULL) {
+        size_t len = strlen(line);
+        while (buflen + len > bufcap) {
+            bufcap *= 2;
+            buffer = nrealloc(buffer, bufcap);
+        }
+        strcat(buffer, line);
+        buflen += len;
+        buffer[buflen] = 0;
         free(line);
+
+        int err = parse_line(nstate, buffer);
+
+        if (err != ERR_EOF) {
+            memset(buffer, 0, buflen); /* buffer[0] = 0; */
+            buflen = 0;
+            linenoiseHistoryAdd(line);
+            prompt = normprompt;
+        } else {
+            prompt = contprompt;
+        }
     }
+
     /* move this inside the loop to save history more often */
     linenoiseHistorySave(histpath);
+
+    free(buffer);
 
     return EXIT_SUCCESS;
 }

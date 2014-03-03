@@ -5,7 +5,7 @@ enum {
     NO_ERR = 0,
     ERR_LEX,
     ERR_PARSE,
-    ERR_AST
+    ERR_EOF,
 };
 
 #endif /* NOLLI_ERROR_H */

@@ -55,6 +55,7 @@ static int interface(struct parser *parser, struct ast **);
             S = ERR_PARSE; \
             PARSE_ERRORF(P, "Unexpected token: %s, expecting %s", \
                     get_tok_name((P)->cur), get_tok_name(T)); \
+            next(P); \
         } \
     } while (0)
 
@@ -93,6 +94,25 @@ int parse_string(struct nolli_state *state, char *s)
     return parse(state);
 }
 
+int parse_line(struct nolli_state *state, char *s)
+{
+    struct parser *parser = state->parser;
+    assert(parser);
+
+    int ret = lexer_set(parser->lexer, s, LEX_STRING);
+    if (ret != NO_ERR) {
+        return ret;
+    }
+
+    next(parser);
+    int err = statement(parser, &state->root);
+    if (err && parser->cur == TOK_EOF) {
+        return ERR_EOF;
+    }
+
+    return err;
+}
+
 static int parse(struct nolli_state *state)
 {
     struct parser *parser = state->parser;
@@ -103,11 +123,6 @@ static int parse(struct nolli_state *state)
 
     int err = statements(parser, &state->root);
 
-    /* PARSE_DEBUG(parser, "Finished parsing"); */
-
-    if (state->root == NULL) {
-        return ERR_AST;
-    }
     return err;
 }
 
@@ -210,7 +225,9 @@ static int return_statement(struct parser *parser, struct ast **stmt)
             PARSE_ERROR(parser, "Invalid expression in return statement");
         }
     }
+
     PARSE_DEBUG(parser, "Parsed a return statement");
+
     *stmt = ast_make_return(expr);
     return status;
 }
@@ -391,8 +408,7 @@ static int assignment_or_call(struct parser *parser, struct ast **stmt)
         PARSE_DEBUG(parser, "Parsed short_decl");
         *stmt = short_decl;
     } else {
-        assert(lhs);
-        if (lhs->type == AST_CALL) {
+        if (lhs != NULL && lhs->type == AST_CALL) {
             /* The only type of expression that can double as a statement is
             * a function call (disregarding the return value) */
             *stmt = lhs;
@@ -990,6 +1006,7 @@ static int alias(struct parser *parser, struct ast **alias)
     }
     expect(parser, TOK_IDENT, status);
     char *name = strndup(parser->buffer, MAX_IDENT_LENGTH);
+
     PARSE_DEBUG(parser, "Parsed `alias`");
 
     *alias = ast_make_alias(type, name);
@@ -1043,6 +1060,7 @@ static int structtype(struct parser *parser, struct ast **stmt)
         members = ast_list_append(members, member);
     }
     expect(parser, TOK_RCURLY, status);
+
     PARSE_DEBUG(parser, "Parsed `struct`");
 
     *stmt = ast_make_struct_type(name, members);
@@ -1072,6 +1090,7 @@ static int interface(struct parser *parser, struct ast **stmt)
         methods = ast_list_append(methods, meth);
     }
     expect(parser, TOK_RCURLY, status);
+
     PARSE_DEBUG(parser, "Parsed `iface`");
 
     *stmt = ast_make_iface_type(name, methods);
