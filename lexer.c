@@ -147,6 +147,50 @@ static int lex_integer(struct lexer *lex)
     return TOK_INT;
 }
 
+static void lex_escape(struct lexer *lex)
+{
+    switch (lex->cur) {
+        case '"':
+            appendc(lex, '"');
+            break;
+        case '\\':
+            appendc(lex, '\\');
+            break;
+        case 'a':
+            appendc(lex, '\a');
+            break;
+        case 'b':
+            appendc(lex, '\b');
+            break;
+        case 'f':
+            appendc(lex, '\f');
+            break;
+        case 'n':
+            appendc(lex, '\n');
+            break;
+        case 'r':
+            appendc(lex, '\r');
+            break;
+        case 't':
+            appendc(lex, '\t');
+            break;
+        case 'v':
+            appendc(lex, '\v');
+            break;
+        case '\n': case '\r':   /* FIXME - Windows */
+            lex->line++;
+            lex->col = 0;
+            appendc(lex, lex->cur);
+            break;
+        case EOF: case 0:
+            LEX_ERROR(lex, "Unexpected EOF in string literal");
+            break;
+        default:
+            LEX_ERRORF(lex, "Invalid escape sequence \\%c", lex->cur);
+    }
+    next(lex);
+}
+
 static int lex_string(struct lexer *lex)
 {
     /* eat the starting string delimiter */
@@ -159,38 +203,12 @@ static int lex_string(struct lexer *lex)
         case '\n': case '\r':
             LEX_ERROR(lex, "Unterminated string literal");
             break;
-        case '\\': {
-            int c = lex->cur;
+        case '\\':
             next(lex);
-            switch (lex->cur) {
-            case '"': goto next_append;
-            case '\\': goto next_append;
-            case 'a': c = '\a'; goto next_append;
-            case 'b': c = '\b'; goto next_append;
-            case 'f': c = '\f'; goto next_append;
-            case 'n': c = '\n'; goto next_append;
-            case 'r': c = '\r'; goto next_append;
-            case 't': c = '\t'; goto next_append;
-            case 'v': c = '\v'; goto next_append;
-            case EOF: case 0:
-                LEX_ERROR(lex, "Unexpected EOF in string literal");
-                break;
-            case '\n': case '\r':
-                lex->line++;
-                lex->col = 0;
-                appendc(lex, lex->cur);
-                break;
-            default:
-                LEX_ERRORF(lex, "Invalid escape sequence \\%c", lex->cur);
-            }
-        next_append:
-            next(lex);
-            appendc(lex, c);
+            lex_escape(lex);
             break;
-        }
-
-        /* normal character in string literal: */
         default:
+            /* normal character in string literal */
             appendc(lex, lex->cur);
             next(lex);
         }
@@ -299,7 +317,7 @@ int gettok(struct lexer *lex)
     while (true) {
         int tok = TOK_EOF;
 
-        if (lex->cur == '\n') {     /* FIXME: line-endings */
+        if (lex->cur == '\n') {     /* FIXME: Windows line-endings? */
             lex->line++;
             lex->col = 0;
             next(lex);
