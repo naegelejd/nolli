@@ -11,7 +11,7 @@
 #undef next
 #define next(lex) \
     do { \
-        lex->cur = lex->finput ? getc(lex->finput) : *lex->sptr++; \
+        lex->cur = *lex->sptr++; \
         lex->col++; \
     } while (false)
 
@@ -407,25 +407,14 @@ void lexer_init(struct lexer *lexer)
     lexer->col = 0;
 }
 
-int lexer_set(struct lexer *lexer, void *data, int type)
+int lexer_set(struct lexer *lexer, char *buffer)
 {
     assert(lexer);
-    assert(data);
+    assert(buffer);
 
-    switch (type) {
-        case LEX_FILE:
-            lexer->finput = (FILE*)data;
-            lexer->sinput = NULL;
-            lexer->sptr = NULL;
-            break;
-        case LEX_STRING:
-            lexer->sinput = (char*)data;
-            lexer->sptr = lexer->sinput;
-            lexer->finput = NULL;
-            break;
-        default:
-            return ERR_LEX;
-    }
+    lexer->input = buffer;
+    lexer->sptr = lexer->input;
+
     /* sync lexer on first char in input */
     next(lexer);
 

@@ -32,15 +32,14 @@ int dofile(struct nolli_state *nstate, const char *filename)
         return EXIT_FAILURE;
     }
 
-    /* fseek(fin, 0, SEEK_END); */
-    /* long bytes = ftell(fin); */
-    /* rewind(fin); */
-    /* char *buff = nalloc(bytes + 1); */
-    /* fread(buff, bytes, 1, fin); */
-    /* buff[bytes] = '\0'; */
-    /* int p = parse_string(&nstate, buff); */
-
-    int p = parse_file(nstate, fin);
+    fseek(fin, 0, SEEK_END);
+    long bytes = ftell(fin);
+    rewind(fin);
+    char *buff = nalloc(bytes + 1);
+    fread(buff, bytes, 1, fin);
+    buff[bytes] = '\0';
+    int p = parse_buffer(nstate, buff);
+    free(buff);
 
     if (fclose(fin) != 0) {
         NOLLI_ERRORF("Failed to close file %s", filename);

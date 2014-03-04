@@ -36,12 +36,8 @@ enum {
     TOK_MODULE, TOK_IMPORT, TOK_FROM
 };
 
-enum LEX_TYPE { LEX_FILE, LEX_STRING };
-
 struct lexer {
-    FILE *finput;
-
-    char *sinput;
+    char *input;
     char *sptr;
 
     char *curbuff;
@@ -58,7 +54,7 @@ struct lexer {
 
 
 void lexer_init(struct lexer *lexer);
-int lexer_set(struct lexer *lexer, void *data, int lex_type);
+int lexer_set(struct lexer *lexer, char *input);
 
 int gettok(struct lexer *lex);
 const char *get_tok_name(int tok);

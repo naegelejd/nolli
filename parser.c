@@ -70,36 +70,24 @@ void parser_init(struct parser *parser)
     parser->buffer = parser->lexer->lastbuff;
 }
 
-int parse_file(struct nolli_state *state, FILE *fin)
+int parse_buffer(struct nolli_state *state, char *buffer)
 {
     struct parser *parser = state->parser;
     assert(parser);
 
-    int ret = lexer_set(parser->lexer, fin, LEX_FILE);
+    int ret = lexer_set(parser->lexer, buffer);
     if (ret != NO_ERR) {
         return ret;
     }
     return parse(state);
 }
 
-int parse_string(struct nolli_state *state, char *s)
+int parse_line(struct nolli_state *state, char *line)
 {
     struct parser *parser = state->parser;
     assert(parser);
 
-    int ret = lexer_set(parser->lexer, s, LEX_STRING);
-    if (ret != NO_ERR) {
-        return ret;
-    }
-    return parse(state);
-}
-
-int parse_line(struct nolli_state *state, char *s)
-{
-    struct parser *parser = state->parser;
-    assert(parser);
-
-    int ret = lexer_set(parser->lexer, s, LEX_STRING);
+    int ret = lexer_set(parser->lexer, line);
     if (ret != NO_ERR) {
         return ret;
     }
