@@ -1,24 +1,26 @@
-module test_funcs
-
-func noop () { }
-
-func real pie () { return 3.141592 }
-
-func inout (str sentence)
-{
-    print(sentence)
+main := func int ([str] args) {
+    xs := [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    print(len(xs))
+    print(sum(xs))
+    print(mean(xs))
 }
 
-func int sum([int] nums)
-{
-    int total = 0
-    for n in nums {
-        total += n
+sum := func int ([int] xs) {
+    s := 0
+    for x in xs {
+        s += x
     }
-    return total
+    return s
 }
 
-func real mean ([int] nums)
-{
-    return sum(nums) / len(nums)
+length := func int ([int] xs) {
+    l := 0
+    for x in xs {
+        l += 1
+    }
+    return s
+}
+
+mean := func int ([int] xs) {
+    return sum(xs) / len(xs)
 }

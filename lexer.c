@@ -396,7 +396,7 @@ int gettok(struct lexer *lex)
 
         /* return the scanned token */
         lex->lasttok = tok;
-        /* NOLLI_DEBUGF("tok: %s", get_tok_name(tok)); */
+        /* NOLLI_DEBUGF("tok: %s, buf: %s", get_tok_name(tok), lex->curbuff); */
         return tok;
     }
 

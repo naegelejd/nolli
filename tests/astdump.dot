@@ -1,0 +1,115 @@
+digraph hierarchy {
+node [color=Green,fontcolor=Blue]0 [label="statements"]
+0 -> 1
+1 [label="struct circle"]
+1 -> 2
+2 [label="decl"]
+2 -> 3
+3 [label="ident: int"]
+2 -> 4
+4 [label="ident: radius"]
+0 -> 5
+5 [label="struct square"]
+5 -> 6
+6 [label="decl"]
+6 -> 7
+7 [label="ident: int"]
+6 -> 8
+8 [label="ident: width"]
+6 -> 9
+9 [label="ident: height"]
+0 -> 10
+10 [label="iface shape"]
+10 -> 11
+11 [label="decl"]
+11 -> 12
+12 [label="func-type"]
+12 -> 13
+13 [label="ident: int"]
+11 -> 14
+14 [label="ident: area"]
+10 -> 15
+15 [label="decl"]
+15 -> 16
+16 [label="func-type"]
+16 -> 17
+17 [label="ident: int"]
+15 -> 18
+18 [label="ident: perimeter"]
+0 -> 19
+19 [label="short decl"]
+19 -> 20
+20 [label="ident: main"]
+19 -> 21
+21 [label="funclit"]
+21 -> 22
+22 [label="ident: int"]
+21 -> 23
+23 [label="statements"]
+23 -> 24
+24 [label="decl"]
+24 -> 25
+25 [label="ident: circle"]
+24 -> 26
+26 [label="ident: c"]
+23 -> 27
+27 [label="decl"]
+27 -> 28
+28 [label="ident: square"]
+27 -> 29
+29 [label="ident: s"]
+23 -> 30
+30 [label="call"]
+30 -> 31
+31 [label="ident: print"]
+30 -> 32
+32 [label="selectors"]
+32 -> 33
+33 [label="ident: c"]
+32 -> 34
+34 [label="call"]
+34 -> 35
+35 [label="ident: area"]
+23 -> 36
+36 [label="call"]
+36 -> 37
+37 [label="ident: print"]
+36 -> 38
+38 [label="selectors"]
+38 -> 39
+39 [label="ident: s"]
+38 -> 40
+40 [label="call"]
+40 -> 41
+41 [label="ident: perimeter"]
+23 -> 42
+42 [label="alias rectangle"]
+42 -> 43
+43 [label="ident: square"]
+23 -> 44
+44 [label="alias shapeProperty"]
+44 -> 45
+45 [label="func-type"]
+45 -> 46
+46 [label="ident: int"]
+23 -> 47
+47 [label="decl"]
+47 -> 48
+48 [label="ident: rectangle"]
+47 -> 49
+49 [label="ident: r"]
+23 -> 50
+50 [label="decl"]
+50 -> 51
+51 [label="ident: shapeProperty"]
+50 -> 52
+52 [label="init"]
+52 -> 53
+53 [label="ident: p"]
+52 -> 54
+54 [label="selectors"]
+54 -> 55
+55 [label="ident: c"]
+54 -> 56
+56 [label="ident: area"]
+}

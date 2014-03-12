@@ -584,6 +584,7 @@ static struct ast* expression(struct parser *parser)
             int prec = precedence(op);
             int top = shunter_op_top(&shunter);
             int top_prec = precedence(top);
+            /* remember '^' or TOK_POW has right-associativity */
             if ((top != TOK_POW && top_prec >= prec) || top_prec > prec) {
                 int thisop = shunter_op_pop(&shunter);
                 /* pop RHS off first */

@@ -21,6 +21,36 @@ identifiers themselves.
 The parser is capable of recovering from syntax errors by synchronizing on
 semicolons to reach the end of the statement in which an error occurs.
 
+
+Logic for static vs. interactive parsing:
+
+Problem:
+
+    `linenoise` (light-weight `readline` alternative) reads lines from the terminal
+    one-at-a-time. Since statements can span multiple lines, it's often the case
+    that a line entered in the terminal is not a complete statement. The parser
+    needs to recognize the early EOF (NUL terminator) and tell its caller to try again
+    with another line added to the input buffer.
+
+interactive:
+
+    start loop
+    make buffer
+    read a line and "append" to buffer (buffer may be empty)
+    attempt to parse a SINGLE statement from the buffer
+    if EOF error detected:
+        the source buffer was incomplete
+        read another line and append it to a buffer (and a newline character separator)
+    if other errors detected, the statement needs to be RE-parsed
+    end loop
+
+file/buffer:
+
+    if input is file, read entire file into a buffer
+    repeatedly parse a SINGLE statement
+    for each:
+        if any error detected, the buffer has syntax errors
+
 ### Abstract Syntax Tree
 The AST nodes are individually allocated on request. For large source files,
 this may be slower than using memory pools to carve out AST nodes.
@@ -48,11 +78,13 @@ The type-checked AST is then traversed to generate... TBD.
 
 ## TODO
 
-- return NULL in every parser function when an error occurs (currently a bug)
+- [bug] return NULL in every parser function when an error occurs
+- [bug] free `struct ast`s when errors occur during parsing
+- [bug] fix broken real number parsing (exponent/mantissa/etc...)
+- [bug] somewhere during parsing the "buffer" for each token gets out of sync.
+        this is obviously a huge issue for TOK_IDENT, TOK_STR, TOK_INT, TOK_REAL, etc.
 - silence error messages in interactive parser
-- free `struct ast`s when errors occur during parsing
 - handle error messages in a fashion suitable for a library
-- the parser need to respect operator associativity (POW symbol is right-associative)
 - type check
 - 'libify' - make sure nolli is always embeddable, re-entrant
 - register-based VM (bytecode)
@@ -61,6 +93,7 @@ The type-checked AST is then traversed to generate... TBD.
 
 ## Complete
 
+- the parser need to respect operator associativity (POW symbol is right-associative)
 - the parser needs to respect operator precedence. I plan to use the
   Shunting Yard algorithm to parse expressions.
 - the parser needs better error recovery (synch on semicolons, setjmp, etc.)
