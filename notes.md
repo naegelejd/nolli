@@ -45,8 +45,13 @@ This phase is also where 'type-inference' could be handled if added to the langu
 ### Code Generation
 The type-checked AST is then traversed to generate... TBD.
 
+
 ## TODO
 
+- return NULL in every parser function when an error occurs (currently a bug)
+- silence error messages in interactive parser
+- free `struct ast`s when errors occur during parsing
+- handle error messages in a fashion suitable for a library
 - the parser need to respect operator associativity (POW symbol is right-associative)
 - type check
 - 'libify' - make sure nolli is always embeddable, re-entrant

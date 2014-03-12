@@ -7,5 +7,8 @@ if true {
     b = 1.0.1
 }
 
+
 if false {
     print("false");
+
+print(]*.

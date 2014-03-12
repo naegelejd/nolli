@@ -33,8 +33,8 @@ static char *tok_type_names[] = {
     ">", ">=",
     "||", "&&",
 
-    "'('", "')'", "'['", "']'", "'{'", "'}'",
-    "','", "';'", "'.'",
+    "(", ")", "[", "]", "{", "}",
+    ",", ";", ".",
 
     "var", "const",
     "if", "else",
@@ -294,7 +294,7 @@ static int lex_symbol(struct lexer *lex)
                 next(lex);
                 return (at - symbols) + TOK_LPAREN;
             } else {
-                LEX_ERRORF(lex, "Invalid symbol %c", lex->cur);
+                LEX_ERRORF(lex, "Invalid symbol %c (0x%0x)", lex->cur, lex->cur);
             }
         }
     }
@@ -317,7 +317,22 @@ int gettok(struct lexer *lex)
     while (true) {
         int tok = TOK_EOF;
 
-        if (lex->cur == '\n') {     /* FIXME: Windows line-endings? */
+        if (lex->cur == '\0') {
+            tok = TOK_EOF;
+            lex->line++;
+            lex->col = 0;
+            switch (lex->lasttok) {
+                case TOK_IDENT: case TOK_BOOL: case TOK_CHAR: case TOK_INT:
+                case TOK_REAL: case TOK_STRING: case TOK_RPAREN: case TOK_RCURLY:
+                case TOK_RSQUARE: case TOK_RET: case TOK_BREAK: case TOK_CONT:
+                    tok = TOK_SEMI;
+                    break;
+                default:
+                    tok = TOK_EOF;
+            }
+        }
+        /* FIXME: Windows line-endings? */
+        else if (lex->cur == '\n') {
             lex->line++;
             lex->col = 0;
             next(lex);
@@ -371,7 +386,7 @@ int gettok(struct lexer *lex)
                 tok = TOK_DOT;
             }
         }
-        else if (lex->cur == EOF || lex->cur == '\0') {
+        else if (lex->cur == EOF) {
             tok = TOK_EOF;
         }
         /* all that's left is symbols */
@@ -381,6 +396,7 @@ int gettok(struct lexer *lex)
 
         /* return the scanned token */
         lex->lasttok = tok;
+        /* NOLLI_DEBUGF("tok: %s", get_tok_name(tok)); */
         return tok;
     }
 
@@ -414,6 +430,10 @@ int lexer_set(struct lexer *lexer, char *buffer)
 
     lexer->input = buffer;
     lexer->sptr = lexer->input;
+
+    /* reset these: */
+    lexer->line = 1;
+    lexer->col = 0;
 
     /* sync lexer on first char in input */
     next(lexer);

@@ -38,7 +38,7 @@ int dofile(struct nolli_state *nstate, const char *filename)
     char *buff = nalloc(bytes + 1);
     fread(buff, bytes, 1, fin);
     buff[bytes] = '\0';
-    int p = parse_buffer(nstate, buff);
+    int err = parse_buffer(nstate, buff);
     free(buff);
 
     if (fclose(fin) != 0) {
@@ -46,9 +46,9 @@ int dofile(struct nolli_state *nstate, const char *filename)
         return EXIT_FAILURE;
     }
 
-    if (p == ERR_PARSE) {
+    if (err) {
         NOLLI_ERROR("Parse errors... cannot continue");
-        return p;
+        return err;
     }
 
     dump_ast_graph(nstate);
@@ -67,32 +67,40 @@ int interactive(struct nolli_state *nstate)
     linenoiseHistoryLoad(histpath);
 
     const char *normprompt = "nl> ";
-    const char *contprompt = "nl>>> ";
+    const char *contprompt = "nl----> ";
     const char *prompt = normprompt;
 
     size_t bufcap = 1024, buflen = 0;
     char *buffer = nalloc(bufcap);
     char *line = NULL;
+    /* read lines until EOF */
     while ((line = linenoise(prompt)) != NULL) {
-        size_t len = strlen(line);
-        while (buflen + len > bufcap) {
+        size_t len = strlen(line) + 1; /* add 1 for newline */
+
+        /* if the line is empty, read another one */
+        if (len < 2) {
+            continue;
+        }
+
+        /* expand the buffer as necessary */
+        while (bufcap < buflen + len) {
             bufcap *= 2;
             buffer = nrealloc(buffer, bufcap);
         }
         strcat(buffer, line);
+        strcat(buffer, "\n");
         buflen += len;
         buffer[buflen] = 0;
-        free(line);
 
         int err = parse_line(nstate, buffer);
 
-        if (err != ERR_EOF) {
+        if (err == ERR_EOF) {
+            prompt = contprompt;
+        } else {
             memset(buffer, 0, buflen); /* buffer[0] = 0; */
             buflen = 0;
             linenoiseHistoryAdd(line);
             prompt = normprompt;
-        } else {
-            prompt = contprompt;
         }
     }
 
