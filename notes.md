@@ -80,6 +80,7 @@ The type-checked AST is then traversed to generate... TBD.
 
 - [bug] return NULL in every parser function when an error occurs
 - [bug] free `struct ast`s when errors occur during parsing
+- [bug] "Invalid integer" error in tests/if+else.nl file??
 - [bug] fix broken real number parsing (exponent/mantissa/etc...)
 - [bug] somewhere during parsing the "buffer" for each token gets out of sync.
         this is obviously a huge issue for TOK_IDENT, TOK_STR, TOK_INT, TOK_REAL, etc.
