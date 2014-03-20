@@ -1,8 +1,10 @@
 #include "parser.h"
 
-#define PARSE_DEBUG(P, S) \
-    NOLLI_DEBUGF("(L %d, C %d): " S, \
-            (P)->lexer->line, (P)->lexer->col)
+#define PARSE_DEBUGF(P, fmt, ...) \
+    NOLLI_DEBUGF("(L %d, C %d): " fmt, \
+            (P)->lexer->line, (P)->lexer->col, __VA_ARGS__)
+
+#define PARSE_DEBUG(P, S) PARSE_DEBUGF(P, "%s", S)
 
 #define PARSE_ERRORF(P, fmt, ...) \
     NOLLI_ERRORF("(L %d, C %d): " fmt, \
@@ -56,7 +58,7 @@ void parser_init(struct parser *parser)
     parser->lexer = nalloc(sizeof(*parser->lexer));
     lexer_init(parser->lexer);
 
-    parser->buffer = parser->lexer->lastbuff;
+    parser->bufptr = &parser->lexer->lastbuff;
 }
 
 int parse_buffer(struct nolli_state *state, char *buffer)
@@ -199,7 +201,7 @@ static struct ast* declaration_type(struct parser *parser)
         if (!expect(parser, TOK_TYPE)) {
             err = true;
         }
-        struct ast *listtype = ast_make_ident(parser->buffer);
+        struct ast *listtype = ast_make_ident(*parser->bufptr);
         if (!expect(parser, TOK_RSQUARE)) {
             err = true;
         }
@@ -208,14 +210,14 @@ static struct ast* declaration_type(struct parser *parser)
         if (!expect(parser, TOK_TYPE)) {
             err = true;
         }
-        struct ast *keytype = ast_make_ident(parser->buffer);
+        struct ast *keytype = ast_make_ident(*parser->bufptr);
         if (!expect(parser, TOK_COMMA)) {
             err = true;
         }
         if (!expect(parser, TOK_TYPE)) {
             err = true;
         }
-        struct ast *valtype = ast_make_ident(parser->buffer);
+        struct ast *valtype = ast_make_ident(*parser->bufptr);
         if (!expect(parser, TOK_RCURLY)) {
             err = true;
         }
@@ -230,7 +232,7 @@ static struct ast* declaration_type(struct parser *parser)
         if (!expect(parser, TOK_TYPE)) {
             err = true;
         }
-        type = ast_make_ident(parser->buffer);
+        type = ast_make_ident(*parser->bufptr);
         /* parse types defined in other modules, e.g. std.file */
         if (accept(parser, TOK_DOT)) {
             struct ast *extern_type = ast_make_list(LIST_SELECTOR);
@@ -238,7 +240,7 @@ static struct ast* declaration_type(struct parser *parser)
             if (!expect(parser, TOK_TYPE)) {
                 err = true;
             }
-            type = ast_make_ident(parser->buffer);
+            type = ast_make_ident(*parser->bufptr);
             extern_type = ast_list_append(extern_type, type);
             type = extern_type;
         }
@@ -257,7 +259,7 @@ static struct ast* declaration_name(struct parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         err = true;
     }
-    struct ast *ident = ast_make_ident(parser->buffer);
+    struct ast *ident = ast_make_ident(*parser->bufptr);
 
     struct ast* name = NULL;
     if (accept(parser, TOK_ASS)) {
@@ -597,7 +599,7 @@ static struct ast* term(struct parser *parser)
         if (!expect(parser, TOK_IDENT)) {
             err = true;
         }
-        struct ast *subterm = ast_make_ident(parser->buffer);
+        struct ast *subterm = ast_make_ident(*parser->bufptr);
 
         /* FIXME: dangerous loop? */
         while (true) {
@@ -636,32 +638,37 @@ static struct ast* operand(struct parser *parser)
 {
     struct ast *op = NULL;
     if (accept(parser, TOK_IDENT)) {
-        op = ast_make_ident(parser->buffer);
+        PARSE_DEBUGF(parser, "Parsed identifier: %s", *parser->bufptr);
+        op = ast_make_ident(*parser->bufptr);
     } else if (accept(parser, TOK_CHAR)) {
-        char c = parser->buffer[0];
+        PARSE_DEBUGF(parser, "Parsed char literal: %s", *parser->bufptr);
+        char c = *parser->bufptr[0];
         op = ast_make_char_lit(c);
     } else if (accept(parser, TOK_INT)) {
         char *endptr = NULL;
-        size_t len = strlen(parser->buffer);
-        long l = strtol(parser->buffer, &endptr, 0);
-        if (endptr != (parser->buffer + len)) {
-            PARSE_ERRORF(parser, "Invalid integer %s", parser->buffer);
+        size_t len = strlen(*parser->bufptr);
+        long l = strtol(*parser->bufptr, &endptr, 0);
+        PARSE_DEBUGF(parser, "Parsed int literal: %s", *parser->bufptr);
+        if (endptr != (*parser->bufptr + len)) {
+            PARSE_ERRORF(parser, "Invalid integer %s", *parser->bufptr);
             op = NULL;
         } else {
             op = ast_make_int_num(l);
         }
     } else if (accept(parser, TOK_REAL)) {
         char *endptr = NULL;
-        size_t len = strlen(parser->buffer);
-        double d = strtod(parser->buffer, &endptr);
-        if (endptr != (parser->buffer + len)) {
-            PARSE_ERRORF(parser, "Invalid real number %s", parser->buffer);
+        size_t len = strlen(*parser->bufptr);
+        double d = strtod(*parser->bufptr, &endptr);
+        PARSE_DEBUGF(parser, "Parsed real literal: %s", *parser->bufptr);
+        if (endptr != (*parser->bufptr + len)) {
+            PARSE_ERRORF(parser, "Invalid real number %s", *parser->bufptr);
             op = NULL;
         } else {
             op = ast_make_real_num(d);
         }
     } else if (accept(parser, TOK_STRING)) {
-        op = ast_make_str_lit(parser->buffer);
+        PARSE_DEBUGF(parser, "Parsed string literal: %s", *parser->bufptr);
+        op = ast_make_str_lit(*parser->bufptr);
     } else if (accept(parser, TOK_LPAREN)) {
         struct ast *expr = expression(parser);
         if (expr == NULL) {
@@ -769,7 +776,7 @@ static struct ast* arguments(struct parser *parser)
             struct ast* expr = expression(parser);
             if (expr == NULL) {
                 err = true;
-                PARSE_ERROR(parser, "Invalid parameter expression");
+                PARSE_ERROR(parser, "Invalid argument expression");
             }
             arg_list = ast_list_append(arg_list, expr);
         } while (accept(parser, TOK_COMMA));
@@ -931,7 +938,7 @@ static struct ast* forloop(struct parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         err = true;
     }
-    struct ast *var = ast_make_ident(parser->buffer);
+    struct ast *var = ast_make_ident(*parser->bufptr);
 
     if (!expect(parser, TOK_IN)) {
         err = true;
@@ -1107,7 +1114,7 @@ static struct ast* alias(struct parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         err = true;
     }
-    char *name = strndup(parser->buffer, MAX_IDENT_LENGTH);
+    char *name = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
     if (name == NULL) {
         err = true;
         PARSE_ERROR(parser, "strndup failure");
@@ -1133,7 +1140,7 @@ static struct ast* import(struct parser *parser)
         if (!expect(parser, TOK_IDENT)) {
             err = true;
         }
-        from = strndup(parser->buffer, MAX_IDENT_LENGTH);
+        from = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
         if (from == NULL) {
             err = true;
             PARSE_ERROR(parser, "strndup failure");
@@ -1151,7 +1158,7 @@ static struct ast* import(struct parser *parser)
             err = true;
             break;
         }
-        struct ast *module = ast_make_ident(parser->buffer);
+        struct ast *module = ast_make_ident(*parser->bufptr);
         list = ast_list_append(list, module);
     } while (accept(parser, TOK_COMMA));
 
@@ -1174,7 +1181,7 @@ static struct ast* structtype(struct parser *parser)
         err = true;
     }
 
-    char *name = strndup(parser->buffer, MAX_IDENT_LENGTH);
+    char *name = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
     if (name == NULL) {
         err = true;
         PARSE_ERROR(parser, "strndup failure");
@@ -1222,7 +1229,7 @@ static struct ast* interface(struct parser *parser)
         err = true;
     }
 
-    char *name = strndup(parser->buffer, MAX_IDENT_LENGTH);
+    char *name = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
     if (name == NULL) {
         err = true;
         PARSE_ERROR(parser, "strndup failure");
@@ -1244,7 +1251,7 @@ static struct ast* interface(struct parser *parser)
             err = true;
             break;
         }
-        struct ast *name = ast_make_ident(parser->buffer);
+        struct ast *name = ast_make_ident(*parser->bufptr);
         struct ast *meth = ast_make_decl(DECL_VAR, ft, name);
         if (!expect(parser, TOK_SEMI)) {
             err = true;

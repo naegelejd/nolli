@@ -36,8 +36,8 @@ tags
 # Images
 *.png
 *.jpg
-
 *.pdf
+*.dot
 
 # Directories
 bin/

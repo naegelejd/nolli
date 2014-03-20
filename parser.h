@@ -10,7 +10,7 @@ struct lexer;
 struct parser {
     jmp_buf jmp;
     struct lexer *lexer;
-    char *buffer;
+    char **bufptr;
     int cur;
     bool error;
 };

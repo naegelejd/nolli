@@ -254,6 +254,7 @@ static int lex_ident(struct lexer *lex)
 static int lex_symbol(struct lexer *lex)
 {
     int tok = 0;
+    appendc(lex, lex->cur);
     switch (lex->cur) {
         case '+': tok = TOK_ADD; break;
         case '-': tok = TOK_SUB; break;
@@ -267,7 +268,6 @@ static int lex_symbol(struct lexer *lex)
         case '<': tok = TOK_LT; break;
         case '>': tok = TOK_GT; break;
         case '|':
-            appendc(lex, lex->cur);
             next(lex);
             if (lex->cur != '|') {
                 LEX_ERRORF(lex, "Invalid symbol |%c", lex->cur);
@@ -277,7 +277,6 @@ static int lex_symbol(struct lexer *lex)
             return TOK_OR;
             break;
         case '&':
-            appendc(lex, lex->cur);
             next(lex);
             if (lex->cur != '&') {
                 LEX_ERRORF(lex, "Invalid symbol &%c", lex->cur);
@@ -290,7 +289,6 @@ static int lex_symbol(struct lexer *lex)
             static char symbols[] = "()[]{},;.";
             char *at = NULL;
             if ((at = strchr(symbols, lex->cur))) {
-                appendc(lex, lex->cur);
                 next(lex);
                 return (at - symbols) + TOK_LPAREN;
             } else {
@@ -299,7 +297,6 @@ static int lex_symbol(struct lexer *lex)
         }
     }
 
-    appendc(lex, lex->cur);
     next(lex);
     if (lex->cur == '=') {
         appendc(lex, lex->cur);
@@ -312,81 +309,82 @@ static int lex_symbol(struct lexer *lex)
 
 int gettok(struct lexer *lex)
 {
+    /* NOLLI_DEBUGF("rotating buffer: %s <- %s", lex->lastbuff, lex->curbuff); */
     rotate_buffers(lex);    /* clear the lexer's current string buffer */
+    int tok = TOK_EOF;
+nexttok:
 
-    while (true) {
-        int tok = TOK_EOF;
+    /* FIXME: Windows line-endings? */
+    if (lex->cur == '\n') {
+        lex->line++;
+        lex->col = 0;
+        next(lex);
 
-        /* FIXME: Windows line-endings? */
-        if (lex->cur == '\n') {
-            lex->line++;
-            lex->col = 0;
-            next(lex);
-
-            switch (lex->lasttok) {
-                case TOK_IDENT: case TOK_BOOL: case TOK_CHAR: case TOK_INT:
-                case TOK_REAL: case TOK_STRING: case TOK_RPAREN: case TOK_RCURLY:
-                case TOK_RSQUARE: case TOK_RET: case TOK_BREAK: case TOK_CONT:
-                    tok = TOK_SEMI;
-                    break;
-                default:
-                    continue;
-            }
+        switch (lex->lasttok) {
+            case TOK_IDENT: case TOK_BOOL: case TOK_CHAR: case TOK_INT:
+            case TOK_REAL: case TOK_STRING: case TOK_RPAREN: case TOK_RCURLY:
+            case TOK_RSQUARE: case TOK_RET: case TOK_BREAK: case TOK_CONT:
+                tok = TOK_SEMI;
+                break;
+            default:
+                goto nexttok;
         }
-        /* eat whitespace */
-        else if (isspace(lex->cur)) {
-            next(lex);
-            continue;
+    }
+    /* eat whitespace */
+    else if (isspace(lex->cur)) {
+        next(lex);
+        goto nexttok;
+    }
+    else if (isdigit(lex->cur)) {
+        tok = lex_integer(lex);
+    }
+    /* eat comments */
+    else if (lex->cur == '#') {
+        do {
+            next(lex);  /* eat up comment line */
+        } while (lex->cur != EOF && lex->cur != '\n' && lex->cur != '\r');
+        goto nexttok;
+    }
+    else if (lex->cur == '\'') {
+        /* lex single-quoted character */
+        next(lex);  /* skip opening ' */
+        appendc(lex, lex->cur);
+        next(lex);
+        if (lex->cur != '\'') {
+            LEX_ERRORF(lex, "Invalid character '%c' after char literal '%c'",
+                    lex->cur, *lex->curbuff);
         }
-        else if (isdigit(lex->cur)) {
-            tok = lex_integer(lex);
+        next(lex);  /* eat closing ' */
+        tok = TOK_CHAR;
+    }
+    else if (lex->cur == '"') {
+        tok = lex_string(lex);
+    }
+    else if (isalpha(lex->cur) || lex->cur == '_') {
+        tok = lex_ident(lex);
+    }
+    /* stupid floating points with no leading zero (e.g. '.123') */
+    else if (lex->cur == '.') {
+        appendc(lex, lex->cur);
+        next(lex);
+        if (isdigit(lex->cur)) {
+            tok = lex_real(lex);
+        } else {
+            tok = TOK_DOT;
         }
-        /* eat comments */
-        else if (lex->cur == '#') {
-            do {
-                next(lex);  /* eat up comment line */
-            } while (lex->cur != EOF && lex->cur != '\n' && lex->cur != '\r');
-            continue;
-        }
-        else if (lex->cur == '\'') {
-            /* lex single-quoted character */
-            next(lex);  /* skip opening ' */
-            appendc(lex, lex->cur);
-            next(lex);
-            next(lex);  /* skip closing ' */
-            tok = TOK_CHAR;
-        }
-        else if (lex->cur == '"') {
-            tok = lex_string(lex);
-        }
-        else if (isalpha(lex->cur) || lex->cur == '_') {
-            tok = lex_ident(lex);
-        }
-        /* stupid floating points with no leading zero (e.g. '.123') */
-        else if (lex->cur == '.') {
-            appendc(lex, lex->cur);
-            next(lex);
-            if (isdigit(lex->cur)) {
-                tok = lex_real(lex);
-            } else {
-                tok = TOK_DOT;
-            }
-        }
-        else if (lex->cur == '\0' || lex->cur == EOF) {
-            tok = TOK_EOF;
-        }
-        /* all that's left is symbols */
-        else {
-            tok = lex_symbol(lex);
-        }
-
-        /* return the scanned token */
-        lex->lasttok = tok;
-        /* NOLLI_DEBUGF("tok: %s, buf: %s", get_tok_name(tok), lex->curbuff); */
-        return tok;
+    }
+    else if (lex->cur == '\0' || lex->cur == EOF) {
+        tok = TOK_EOF;
+    }
+    /* all that's left is symbols */
+    else {
+        tok = lex_symbol(lex);
     }
 
-    return TOK_EOF;
+    /* return the scanned token */
+    lex->lasttok = tok;
+    /* NOLLI_DEBUGF("tok: %s, buf: %s", get_tok_name(tok), lex->curbuff); */
+    return tok;
 }
 
 const char *get_tok_name(int tok)
