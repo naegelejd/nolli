@@ -30,7 +30,7 @@ add_library(nolli ${NOLLI_SOURCES})
 target_link_libraries(nolli m)
 install(TARGETS nolli DESTINATION lib)
 
-add_executable(nolli-exe main.c linenoise/linenoise.c)
+add_executable(nolli-exe main.c)
 set_target_properties(nolli-exe PROPERTIES OUTPUT_NAME nolli)
 target_link_libraries(nolli-exe nolli)
 install(TARGETS nolli-exe DESTINATION bin)

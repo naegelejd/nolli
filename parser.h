@@ -17,6 +17,5 @@ struct parser {
 
 void parser_init(struct parser *parser);
 int parse_buffer(struct nolli_state*, char*);
-int parse_line(struct nolli_state*, char*);
 
 #endif /* NOLLI_PARSER_H */

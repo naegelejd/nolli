@@ -74,35 +74,8 @@ int parse_buffer(struct nolli_state *state, char *buffer)
     expect(parser, TOK_EOF);
 
     if (state->root == NULL) {
-        if (check(parser, TOK_EOF)) {
-            return ERR_EOF;
-        }
         return ERR_PARSE;
     }
-    return NO_ERR;
-}
-
-int parse_line(struct nolli_state *state, char *line)
-{
-    struct parser *parser = state->parser;
-    assert(parser);
-
-    int ret = lexer_set(parser->lexer, line);
-    if (ret != NO_ERR) {
-        return ret;
-    }
-    next(parser);
-
-    struct ast *stmt = statement(parser);
-    if (stmt == NULL) {
-        if (check(parser, TOK_EOF)) {
-            return ERR_EOF;
-        }
-        printf("returning ERR_PARSE\n");
-        return ERR_PARSE;
-    }
-
-    state->root = stmt;
     return NO_ERR;
 }
 
