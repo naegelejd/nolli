@@ -22,6 +22,7 @@ enum {
     AST_MAP_TYPE,
     AST_FUNC_TYPE,
     AST_STRUCT_TYPE,
+    AST_STRUCT_INIT,
     AST_IFACE_TYPE,
 
     AST_DECL,
@@ -64,6 +65,7 @@ enum {
     LIST_SELECTOR,
     LIST_MEMBER,
     LIST_METHOD,
+    LIST_STRUCT_INIT,
     LIST_STATEMENT,
 };
 
@@ -123,6 +125,12 @@ struct ast_struct_type {
     struct ast HEAD;
     char *name;
     struct ast *members;
+};
+
+struct ast_struct_init {
+    struct ast HEAD;
+    char *name;
+    struct ast *items;
 };
 
 struct ast_iface_type {
@@ -272,6 +280,7 @@ struct ast *ast_make_list_type(struct ast*);
 struct ast *ast_make_map_type(struct ast*, struct ast*);
 struct ast *ast_make_func_type(struct ast*, struct ast*);
 struct ast *ast_make_struct_type(char *, struct ast*);
+struct ast* ast_make_struct_init(char *, struct ast *);
 struct ast *ast_make_iface_type(char *, struct ast*);
 
 struct ast *ast_make_decl(int, struct ast*, struct ast*);

@@ -37,6 +37,7 @@ static struct ast* functype(struct parser *parser);
 static struct ast* alias(struct parser *parser);
 static struct ast* import(struct parser *parser);
 static struct ast* structtype(struct parser *parser);
+static struct ast* struct_initializer(struct parser *parser);
 static struct ast* interface(struct parser *parser);
 
 #undef next
@@ -355,14 +356,15 @@ static struct ast* assignment_or_call(struct parser *parser)
         PARSE_DEBUG(parser, "Parsed short_decl");
         stmt = short_decl;
     } else {
-        if (lhs != NULL && lhs->type == AST_CALL) {
-            /* The only type of expression that can double as a statement is
-             * a function call (disregarding the return value) */
-            stmt = lhs;
-        } else {
-            err = true;
-            PARSE_ERROR(parser, "Invalid statement");
-        }
+        stmt = lhs;
+        /* if (lhs != NULL && lhs->type == AST_CALL) { */
+        /*     /1* The only type of expression that can double as a statement is */
+        /*      * a function call (disregarding the return value) *1/ */
+        /*     stmt = lhs; */
+        /* } else { */
+        /*     err = true; */
+        /*     PARSE_ERROR(parser, "Invalid statement"); */
+        /* } */
     }
 
     if (err) {
@@ -555,7 +557,7 @@ static struct ast* term(struct parser *parser)
     struct ast *term = operand(parser);
     if (term == NULL) {
         err = true;
-        PARSE_ERROR(parser, "Invalid operand");
+        /* PARSE_ERROR(parser, "Invalid operand"); */
     }
 
     /* FIXME: dangerous loop? */
@@ -638,8 +640,23 @@ static struct ast* operand(struct parser *parser)
 {
     struct ast *op = NULL;
     if (accept(parser, TOK_IDENT)) {
-        PARSE_DEBUGF(parser, "Parsed identifier: %s", *parser->bufptr);
-        op = ast_make_ident(*parser->bufptr);
+        char *ident = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
+        if (ident == NULL) {
+            PARSE_ERROR(parser, "strndup failure");
+            op = NULL;
+        } else if (check(parser, TOK_LCURLY)) {
+            struct ast *struct_init = struct_initializer(parser);
+            if (struct_init == NULL) {
+                op = NULL;
+                PARSE_ERROR(parser, "failed to parse struct initializer");
+            } else {
+                PARSE_DEBUG(parser, "Parsed struct initializer");
+                op = ast_make_struct_init(ident, struct_init);
+            }
+        } else {
+            PARSE_DEBUGF(parser, "Parsed identifier: %s", ident);
+            op = ast_make_ident(ident);
+        }
     } else if (accept(parser, TOK_CHAR)) {
         PARSE_DEBUGF(parser, "Parsed char literal: %s", *parser->bufptr);
         char c = *parser->bufptr[0];
@@ -685,6 +702,7 @@ static struct ast* operand(struct parser *parser)
     } else if (check(parser, TOK_FUNC)) {
         op = funclit(parser);
     } else {
+        PARSE_ERRORF(parser, "Invalid operand: %s", *parser->bufptr);
         op = NULL;
     }
 
@@ -1171,6 +1189,49 @@ static struct ast* import(struct parser *parser)
         imp = ast_make_import(from, list);
     }
     return imp;
+}
+
+static struct ast* struct_initializer(struct parser *parser)
+{
+    bool err = false;
+
+    if (!expect(parser, TOK_LCURLY)) {
+        err = true;
+    }
+
+    struct ast* init_list = ast_make_list(LIST_STRUCT_INIT);
+    if (!check(parser, TOK_RCURLY)) {
+        do {
+            struct ast* item = expression(parser);
+            if (item == NULL) {
+                err = true;
+                if (check(parser, TOK_COLON)) {
+                    PARSE_ERROR(parser, "Invalid member name in struct initializer");
+                } else {
+                    PARSE_ERROR(parser, "Invalid value in struct initializer");
+                }
+            }
+
+            if (accept(parser, TOK_COLON)) {
+                struct ast* val = expression(parser);
+                if (val == NULL) {
+                    err = true;
+                    PARSE_ERROR(parser, "Invalid value in struct initializer");
+                }
+                item = ast_make_keyval(item, val);
+            }
+
+            init_list = ast_list_append(init_list, item);
+        } while (accept(parser, TOK_COMMA));
+    }
+    if (!expect(parser, TOK_RCURLY)) {
+        err = true;
+    }
+
+    if (err) {
+        init_list = NULL;     /* TODO: destroy keyval_list */
+    }
+    return init_list;
 }
 
 static struct ast* structtype(struct parser *parser)

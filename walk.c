@@ -24,6 +24,7 @@ static struct type *walk_list_type(struct ast*, struct irstate*);
 static struct type *walk_map_type(struct ast*, struct irstate*);
 static struct type *walk_func_type(struct ast*, struct irstate*);
 static struct type *walk_struct_type(struct ast*, struct irstate*);
+static struct type *walk_struct_init(struct ast *, struct irstate *);
 static struct type *walk_iface_type(struct ast*, struct irstate*);
 static struct type *walk_decl(struct ast*, struct irstate*);
 static struct type *walk_initialization(struct ast*, struct irstate*);
@@ -47,6 +48,7 @@ static struct type *walk_map_item_list(struct ast *node, struct irstate *irs);
 static struct type *walk_selector_list(struct ast *node, struct irstate *irs);
 static struct type *walk_member_list(struct ast *node, struct irstate *irs);
 static struct type *walk_method_list(struct ast *node, struct irstate *irs);
+static struct type *walk_struct_init_list(struct ast *node, struct irstate *irs);
 static struct type *walk_statement_list(struct ast *node, struct irstate *irs);
 
 static struct type *walk(struct ast *root, struct irstate *irs);
@@ -81,6 +83,7 @@ static struct type *walk(struct ast *root, struct irstate *irs)
         walk_map_type,
         walk_func_type,
         walk_struct_type,
+        walk_struct_init,
         walk_iface_type,
 
         walk_decl,
@@ -278,6 +281,17 @@ static struct type *walk_method_list(struct ast *node, struct irstate *irs)
     return NULL;
 }
 
+static struct type *walk_struct_init_list(struct ast *node, struct irstate *irs)
+{
+    struct ast_list* list = (struct ast_list*)node;
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        walk(list->items[i], irs);
+    }
+    return NULL;
+}
+
 static struct type *walk_statement_list(struct ast *node, struct irstate *irs)
 {
     struct ast_list* list = (struct ast_list*)node;
@@ -304,6 +318,7 @@ static struct type *walk_list(struct ast *node, struct irstate *irs)
         walk_selector_list,
         walk_member_list,
         walk_method_list,
+        walk_struct_init_list,
         walk_statement_list,
     };
 
@@ -397,6 +412,15 @@ static struct type *walk_struct_type(struct ast *node, struct irstate *irs)
     struct ast_struct_type *type = (struct ast_struct_type*)node;
     /* type->name */
     walk(type->members, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *walk_struct_init(struct ast *node, struct irstate *irs)
+{
+    struct ast_struct_init *init = (struct ast_struct_init*)node;
+    /* type->name */
+    walk(init->items, irs);
 
     return NULL;    /* FIXME */
 }

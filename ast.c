@@ -101,6 +101,14 @@ struct ast* ast_make_struct_type(char *name, struct ast *members)
     return (struct ast*)type;
 }
 
+struct ast* ast_make_struct_init(char *name, struct ast *items)
+{
+    struct ast_struct_init *init = make_node(sizeof(*init), AST_STRUCT_INIT);
+    init->name = name;
+    init->items = items;
+    return (struct ast*)init;
+}
+
 struct ast* ast_make_iface_type(char *name, struct ast *methods)
 {
     struct ast_iface_type *type = make_node(sizeof(*type), AST_IFACE_TYPE);

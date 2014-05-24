@@ -3,9 +3,11 @@ from hell import fire, lightning
 
 struct Shape {
     int area, perimeter
-    str name# = "circle"
+    str name
     func int () id
 }
+
+s1 := Shape{4, 8, "circle", func () { return 42; }}
 
 iface Buffer {
     func () show
