@@ -1,0 +1,71 @@
+program = { definition ';' } ;
+definition = import | declaration | data | methods | interface | funcdef | alias ;
+
+import = 'import' idents | 'from' ident 'import' idents ;
+idents = ident { ',' ident } ;
+
+data = 'data' ident '{' { member ';' } '}' ;
+member = type idents ;
+
+methods = 'methods' ident '{' { funcdef ';' } '}' ;
+funcdef = functype ident block ;
+
+interface = 'interface' ident '{' { funcdecl ';' } '}' ;
+funcdecl = functype ident ;
+
+alias = 'alias' type ident ;
+
+block = statement | '{' { statement ';' } '}' ;
+statement = alias | declaration | shortinit | assignment | loop |
+        cond | call | 'break' | 'continue' | 'return' [ expr ];
+
+declaration = declkind type declrhs { ',' declrhs } ;
+declkind = 'var' | 'const' ;
+declrhs = ident | ident '=' expr ;
+
+shortinit = ident ':=' expr ;
+
+loop = 'while' expr block | 'for' ident 'in' expr block ;
+
+cond = 'if' expr block [ 'else' ( cond | block ) ] ;
+
+call = expr '(' [ args ] ')' ;
+args = expr { ',' expr } ;
+
+assignment = term assignop expr ;
+assignop = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '~=' ;
+
+type = ident | ident '.' ident | listtype | maptype | functype ;
+listtype = '[' type ']' ;
+maptype = '{' type ',' type '}' ;
+functype = 'func' [ type ] '(' [ params ] ')' ;
+params = param { ',' param } ;
+param = type | type ident ;
+
+term = operand | term '.' ident | term '[' expr ']' | term '(' [ exprs ] ')' ;
+
+expr = unexpr | binexpr ;
+exprs = expr { ',' expr } ;
+
+unexpr = unop unexpr | term ;
+binexpr = expr binop expr ;
+unop = '-' | '!' ;
+binop = '+' | '-' | '*' | '/' | '%' | '^' | '~' | '==' | '!=' | '<' | '<=' | '>' | '>=' ;
+
+operand = ident | literal | '(' expr ')' ;
+literal = bool | char | int | real | string | listlit | maplit | funclit | struclit ;
+listlit = '[' [ exprs ] ']' ;
+pair = expr ':' expr ;
+pairs = pair { ',' pair } ;
+maplit = '{' [ pairs ] '}' ;
+funclit = functype block ;
+structlit = '&' ident '{' [ structinits ] '}' ;
+structinit = [ ident ':' ] expr ;
+structinits = structinit { ',' structinit } ;
+
+bool = 'true' | 'false' ;
+char = "'" letter "'" ;
+int = number { number } ;
+real = number { number } "." { number } ;
+ident = letter { letter | number } ;
+string = '"' { letter } '"' ;
