@@ -7,7 +7,7 @@ struct Shape {
     func int () id
 }
 
-s1 := Shape{4, 8, "circle", func () { return 42; }}
+s1 := &Shape{area:4, name:8, "circle", func () { return 42; }}
 
 iface Buffer {
     func () show

@@ -37,8 +37,12 @@ static struct ast* functype(struct parser *parser);
 static struct ast* alias(struct parser *parser);
 static struct ast* import(struct parser *parser);
 static struct ast* structtype(struct parser *parser);
-static struct ast* struct_initializer(struct parser *parser);
+static struct ast* structlit(struct parser *parser);
 static struct ast* interface(struct parser *parser);
+
+static struct ast *ident(struct parser *parser);
+static struct ast *int_literal(struct parser *parser);
+static struct ast *real_literal(struct parser *parser);
 
 #undef next
 #define next(P)         ((P)->cur = gettok((P)->lexer))
@@ -636,53 +640,80 @@ static struct ast* term(struct parser *parser)
     return term;
 }
 
-static struct ast* operand(struct parser *parser)
+static struct ast *ident(struct parser *parser)
 {
-    struct ast *op = NULL;
-    if (accept(parser, TOK_IDENT)) {
+    struct ast *id = NULL;
+
+    if (!expect(parser, TOK_IDENT)) {
+        PARSE_ERROR(parser, "Invalid identifier");
+    } else {
         char *ident = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
         if (ident == NULL) {
             PARSE_ERROR(parser, "strndup failure");
-            op = NULL;
-        } else if (check(parser, TOK_LCURLY)) {
-            struct ast *struct_init = struct_initializer(parser);
-            if (struct_init == NULL) {
-                op = NULL;
-                PARSE_ERROR(parser, "failed to parse struct initializer");
-            } else {
-                PARSE_DEBUG(parser, "Parsed struct initializer");
-                op = ast_make_struct_init(ident, struct_init);
-            }
+            id = NULL;
         } else {
             PARSE_DEBUGF(parser, "Parsed identifier: %s", ident);
-            op = ast_make_ident(ident);
+            id = ast_make_ident(ident);
         }
+    }
+    return id;
+}
+
+static struct ast *int_literal(struct parser *parser)
+{
+    if (!expect(parser, TOK_INT)) {
+        return NULL;
+    }
+
+    struct ast *lit = NULL;
+
+    char *endptr = NULL;
+    size_t len = strlen(*parser->bufptr);
+    long l = strtol(*parser->bufptr, &endptr, 0);
+    PARSE_DEBUGF(parser, "Parsed int literal: %s", *parser->bufptr);
+    if (endptr != (*parser->bufptr + len)) {
+        PARSE_ERRORF(parser, "Invalid integer %s", *parser->bufptr);
+        lit = NULL;
+    } else {
+        lit = ast_make_int_num(l);
+    }
+    return lit;
+}
+
+static struct ast *real_literal(struct parser *parser)
+{
+    if (!expect(parser, TOK_REAL)) {
+        return NULL;
+    }
+
+    struct ast *lit = NULL;
+
+    char *endptr = NULL;
+    size_t len = strlen(*parser->bufptr);
+    double d = strtod(*parser->bufptr, &endptr);
+    PARSE_DEBUGF(parser, "Parsed real literal: %s", *parser->bufptr);
+    if (endptr != (*parser->bufptr + len)) {
+        PARSE_ERRORF(parser, "Invalid real number %s", *parser->bufptr);
+        lit = NULL;
+    } else {
+        lit = ast_make_real_num(d);
+    }
+    return lit;
+}
+
+static struct ast* operand(struct parser *parser)
+{
+    struct ast *op = NULL;
+    if (check(parser, TOK_IDENT)) {
+        op = ident(parser);
     } else if (accept(parser, TOK_CHAR)) {
         PARSE_DEBUGF(parser, "Parsed char literal: %s", *parser->bufptr);
         char c = *parser->bufptr[0];
         op = ast_make_char_lit(c);
-    } else if (accept(parser, TOK_INT)) {
-        char *endptr = NULL;
-        size_t len = strlen(*parser->bufptr);
-        long l = strtol(*parser->bufptr, &endptr, 0);
-        PARSE_DEBUGF(parser, "Parsed int literal: %s", *parser->bufptr);
-        if (endptr != (*parser->bufptr + len)) {
-            PARSE_ERRORF(parser, "Invalid integer %s", *parser->bufptr);
-            op = NULL;
-        } else {
-            op = ast_make_int_num(l);
-        }
-    } else if (accept(parser, TOK_REAL)) {
-        char *endptr = NULL;
-        size_t len = strlen(*parser->bufptr);
-        double d = strtod(*parser->bufptr, &endptr);
-        PARSE_DEBUGF(parser, "Parsed real literal: %s", *parser->bufptr);
-        if (endptr != (*parser->bufptr + len)) {
-            PARSE_ERRORF(parser, "Invalid real number %s", *parser->bufptr);
-            op = NULL;
-        } else {
-            op = ast_make_real_num(d);
-        }
+    } else if (check(parser, TOK_INT)) {
+        op = int_literal(parser);
+    } else if (check(parser, TOK_REAL)) {
+        op = real_literal(parser);
     } else if (accept(parser, TOK_STRING)) {
         PARSE_DEBUGF(parser, "Parsed string literal: %s", *parser->bufptr);
         op = ast_make_str_lit(*parser->bufptr);
@@ -701,6 +732,8 @@ static struct ast* operand(struct parser *parser)
         op = map_literal(parser);
     } else if (check(parser, TOK_FUNC)) {
         op = funclit(parser);
+    } else if (check(parser, TOK_AMP)) {
+        op = structlit(parser);
     } else {
         PARSE_ERRORF(parser, "Invalid operand: %s", *parser->bufptr);
         op = NULL;
@@ -1129,14 +1162,7 @@ static struct ast* alias(struct parser *parser)
         PARSE_ERROR(parser, "Invalid alias type");
     }
 
-    if (!expect(parser, TOK_IDENT)) {
-        err = true;
-    }
-    char *name = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
-    if (name == NULL) {
-        err = true;
-        PARSE_ERROR(parser, "strndup failure");
-    }
+    struct ast *name = ident(parser);
 
     PARSE_DEBUG(parser, "Parsed `alias`");
 
@@ -1152,17 +1178,10 @@ static struct ast* alias(struct parser *parser)
 static struct ast* import(struct parser *parser)
 {
     bool err = false;
-    char *from = NULL;
+    struct ast *from = NULL;
 
     if (accept(parser, TOK_FROM)) {
-        if (!expect(parser, TOK_IDENT)) {
-            err = true;
-        }
-        from = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
-        if (from == NULL) {
-            err = true;
-            PARSE_ERROR(parser, "strndup failure");
-        }
+        from = ident(parser);
         if (!expect(parser, TOK_IMPORT)) {
             err = true;
         }
@@ -1172,11 +1191,7 @@ static struct ast* import(struct parser *parser)
 
     struct ast *list = ast_make_list(LIST_IMPORT);
     do {
-        if (!expect(parser, TOK_IDENT)) {
-            err = true;
-            break;
-        }
-        struct ast *module = ast_make_ident(*parser->bufptr);
+        struct ast *module = ident(parser);
         list = ast_list_append(list, module);
     } while (accept(parser, TOK_COMMA));
 
@@ -1191,9 +1206,15 @@ static struct ast* import(struct parser *parser)
     return imp;
 }
 
-static struct ast* struct_initializer(struct parser *parser)
+static struct ast* structlit(struct parser *parser)
 {
     bool err = false;
+
+    if (!expect(parser, TOK_AMP)) {
+        err = true;
+    }
+
+    struct ast *name = ident(parser);
 
     if (!expect(parser, TOK_LCURLY)) {
         err = true;
@@ -1202,51 +1223,52 @@ static struct ast* struct_initializer(struct parser *parser)
     struct ast* init_list = ast_make_list(LIST_STRUCT_INIT);
     if (!check(parser, TOK_RCURLY)) {
         do {
-            struct ast* item = expression(parser);
-            if (item == NULL) {
-                err = true;
-                if (check(parser, TOK_COLON)) {
-                    PARSE_ERROR(parser, "Invalid member name in struct initializer");
-                } else {
-                    PARSE_ERROR(parser, "Invalid value in struct initializer");
+            /*  struct initializers can be either:
+                    ident : expression
+                    expression
+                since they are ordered by their declaration */
+
+            struct ast* item = NULL;
+
+            if (check(parser, TOK_IDENT)) {
+                item = ident(parser);
+                if (accept(parser, TOK_COLON)) {
+                    /* forget about the struct member name */
+                    item = expression(parser);
                 }
+            } else {
+                item = expression(parser);
             }
 
-            if (accept(parser, TOK_COLON)) {
-                struct ast* val = expression(parser);
-                if (val == NULL) {
-                    err = true;
-                    PARSE_ERROR(parser, "Invalid value in struct initializer");
-                }
-                item = ast_make_keyval(item, val);
+            if (item == NULL) {
+                err = true;
+                PARSE_ERROR(parser, "Invalid item in struct initializer");
             }
 
             init_list = ast_list_append(init_list, item);
         } while (accept(parser, TOK_COMMA));
     }
+
     if (!expect(parser, TOK_RCURLY)) {
         err = true;
     }
 
+    PARSE_DEBUG(parser, "Parsed struct initializer");
+
+    struct ast *strctlit = NULL;
     if (err) {
         init_list = NULL;     /* TODO: destroy keyval_list */
+    } else {
+        strctlit = ast_make_structlit(name, init_list);
     }
-    return init_list;
+    return strctlit;
 }
 
 static struct ast* structtype(struct parser *parser)
 {
     bool err = false;
 
-    if (!expect(parser, TOK_IDENT)) {
-        err = true;
-    }
-
-    char *name = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
-    if (name == NULL) {
-        err = true;
-        PARSE_ERROR(parser, "strndup failure");
-    }
+    struct ast *name = ident(parser);
 
     if (!expect(parser, TOK_LCURLY)) {
         err = true;
@@ -1286,15 +1308,7 @@ static struct ast* interface(struct parser *parser)
 {
     bool err = false;
 
-    if (!expect(parser, TOK_IDENT)) {
-        err = true;
-    }
-
-    char *name = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
-    if (name == NULL) {
-        err = true;
-        PARSE_ERROR(parser, "strndup failure");
-    }
+    struct ast *name = ident(parser);
 
     if (!expect(parser, TOK_LCURLY)) {
         err = true;

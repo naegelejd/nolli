@@ -167,3 +167,24 @@ in
 while
 true
 false
+
+## Implementation Ideas
+
+### Grammar
+
+weird idea example:
+
+    Square is defined by:
+        width of type int,
+        height of type int.
+
+    Shape has:
+        area of type int,
+        scale(int x).
+
+    Square is a shape.
+
+    Square's int area: return width * height
+    Square's scale(int x): ...
+    Square's private(): do_something()
+

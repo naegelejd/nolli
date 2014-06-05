@@ -34,7 +34,7 @@ static char *tok_type_names[] = {
     "||", "&&",
 
     "(", ")", "[", "]", "{", "}",
-    ",", ";", ".",
+    ",", ";", ".", "&",
 
     "var", "const",
     "if", "else",
@@ -279,7 +279,7 @@ static int lex_symbol(struct lexer *lex)
         case '&':
             next(lex);
             if (lex->cur != '&') {
-                LEX_ERRORF(lex, "Invalid symbol &%c", lex->cur);
+                return TOK_AMP;
             }
             appendc(lex, lex->cur);
             next(lex);

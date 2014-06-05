@@ -22,7 +22,6 @@ enum {
     AST_MAP_TYPE,
     AST_FUNC_TYPE,
     AST_STRUCT_TYPE,
-    AST_STRUCT_INIT,
     AST_IFACE_TYPE,
 
     AST_DECL,
@@ -43,6 +42,7 @@ enum {
     AST_FOR,
     AST_CALL,
     AST_FUNCLIT,
+    AST_STRUCTLIT,
 
     AST_RETURN,
     AST_BREAK,
@@ -123,19 +123,19 @@ struct ast_func_type {
 
 struct ast_struct_type {
     struct ast HEAD;
-    char *name;
+    struct ast *name;
     struct ast *members;
 };
 
-struct ast_struct_init {
+struct ast_structlit {
     struct ast HEAD;
-    char *name;
+    struct ast *name;
     struct ast *items;
 };
 
 struct ast_iface_type {
     struct ast HEAD;
-    char *name;
+    struct ast *name;
     struct ast *methods;
 };
 
@@ -192,14 +192,14 @@ struct ast_keyval {
 
 struct ast_import {
     struct ast HEAD;
-    char *from;
+    struct ast *from;
     struct ast *modules;
 };
 
 struct ast_alias {
     struct ast HEAD;
     struct ast *type;
-    char *name;
+    struct ast *name;
 };
 
 struct ast_return {
@@ -272,16 +272,15 @@ struct ast *ast_make_str_lit(const char *s);
 
 struct ast *ast_make_ident(const char *s);
 
-struct ast *ast_make_import(char *, struct ast*);
+struct ast *ast_make_import(struct ast *, struct ast*);
 
-struct ast *ast_make_alias(struct ast*, char *);
+struct ast *ast_make_alias(struct ast*, struct ast *);
 
 struct ast *ast_make_list_type(struct ast*);
 struct ast *ast_make_map_type(struct ast*, struct ast*);
 struct ast *ast_make_func_type(struct ast*, struct ast*);
-struct ast *ast_make_struct_type(char *, struct ast*);
-struct ast* ast_make_struct_init(char *, struct ast *);
-struct ast *ast_make_iface_type(char *, struct ast*);
+struct ast *ast_make_struct_type(struct ast *, struct ast*);
+struct ast *ast_make_iface_type(struct ast *, struct ast*);
 
 struct ast *ast_make_decl(int, struct ast*, struct ast*);
 struct ast *ast_make_initialization(struct ast*, struct ast*);
@@ -307,5 +306,6 @@ struct ast *ast_make_continue(void);
 struct ast *ast_make_return(struct ast*);
 
 struct ast *ast_make_funclit(struct ast*, struct ast*, struct ast*);
+struct ast* ast_make_structlit(struct ast *, struct ast *);
 
 #endif /* NOLLI_AST_H */

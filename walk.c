@@ -24,7 +24,6 @@ static struct type *walk_list_type(struct ast*, struct irstate*);
 static struct type *walk_map_type(struct ast*, struct irstate*);
 static struct type *walk_func_type(struct ast*, struct irstate*);
 static struct type *walk_struct_type(struct ast*, struct irstate*);
-static struct type *walk_struct_init(struct ast *, struct irstate *);
 static struct type *walk_iface_type(struct ast*, struct irstate*);
 static struct type *walk_decl(struct ast*, struct irstate*);
 static struct type *walk_initialization(struct ast*, struct irstate*);
@@ -37,6 +36,7 @@ static struct type *walk_break(struct ast*, struct irstate*);
 static struct type *walk_continue(struct ast*, struct irstate*);
 static struct type *walk_contaccess(struct ast*, struct irstate*);
 static struct type *walk_funclit(struct ast*, struct irstate*);
+static struct type *walk_structlit(struct ast *, struct irstate *);
 
 static struct type *walk_decl_list(struct ast *node, struct irstate *irs);
 static struct type *walk_arg_list(struct ast *node, struct irstate *irs);
@@ -83,7 +83,6 @@ static struct type *walk(struct ast *root, struct irstate *irs)
         walk_map_type,
         walk_func_type,
         walk_struct_type,
-        walk_struct_init,
         walk_iface_type,
 
         walk_decl,
@@ -103,6 +102,7 @@ static struct type *walk(struct ast *root, struct irstate *irs)
         walk_for,
         walk_call,
         walk_funclit,
+        walk_structlit,
 
         walk_return,
         walk_break,
@@ -416,9 +416,9 @@ static struct type *walk_struct_type(struct ast *node, struct irstate *irs)
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_struct_init(struct ast *node, struct irstate *irs)
+static struct type *walk_structlit(struct ast *node, struct irstate *irs)
 {
-    struct ast_struct_init *init = (struct ast_struct_init*)node;
+    struct ast_structlit *init = (struct ast_structlit*)node;
     /* type->name */
     walk(init->items, irs);
 
@@ -569,7 +569,7 @@ static char *ast_name(struct ast* node)
         "FOR",
         "CALL",
         "FUNCLIT",
-        "STRUCT",
+        "STRUCTLIT",
         "RETURN",
         "BREAK",
         "CONTINUE",

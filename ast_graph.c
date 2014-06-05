@@ -117,6 +117,21 @@ static int graph_selector_list(struct ast *node, FILE *fp, int id)
     return id;
 }
 
+static int graph_struct_init_list(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+    struct ast_list* list = (struct ast_list*)node;
+
+    fprintf(fp, "%d [label=\"struct inits\"]\n", rID);
+
+    unsigned int i = 0;
+    for (i = 0; i < list->count; i++) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(list->items[i], fp, id);
+    }
+    return id;
+}
+
 static int graph_statement_list(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
@@ -143,6 +158,7 @@ static int graph_list(struct ast *node, FILE *fp, int id)
         graph_map_item_list,
         graph_selector_list,
         NULL,NULL,
+        graph_struct_init_list,
         graph_statement_list,
     };
 
@@ -226,7 +242,7 @@ static int graph_import(struct ast *node, FILE *fp, int id)
     fprintf(fp, "%d [label=\"import", rID);
 
     if (import->from) {
-        fprintf(fp, " from %s", import->from);
+        fprintf(fp, " from %s", ((struct ast_ident*)import->from)->s);
     }
     fprintf(fp, "\"]\n");
 
@@ -296,7 +312,7 @@ static int graph_struct_type(struct ast *node, FILE *fp, int id)
     int rID = id;
     struct ast_struct_type *type = (struct ast_struct_type*)node;
 
-    fprintf(fp, "%d [label=\"struct %s\"]\n", rID, type->name);
+    fprintf(fp, "%d [label=\"struct %s\"]\n", rID, ((struct ast_ident*)type->name)->s);
 
     struct ast_list *members = (struct ast_list*)type->members;
     unsigned int i;
@@ -313,7 +329,7 @@ static int graph_iface_type(struct ast *node, FILE *fp, int id)
     int rID = id;
     struct ast_iface_type *type = (struct ast_iface_type*)node;
 
-    fprintf(fp, "%d [label=\"iface %s\"]\n", rID, type->name);
+    fprintf(fp, "%d [label=\"iface %s\"]\n", rID, ((struct ast_ident*)type->name)->s);
 
     struct ast_list *methods = (struct ast_list*)type->methods;
     unsigned int i;
@@ -419,7 +435,7 @@ static int graph_alias(struct ast *node, FILE *fp, int id)
     int rID = id;
     struct ast_alias *alias = (struct ast_alias*)node;
 
-    fprintf(fp, "%d [label=\"alias %s\"]\n", rID, alias->name);
+    fprintf(fp, "%d [label=\"alias %s\"]\n", rID, ((struct ast_ident*)alias->name)->s);
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(alias->type, fp, id);
 
@@ -491,6 +507,22 @@ static int graph_funclit(struct ast *node, FILE *fp, int id)
     return id;
 }
 
+static int graph_structlit(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+    struct ast_structlit *strct = (struct ast_structlit*)node;
+    fprintf(fp, "%d [label=\"struclit %s\"]\n", rID, ((struct ast_ident*)strct->name)->s);
+
+    struct ast_list *items = (struct ast_list*)strct->items;
+    unsigned int i;
+    for (i = 0; i < items->count; i++) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(items->items[i], fp, id);
+    }
+
+    return id;
+}
+
 static int graph(struct ast *root, FILE *fp, int id)
 {
     assert(root);
@@ -531,6 +563,7 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_for,
         graph_call,
         graph_funclit,
+        graph_structlit,
 
         graph_return,
         graph_break,
