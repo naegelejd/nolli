@@ -14,15 +14,9 @@ enum {
 
     AST_IDENT,
 
-    AST_IMPORT,
-
-    AST_ALIAS,
-
     AST_LIST_TYPE,
     AST_MAP_TYPE,
     AST_FUNC_TYPE,
-    AST_STRUCT_TYPE,
-    AST_IFACE_TYPE,
 
     AST_DECL,
     AST_INIT,
@@ -34,6 +28,7 @@ enum {
 
     AST_KEYVAL,
     AST_CONTACCESS,
+    AST_SELECTOR,
 
     AST_SHORT_DECL,
     AST_ASSIGN,
@@ -41,12 +36,19 @@ enum {
     AST_WHILE,
     AST_FOR,
     AST_CALL,
-    AST_FUNCLIT,
-    AST_STRUCTLIT,
+    AST_FUNCTION,
+    AST_DATALIT,
 
     AST_RETURN,
     AST_BREAK,
     AST_CONTINUE,
+
+    AST_METHODS,
+    AST_DATA,
+    AST_INTERFACE,
+    AST_ALIAS,
+    AST_IMPORT,
+    AST_PROGRAM
 };
 
 enum {
@@ -72,6 +74,7 @@ enum {
 struct ast {
     int type;
     int lineno;
+    struct ast* next;
 };
 
 struct ast_bool {
@@ -118,32 +121,20 @@ struct ast_map_type {
 struct ast_func_type {
     struct ast HEAD;
     struct ast *ret_type;
-    struct ast *param_types;
+    struct ast *params;
 };
 
-struct ast_struct_type {
-    struct ast HEAD;
-    struct ast *name;
-    struct ast *members;
-};
-
-struct ast_structlit {
+struct ast_datalit {
     struct ast HEAD;
     struct ast *name;
     struct ast *items;
 };
 
-struct ast_iface_type {
+struct ast_function {
     struct ast HEAD;
     struct ast *name;
-    struct ast *methods;
-};
-
-struct ast_decl {
-    struct ast HEAD;
     struct ast *type;
-    struct ast *name_s;     /* one ident or a list of idents */
-    int tp;                 /* declaration type (var/const) */
+    struct ast *body;
 };
 
 struct ast_init {
@@ -190,18 +181,6 @@ struct ast_keyval {
     struct ast* val;
 };
 
-struct ast_import {
-    struct ast HEAD;
-    struct ast *from;
-    struct ast *modules;
-};
-
-struct ast_alias {
-    struct ast HEAD;
-    struct ast *type;
-    struct ast *name;
-};
-
 struct ast_return {
     struct ast HEAD;
     struct ast *expr;
@@ -245,8 +224,14 @@ struct ast_for {
 
 struct ast_contaccess {
     struct ast HEAD;
-    struct ast *ident;
+    struct ast *cont;
     struct ast *index;
+};
+
+struct ast_selector {
+    struct ast HEAD;
+    struct ast *parent;
+    struct ast *child;
 };
 
 struct ast_funcdef {
@@ -257,11 +242,47 @@ struct ast_funcdef {
     struct ast *body;
 };
 
-struct ast_funclit {
+struct ast_interface {
     struct ast HEAD;
-    struct ast *ret_type;
-    struct ast *params;
-    struct ast *body;
+    struct ast *name;
+    struct ast *methods;
+};
+
+struct ast_methods {
+    struct ast HEAD;
+    struct ast *name;
+    struct ast *methods;
+};
+
+struct ast_data {
+    struct ast HEAD;
+    struct ast *name;
+    struct ast *members;
+};
+
+struct ast_alias {
+    struct ast HEAD;
+    struct ast *type;
+    struct ast *name;
+};
+
+struct ast_decl {
+    struct ast HEAD;
+    struct ast *type;
+    struct ast *name_s;     /* one ident or a list of idents */
+    int tp;                 /* declaration type (var/const) */
+};
+
+struct ast_import {
+    struct ast HEAD;
+    struct ast *from;
+    struct ast *modules;
+};
+
+struct ast_program {
+    struct ast HEAD;
+    struct ast *package;
+    struct ast *definitions;
 };
 
 struct ast *ast_make_bool_lit(bool b);
@@ -272,17 +293,10 @@ struct ast *ast_make_str_lit(const char *s);
 
 struct ast *ast_make_ident(const char *s);
 
-struct ast *ast_make_import(struct ast *, struct ast*);
-
-struct ast *ast_make_alias(struct ast*, struct ast *);
-
 struct ast *ast_make_list_type(struct ast*);
 struct ast *ast_make_map_type(struct ast*, struct ast*);
 struct ast *ast_make_func_type(struct ast*, struct ast*);
-struct ast *ast_make_struct_type(struct ast *, struct ast*);
-struct ast *ast_make_iface_type(struct ast *, struct ast*);
 
-struct ast *ast_make_decl(int, struct ast*, struct ast*);
 struct ast *ast_make_initialization(struct ast*, struct ast*);
 struct ast *ast_make_unexpr(int op, struct ast*);
 struct ast *ast_make_binexpr(struct ast*, int op, struct ast*);
@@ -292,6 +306,7 @@ struct ast *ast_list_append(struct ast*, struct ast*);
 
 struct ast *ast_make_keyval(struct ast *key, struct ast *val);
 struct ast *ast_make_contaccess(struct ast*, struct ast*);
+struct ast *ast_make_selector(struct ast*, struct ast*);
 
 struct ast *ast_make_short_decl(struct ast*, struct ast*);
 struct ast *ast_make_assignment(struct ast*, int op, struct ast*);
@@ -305,7 +320,15 @@ struct ast *ast_make_break(void);
 struct ast *ast_make_continue(void);
 struct ast *ast_make_return(struct ast*);
 
-struct ast *ast_make_funclit(struct ast*, struct ast*, struct ast*);
-struct ast* ast_make_structlit(struct ast *, struct ast *);
+struct ast* ast_make_datalit(struct ast *, struct ast *);
+
+struct ast *ast_make_decl(int, struct ast*, struct ast*);
+struct ast *ast_make_function(struct ast*, struct ast*, struct ast*);
+struct ast *ast_make_data(struct ast *, struct ast*);
+struct ast *ast_make_methods(struct ast*, struct ast*);
+struct ast *ast_make_interface(struct ast *, struct ast*);
+struct ast *ast_make_alias(struct ast*, struct ast *);
+struct ast *ast_make_import(struct ast *, struct ast*);
+struct ast *ast_make_program(struct ast*, struct ast*);
 
 #endif /* NOLLI_AST_H */

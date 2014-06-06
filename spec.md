@@ -81,8 +81,8 @@ Must parse this crap:
 
 ## Function declaration
 
-    func int main ([string] args)
-    func real distance (Point p1, p2)
+    func int ([string] args) main
+    func real (Point p1, p2) distance
 
 ## Anonymous functions (literals)
 
@@ -98,10 +98,10 @@ Must parse this crap:
 
     func (Event e) handler
 
-    struct Event {
+    data Event {
         func string () handler
     }
 
-    iface Handler {
+    interface Handler {
         func string () handle
     }

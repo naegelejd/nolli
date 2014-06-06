@@ -17,12 +17,12 @@
 #ifdef DEBUG
 
 #define NOLLI_DEBUGF(fmt, ...) \
-        fprintf(stdout, BLUE_DEBUG "[%s]: " fmt "\n", \
-                __func__, __VA_ARGS__)
+        fprintf(stdout, BLUE_DEBUG "[%s:%d]: " fmt "\n", \
+                __func__, __LINE__, __VA_ARGS__)
 
 #define NOLLI_ERRORF(fmt, ...) \
-        fprintf(stderr, RED_ERROR "[%s]: " fmt "\n", \
-                __func__, __VA_ARGS__)
+        fprintf(stderr, RED_ERROR "[%s:%d]: " fmt "\n", \
+                __func__, __LINE__, __VA_ARGS__)
 
 #define NOLLI_DIEF(fmt, ...) \
     do { \

@@ -1,15 +1,17 @@
-struct setmeta {
+package test
+
+data setmeta {
     int nmods
 }
 
-struct intset {
+data intset {
     setmeta meta
     [int] numbers
     int size
     func intset (intset s) union
 }
 
-main := func int () {
+func int () main {
     var intset s, z
     print(s.size)
     print(s.meta.nmods)

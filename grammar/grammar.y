@@ -12,7 +12,7 @@ extern int yylex();
 %}
 
 %token BREAK CONTINUE RETURN
-%token IMPORT FROM
+%token PACKAGE IMPORT FROM
 %token DATA METHODS INTERFACE
 %token WHILE FOR IN
 %token IF ELSE
@@ -39,8 +39,9 @@ extern int yylex();
 
 %%
 
-program: definitions;
+program: package ';' definitions;
 
+package: PACKAGE ident ;
 definitions: definition | definitions definition ;
 definition:
         import ';' |
@@ -105,7 +106,9 @@ maptype: '{' type ',' type '}' ;
 
 functype: FUNC returntype '(' params ')' ;
 returntype: /* no return type */ | type ;
-param: type | type ident;
+param: paramkind type paramrhs ;
+paramkind: /* var */ | CONST ;
+paramrhs: /* absent */ | declrhs;
 params: /* nothing */ | param | params ',' param;
 
 ident: IDENT

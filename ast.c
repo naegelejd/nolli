@@ -85,25 +85,25 @@ struct ast* ast_make_map_type(struct ast *keyname, struct ast *valname)
     return (struct ast*)type;
 }
 
-struct ast* ast_make_func_type(struct ast *ret_type, struct ast *param_types)
+struct ast* ast_make_func_type(struct ast *ret_type, struct ast *params)
 {
     struct ast_func_type *type = make_node(sizeof(*type), AST_FUNC_TYPE);
     type->ret_type = ret_type;
-    type->param_types = param_types;
+    type->params = params;
     return (struct ast*)type;
 }
 
-struct ast* ast_make_struct_type(struct ast *name, struct ast *members)
+struct ast* ast_make_data(struct ast *name, struct ast *members)
 {
-    struct ast_struct_type *type = make_node(sizeof(*type), AST_STRUCT_TYPE);
+    struct ast_data *type = make_node(sizeof(*type), AST_DATA);
     type->name = name;
     type->members = members;
     return (struct ast*)type;
 }
 
-struct ast* ast_make_iface_type(struct ast *name, struct ast *methods)
+struct ast* ast_make_interface(struct ast *name, struct ast *methods)
 {
-    struct ast_iface_type *type = make_node(sizeof(*type), AST_IFACE_TYPE);
+    struct ast_interface *type = make_node(sizeof(*type), AST_INTERFACE);
     type->name = name;
     type->methods = methods;
     return (struct ast*)type;
@@ -180,11 +180,11 @@ struct ast* ast_make_keyval(struct ast* key, struct ast* val)
     return (struct ast*)keyval;
 }
 
-struct ast* ast_make_contaccess(struct ast* ident, struct ast* index)
+struct ast* ast_make_contaccess(struct ast* container, struct ast* index)
 {
     struct ast_contaccess* contaccess = make_node(
             sizeof(*contaccess), AST_CONTACCESS);
-    contaccess->ident = ident;
+    contaccess->cont = container;
     contaccess->index = index;
 
     return (struct ast*)contaccess;
@@ -264,21 +264,45 @@ struct ast* ast_make_continue(void)
     return (struct ast*)cont;
 }
 
-struct ast* ast_make_funclit(struct ast *ret_type, struct ast *params,
+struct ast* ast_make_function(struct ast *name, struct ast *type,
         struct ast *body)
 {
-    struct ast_funclit *f = make_node(sizeof(*f), AST_FUNCLIT);
-    f->ret_type = ret_type;
-    f->params = params;
+    struct ast_function *f = make_node(sizeof(*f), AST_FUNCTION);
+    f->name = name;
+    f->type = type;
     f->body = body;
 
     return (struct ast*)f;
 }
 
-struct ast* ast_make_structlit(struct ast *name, struct ast *items)
+struct ast* ast_make_datalit(struct ast *name, struct ast *items)
 {
-    struct ast_structlit *lit = make_node(sizeof(*lit), AST_STRUCTLIT);
+    struct ast_datalit *lit = make_node(sizeof(*lit), AST_DATALIT);
     lit->name = name;
     lit->items = items;
     return (struct ast*)lit;
+}
+
+struct ast* ast_make_selector(struct ast *parent, struct ast *child)
+{
+    struct ast_selector *sel = make_node(sizeof(*sel), AST_SELECTOR);
+    sel->parent = parent;
+    sel->child = child;
+    return (struct ast*)sel;
+}
+
+struct ast* ast_make_methods(struct ast *name, struct ast *methods)
+{
+    struct ast_methods *meths = make_node(sizeof(*meths), AST_METHODS);
+    meths->name = name;
+    meths->methods = methods;
+    return (struct ast*)meths;
+}
+
+struct ast* ast_make_program(struct ast *package, struct ast *definitions)
+{
+    struct ast_program *prog = make_node(sizeof(*prog), AST_PROGRAM);
+    prog->package = package;
+    prog->definitions = definitions;
+    return (struct ast*)prog;
 }

@@ -1,4 +1,6 @@
-main := func int () {
+package test
+
+func int () main {
     if 1 + 1 < 3 {
         print("true")
     } else {

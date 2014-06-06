@@ -1,3 +1,5 @@
+package experimental
+
 import math
 from hell import fire, lightning
 

@@ -58,6 +58,7 @@ WS          [ \t\f\r]+
 } /* <str> */
 
 
+"package"       { YIELD(PACKAGE); }
 "import"        { YIELD(IMPORT); }
 "from"          { YIELD(FROM); }
 "data"          { YIELD(DATA); }

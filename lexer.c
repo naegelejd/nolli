@@ -15,7 +15,7 @@
         lex->col++; \
     } while (false)
 
-static char *tok_type_names[] = {
+static const char *token_names[] = {
     "EOF",
     "identifier",
     "bool", "char", "int", "real", "string",
@@ -36,15 +36,25 @@ static char *tok_type_names[] = {
     "(", ")", "[", "]", "{", "}",
     ",", ";", ".", "&",
 
+    "package", "import", "from",
+    "alias",
+    "data", "methods", "interface",
+    "func", "return",
+    "break", "continue",
     "var", "const",
     "if", "else",
-    "while", "for",
-    "break", "continue",
-    "in",
+    "while", "for", "in"
+};
+
+static const char *keywords[] = {
+    "package", "import", "from",
     "alias",
+    "data", "methods", "interface",
     "func", "return",
-    "struct", "iface",
-    "module", "import", "from",
+    "break", "continue",
+    "var", "const",
+    "if", "else",
+    "while", "for", "in",
 };
 
 /* returns former length of string in buffer */
@@ -221,15 +231,10 @@ static int lex_string(struct lexer *lex)
 static int lookup_keyword(struct lexer *lex)
 {
     /* TODO: use hash-table or similar O(1) lookup */
-    const char *keywords[] = {
-        "var", "const", "if", "else", "while", "for",
-        "break", "continue", "in", "alias", "func", "return",
-        "struct", "iface", "module", "import", "from",
-    };
     unsigned int kidx = 0;
     for (kidx = 0; kidx < sizeof(keywords) / sizeof(*keywords); kidx++) {
         if (strncmp(lex->curbuff, keywords[kidx], 16) == 0) {
-            return TOK_VAR + kidx;
+            return TOK_PACKAGE + kidx;
         }
     }
     return 0;
@@ -237,6 +242,13 @@ static int lookup_keyword(struct lexer *lex)
 
 static int lex_ident(struct lexer *lex)
 {
+    /* the dollar sign is a single-character identifier for 'self' */
+    if (lex->cur == '$') {
+        appendc(lex, lex->cur);
+        next(lex);
+        return TOK_IDENT;
+    }
+
     do {
         appendc(lex, lex->cur);
         next(lex);
@@ -324,6 +336,7 @@ nexttok:
             case TOK_IDENT: case TOK_BOOL: case TOK_CHAR: case TOK_INT:
             case TOK_REAL: case TOK_STRING: case TOK_RPAREN: case TOK_RCURLY:
             case TOK_RSQUARE: case TOK_RET: case TOK_BREAK: case TOK_CONT:
+                appendc(lex, ';');
                 tok = TOK_SEMI;
                 break;
             default:
@@ -360,7 +373,7 @@ nexttok:
     else if (lex->cur == '"') {
         tok = lex_string(lex);
     }
-    else if (isalpha(lex->cur) || lex->cur == '_') {
+    else if (isalpha(lex->cur) || lex->cur == '_' || lex->cur == '$') {
         tok = lex_ident(lex);
     }
     /* stupid floating points with no leading zero (e.g. '.123') */
@@ -390,7 +403,7 @@ nexttok:
 const char *get_tok_name(int tok)
 {
     assert(tok >= TOK_EOF);
-    return tok_type_names[tok];
+    return token_names[tok];
 }
 
 void lexer_init(struct lexer *lexer)

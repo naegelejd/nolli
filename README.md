@@ -1,11 +1,21 @@
 nolli
 =====
 
-Nolli is a procedural, statically-typed, lightweight programming language, implemented in C.
+Nolli is:
 
-More information coming soon...
+    - procedural
+    - statically-typed
+    - lightweight
+    - garbage collected
+    - compiled
+    - fast
 
-### Build 
+Nolli's syntax resembles that of [Go](http://golang.org), which happens to have an *excellent* [language spec](http://golang.org/ref/spec).
+
+Nolli is a hobby language, meaning it has a minimal set of features. This is partly intentional and partly
+because the core language is under heavy development.
+
+### Build
 
 You need [cmake](http://www.cmake.org/) to generate the build system for your OS (Makefiles, VS Studio project, etc.)
 

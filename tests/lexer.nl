@@ -1,3 +1,6 @@
+# check that all tokens are recognized properly
+# disable the parser, obviously
+
 var str hello = "hello"
 const str world = "this is a relatively long string, much longer than the original size of the buffer the lexer uses to tokenize this string"
 

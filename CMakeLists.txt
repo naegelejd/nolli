@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(nolli)
 
-add_definitions(-Wall)# -Weverything -pedantic)
+add_definitions(-Wall)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Default to Debug Build Type" FORCE)
@@ -18,8 +18,8 @@ set(NOLLI_SOURCES
     lexer.c
     parser.c
     ast.c
-    ast_graph.c
-    walk.c
+    #ast_graph.c
+    #walk.c
     symtable.c
     type.c
     os.c

@@ -1,17 +1,19 @@
-struct circle {
+package test
+
+data circle {
     int radius
 }
 
-struct square {
+data square {
     int width, height
 }
 
-iface shape {
+interface shape {
     func int () area
     func int () perimeter
 }
 
-main := func int () {
+func int () main {
     var circle c
     var square s
 
