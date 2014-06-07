@@ -901,7 +901,7 @@ static struct ast *ident(struct parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         PARSE_ERROR(parser, "Invalid identifier");
     } else {
-        char *ident = strndup(*parser->bufptr, MAX_IDENT_LENGTH);
+        char *ident = strdup(*parser->bufptr);
         if (ident == NULL) {
             PARSE_ERROR(parser, "strndup failure");
             id = NULL;

@@ -22,12 +22,18 @@ set(NOLLI_SOURCES
     #walk.c
     symtable.c
     type.c
-    os.c
 )
 
+if (NOT WIN32)
+    list (APPEND NOLLI_SOURCES os.c)
+endif (NOT WIN32)
+
 add_library(nolli ${NOLLI_SOURCES})
+
 # link only against math library
-target_link_libraries(nolli m)
+if (NOT WIN32)
+    target_link_libraries(nolli m)
+endif (NOT WIN32)
 install(TARGETS nolli DESTINATION lib)
 
 add_executable(nolli-exe main.c)

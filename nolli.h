@@ -22,6 +22,7 @@ struct nolli_state {
 
 void nolli_init(struct nolli_state *state);
 
+#include "config.h"
 #include "debug.h"
 #include "alloc.h"
 #include "error.h"
@@ -32,6 +33,10 @@ void nolli_init(struct nolli_state *state);
 #include "ast.h"
 #include "ast_graph.h"
 #include "walk.h"
+
+#if defined ( WIN32 )
 #include "os.h"
+#endif
+
 
 #endif /* NOLLI_H */

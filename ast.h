@@ -126,10 +126,6 @@ struct ast_return {
     struct ast *expr;
 };
 
-struct ast_break { };
-
-struct ast_continue { };
-
 struct ast_list {
     struct ast *head, *tail;
     int type;
@@ -207,8 +203,6 @@ struct ast {
         struct ast_assignment assignment;
         struct ast_keyval keyval;
         struct ast_return ret;
-        struct ast_break brk;
-        struct ast_continue cont;
         struct ast_list list;
         struct ast_ifelse ifelse;
         struct ast_while while_loop;
