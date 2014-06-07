@@ -22,7 +22,6 @@ struct nolli_state {
 
 void nolli_init(struct nolli_state *state);
 
-#include "config.h"
 #include "debug.h"
 #include "alloc.h"
 #include "error.h"

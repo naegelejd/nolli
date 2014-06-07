@@ -2,7 +2,6 @@
 #include "sys/stat.h"
 #include "unistd.h"
 
-
 static int nl_mkdir(char *path);
 static int nl_rmdir(char *path);
 
