@@ -867,7 +867,7 @@ static struct ast* term(struct parser *parser)
                 err = true;
                 PARSE_ERROR(parser, "Invalid expression index");
             }
-            term = ast_make_contaccess(term, idx);
+            term = ast_make_lookup(term, idx);
             if (!expect(parser, TOK_RSQUARE)) {
                 err = true;
             }

@@ -27,7 +27,7 @@ enum {
     AST_LIST,
 
     AST_KEYVAL,
-    AST_CONTACCESS,
+    AST_LOOKUP,
     AST_SELECTOR,
 
     AST_SHORT_DECL,
@@ -71,218 +71,161 @@ enum {
     LIST_STATEMENT,
 };
 
-struct ast {
-    int type;
-    int lineno;
-    struct ast* next;
-};
-
-struct ast_bool {
-    struct ast HEAD;
-    bool b;
-};
-
-struct ast_char {
-    struct ast HEAD;
-    char c;
-};
-
-struct ast_int {
-    struct ast HEAD;
-    long l;
-};
-
-struct ast_real {
-    struct ast HEAD;
-    double d;
-};
-
-struct ast_str {
-    struct ast HEAD;
-    char *s;
-};
-
-struct ast_ident {
-    struct ast HEAD;
-    char *s;
-};
-
 struct ast_list_type {
-    struct ast HEAD;
     struct ast *name;
 };
 
 struct ast_map_type {
-    struct ast HEAD;
-    struct ast *keyname;
-    struct ast *valname;
+    struct ast *keyname, *valname;
 };
 
 struct ast_func_type {
-    struct ast HEAD;
-    struct ast *ret_type;
-    struct ast *params;
+    struct ast *ret_type, *params;
 };
 
 struct ast_datalit {
-    struct ast HEAD;
-    struct ast *name;
-    struct ast *items;
+    struct ast *name, *items;
 };
 
 struct ast_function {
-    struct ast HEAD;
-    struct ast *name;
-    struct ast *type;
-    struct ast *body;
+    struct ast *name, *type, *body;
 };
 
 struct ast_init {
-    struct ast HEAD;
-    struct ast *ident;
-    struct ast *expr;
+    struct ast *ident, *expr;
 };
 
 struct ast_unexpr {
-    struct ast HEAD;
+    struct ast *expr;
     int op;
-    struct ast* expr;
 };
 
 struct ast_binexpr {
-    struct ast HEAD;
+    struct ast *lhs, *rhs;
     int op;
-    struct ast* lhs;
-    struct ast* rhs;
 };
 
 struct ast_call {
-    struct ast HEAD;
-    struct ast* func;
-    struct ast* args;
+    struct ast *func, *args;
 };
 
 struct ast_short_decl {
-    struct ast HEAD;
-    struct ast* ident;
-    struct ast* expr;
+    struct ast *ident,  *expr;
 };
 
 struct ast_assignment {
-    struct ast HEAD;
-    struct ast* ident;
-    struct ast* expr;
+    struct ast *ident, *expr;
     int op;
 };
 
 struct ast_keyval {
-    struct ast HEAD;
-    struct ast* key;
-    struct ast* val;
+    struct ast *key, *val;
 };
 
 struct ast_return {
-    struct ast HEAD;
     struct ast *expr;
 };
 
-struct ast_break {
-    struct ast HEAD;
-};
+struct ast_break { };
 
-struct ast_cont {
-    struct ast HEAD;
-};
+struct ast_continue { };
 
 struct ast_list {
-    struct ast HEAD;
-    struct ast **items;
+    struct ast *head, *tail;
     int type;
-    unsigned int alloc;
     unsigned int count;
 };
 
 struct ast_ifelse {
-    struct ast HEAD;
-    struct ast *cond;
-    struct ast *if_body;
-    struct ast *else_body;
+    struct ast *cond, *if_body, *else_body;
 };
 
 struct ast_while {
-    struct ast HEAD;
-    struct ast *cond;
-    struct ast *body;
+    struct ast *cond, *body;
 };
 
 struct ast_for {
-    struct ast HEAD;
-    struct ast *var;
-    struct ast *range;
-    struct ast *body;
+    struct ast *var, *range, *body;
 };
 
-struct ast_contaccess {
-    struct ast HEAD;
-    struct ast *cont;
-    struct ast *index;
+struct ast_lookup {
+    struct ast *container, *index;
 };
 
 struct ast_selector {
-    struct ast HEAD;
-    struct ast *parent;
-    struct ast *child;
-};
-
-struct ast_funcdef {
-    struct ast HEAD;
-    struct ast *ret_type;
-    struct ast *name;
-    struct ast *params;
-    struct ast *body;
+    struct ast *parent, *child;
 };
 
 struct ast_interface {
-    struct ast HEAD;
-    struct ast *name;
-    struct ast *methods;
+    struct ast *name, *methods;
 };
 
 struct ast_methods {
-    struct ast HEAD;
-    struct ast *name;
-    struct ast *methods;
+    struct ast *name, *methods;
 };
 
 struct ast_data {
-    struct ast HEAD;
-    struct ast *name;
-    struct ast *members;
+    struct ast *name, *members;
 };
 
 struct ast_alias {
-    struct ast HEAD;
-    struct ast *type;
-    struct ast *name;
+    struct ast *type, *name;
 };
 
 struct ast_decl {
-    struct ast HEAD;
     struct ast *type;
     struct ast *name_s;     /* one ident or a list of idents */
     int tp;                 /* declaration type (var/const) */
 };
 
 struct ast_import {
-    struct ast HEAD;
-    struct ast *from;
-    struct ast *modules;
+    struct ast *from, *modules;
 };
 
 struct ast_program {
-    struct ast HEAD;
-    struct ast *package;
-    struct ast *definitions;
+    struct ast *package, *definitions;
+};
+
+struct ast {
+    union {
+        bool b;
+        char c;
+        long l;
+        double d;
+        char *s;
+
+        struct ast_list_type list_type;
+        struct ast_map_type map_type;
+        struct ast_func_type func_type;
+        struct ast_datalit datalit;
+        struct ast_function function;
+        struct ast_init init;
+        struct ast_unexpr unexpr;
+        struct ast_binexpr binexpr;
+        struct ast_call call;
+        struct ast_short_decl short_decl;
+        struct ast_assignment assignment;
+        struct ast_keyval keyval;
+        struct ast_return ret;
+        struct ast_break brk;
+        struct ast_continue cont;
+        struct ast_list list;
+        struct ast_ifelse ifelse;
+        struct ast_while while_loop;
+        struct ast_for for_loop;
+        struct ast_lookup lookup;
+        struct ast_selector selector;
+        struct ast_interface interface;
+        struct ast_methods methods;
+        struct ast_data data;
+        struct ast_alias alias;
+        struct ast_decl decl;
+        struct ast_import import;
+        struct ast_program program;
+    };
+    struct ast* next;
+    int tag;
+    int lineno;
 };
 
 struct ast *ast_make_bool_lit(bool b);
@@ -305,7 +248,7 @@ struct ast *ast_make_list(int type);
 struct ast *ast_list_append(struct ast*, struct ast*);
 
 struct ast *ast_make_keyval(struct ast *key, struct ast *val);
-struct ast *ast_make_contaccess(struct ast*, struct ast*);
+struct ast *ast_make_lookup(struct ast*, struct ast*);
 struct ast *ast_make_selector(struct ast*, struct ast*);
 
 struct ast *ast_make_short_decl(struct ast*, struct ast*);
@@ -320,7 +263,7 @@ struct ast *ast_make_break(void);
 struct ast *ast_make_continue(void);
 struct ast *ast_make_return(struct ast*);
 
-struct ast* ast_make_datalit(struct ast *, struct ast *);
+struct ast *ast_make_datalit(struct ast *, struct ast *);
 
 struct ast *ast_make_decl(int, struct ast*, struct ast*);
 struct ast *ast_make_function(struct ast*, struct ast*, struct ast*);
