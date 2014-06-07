@@ -27,7 +27,7 @@ int dofile(struct nolli_state *nstate, const char *filename)
         return err;
     }
 
-    /* dump_ast_graph(nstate); */
+    dump_ast_graph(nstate);
     /* type_check(nstate); */
 
     return EXIT_SUCCESS;

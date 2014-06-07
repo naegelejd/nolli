@@ -41,6 +41,7 @@ struct ast* ast_make_real_num(double d)
 
 struct ast* ast_make_str_lit(const char *s)
 {
+    assert(s);
     struct ast *node = make_node(AST_STR_LIT);
     node->s = strdup(s);
     return node;
@@ -48,6 +49,7 @@ struct ast* ast_make_str_lit(const char *s)
 
 struct ast* ast_make_ident(const char *s)
 {
+    assert(s);
     struct ast *node = make_node(AST_IDENT);
     node->s = strdup(s);
     return node;
@@ -55,6 +57,7 @@ struct ast* ast_make_ident(const char *s)
 
 struct ast* ast_make_import(struct ast* from, struct ast* modules)
 {
+    assert(modules);
     struct ast *node = make_node(AST_IMPORT);
     node->import.from = from;
     node->import.modules = modules;
@@ -63,6 +66,8 @@ struct ast* ast_make_import(struct ast* from, struct ast* modules)
 
 struct ast* ast_make_alias(struct ast* type, struct ast *name)
 {
+    assert(type);
+    assert(name);
     struct ast *node = make_node(AST_ALIAS);
     node->alias.type = type;
     node->alias.name = name;
@@ -71,21 +76,25 @@ struct ast* ast_make_alias(struct ast* type, struct ast *name)
 
 struct ast* ast_make_list_type(struct ast *name)
 {
+    assert(name);
     struct ast *node = make_node(AST_LIST_TYPE);
     node->list_type.name = name;
     return node;
 }
 
-struct ast* ast_make_map_type(struct ast *keyname, struct ast *valname)
+struct ast* ast_make_map_type(struct ast *keytype, struct ast *valtype)
 {
+    assert(keytype);
+    assert(valtype);
     struct ast *node = make_node(AST_MAP_TYPE);
-    node->map_type.keyname = keyname;
-    node->map_type.valname = valname;
+    node->map_type.keytype = keytype;
+    node->map_type.valtype = valtype;
     return node;
 }
 
 struct ast* ast_make_func_type(struct ast *ret_type, struct ast *params)
 {
+    assert(params);
     struct ast *node = make_node(AST_FUNC_TYPE);
     node->func_type.ret_type = ret_type;
     node->func_type.params = params;
@@ -94,6 +103,8 @@ struct ast* ast_make_func_type(struct ast *ret_type, struct ast *params)
 
 struct ast* ast_make_data(struct ast *name, struct ast *members)
 {
+    assert(name);
+    assert(members);
     struct ast *node = make_node(AST_DATA);
     node->data.name = name;
     node->data.members = members;
@@ -102,23 +113,29 @@ struct ast* ast_make_data(struct ast *name, struct ast *members)
 
 struct ast* ast_make_interface(struct ast *name, struct ast *methods)
 {
+    assert(name);
+    assert(methods);
     struct ast *node = make_node(AST_INTERFACE);
     node->interface.name = name;
     node->interface.methods = methods;
     return node;
 }
 
-struct ast* ast_make_decl(int tp, struct ast* type, struct ast* name_s)
+struct ast* ast_make_decl(int tp, struct ast* type, struct ast* rhs)
 {
+    assert(type);
+
     struct ast *node = make_node(AST_DECL);
     node->decl.type = type;
-    node->decl.name_s = name_s;
+    node->decl.rhs = rhs;
     node->decl.tp = tp;
     return node;
 }
 
 struct ast* ast_make_initialization(struct ast *ident, struct ast *expr)
 {
+    assert(ident);
+    assert(expr);
     struct ast *node = make_node(AST_INIT);
     node->init.ident = ident;
     node->init.expr = expr;
@@ -127,6 +144,7 @@ struct ast* ast_make_initialization(struct ast *ident, struct ast *expr)
 
 struct ast* ast_make_unexpr(int op, struct ast* expr)
 {
+    assert(expr);
     struct ast *node = make_node(AST_UNEXPR);
     node->unexpr.op = op;
     node->unexpr.expr = expr;
@@ -135,6 +153,8 @@ struct ast* ast_make_unexpr(int op, struct ast* expr)
 
 struct ast* ast_make_binexpr(struct ast* lhs, int op, struct ast* rhs)
 {
+    assert(lhs);
+    assert(rhs);
     struct ast *node = make_node(AST_BINEXPR);
     node->binexpr.op = op;
     node->binexpr.lhs = lhs;
@@ -153,7 +173,8 @@ struct ast *ast_make_list(int type)
 
 struct ast *ast_list_append(struct ast* node, struct ast* elem)
 {
-    assert(node != NULL);
+    assert(node);
+    assert(elem);
 
     if (node->list.head == NULL || node->list.tail == NULL) {
         node->list.head = elem;
@@ -169,6 +190,8 @@ struct ast *ast_list_append(struct ast* node, struct ast* elem)
 
 struct ast* ast_make_keyval(struct ast* key, struct ast* val)
 {
+    assert(key);
+    assert(val);
     struct ast *node = make_node(AST_KEYVAL);
     node->keyval.key = key;
     node->keyval.val = val;
@@ -177,6 +200,8 @@ struct ast* ast_make_keyval(struct ast* key, struct ast* val)
 
 struct ast* ast_make_lookup(struct ast* container, struct ast* index)
 {
+    assert(container);
+    assert(index);
     struct ast* node = make_node(AST_LOOKUP);
     node->lookup.container = container;
     node->lookup.index = index;
@@ -185,16 +210,21 @@ struct ast* ast_make_lookup(struct ast* container, struct ast* index)
 
 struct ast *ast_make_short_decl(struct ast *ident, struct ast *expr)
 {
+    assert(ident);
+    assert(expr);
     struct ast* node = make_node(AST_SHORT_DECL);
     node->short_decl.ident = ident;
     node->short_decl.expr = expr;
     return node;
 }
 
-struct ast* ast_make_assignment(struct ast* ident, int op, struct ast* expr)
+struct ast* ast_make_assignment(struct ast* lhs, int op, struct ast* expr)
 {
+    assert(lhs);
+    assert(expr);
+
     struct ast *node = make_node(AST_ASSIGN);
-    node->assignment.ident = ident;
+    node->assignment.lhs = lhs;
     node->assignment.expr = expr;
     node->assignment.op = op;
 
@@ -204,6 +234,9 @@ struct ast* ast_make_assignment(struct ast* ident, int op, struct ast* expr)
 struct ast* ast_make_ifelse(struct ast* cond,
         struct ast* if_body, struct ast* else_body)
 {
+    assert(cond);
+    assert(if_body);
+
     struct ast *node = make_node(AST_IFELSE);
     node->ifelse.cond = cond;
     node->ifelse.if_body = if_body;
@@ -213,6 +246,9 @@ struct ast* ast_make_ifelse(struct ast* cond,
 
 struct ast* ast_make_while(struct ast* cond, struct ast* body)
 {
+    assert(cond);
+    assert(body);
+
     struct ast *node = make_node(AST_WHILE);
     node->while_loop.cond = cond;
     node->while_loop.body = body;
@@ -221,6 +257,10 @@ struct ast* ast_make_while(struct ast* cond, struct ast* body)
 
 struct ast* ast_make_for(struct ast* var, struct ast* range, struct ast* body)
 {
+    assert(var);
+    assert(range);
+    assert(body);
+
     struct ast *node = make_node(AST_FOR);
     node->for_loop.var = var;
     node->for_loop.range = range;
@@ -230,6 +270,9 @@ struct ast* ast_make_for(struct ast* var, struct ast* range, struct ast* body)
 
 struct ast* ast_make_call(struct ast* func, struct ast* args)
 {
+    assert(func);
+    assert(args);
+
     struct ast *node = make_node(AST_CALL);
     node->call.func = func;
     node->call.args = args;
@@ -258,6 +301,9 @@ struct ast* ast_make_continue(void)
 struct ast* ast_make_function(struct ast *name, struct ast *type,
         struct ast *body)
 {
+    assert(type);
+    assert(body);
+
     struct ast *node = make_node(AST_FUNCTION);
     node->function.name = name;
     node->function.type = type;
@@ -268,6 +314,9 @@ struct ast* ast_make_function(struct ast *name, struct ast *type,
 
 struct ast* ast_make_datalit(struct ast *name, struct ast *items)
 {
+    assert(name);
+    assert(items);
+
     struct ast *node = make_node(AST_DATALIT);
     node->datalit.name = name;
     node->datalit.items = items;
@@ -276,6 +325,9 @@ struct ast* ast_make_datalit(struct ast *name, struct ast *items)
 
 struct ast* ast_make_selector(struct ast *parent, struct ast *child)
 {
+    assert(parent);
+    assert(child);
+
     struct ast *node = make_node(AST_SELECTOR);
     node->selector.parent = parent;
     node->selector.child = child;
@@ -284,6 +336,9 @@ struct ast* ast_make_selector(struct ast *parent, struct ast *child)
 
 struct ast* ast_make_methods(struct ast *name, struct ast *methods)
 {
+    assert(name);
+    assert(methods);
+
     struct ast *node = make_node(AST_METHODS);
     node->methods.name = name;
     node->methods.methods = methods;
@@ -292,6 +347,9 @@ struct ast* ast_make_methods(struct ast *name, struct ast *methods)
 
 struct ast* ast_make_program(struct ast *package, struct ast *definitions)
 {
+    assert(package);
+    assert(definitions);
+
     struct ast *node = make_node(AST_PROGRAM);
     node->program.package = package;
     node->program.definitions = definitions;

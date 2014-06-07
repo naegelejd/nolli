@@ -76,7 +76,7 @@ struct ast_list_type {
 };
 
 struct ast_map_type {
-    struct ast *keyname, *valname;
+    struct ast *keytype, *valtype;
 };
 
 struct ast_func_type {
@@ -114,7 +114,7 @@ struct ast_short_decl {
 };
 
 struct ast_assignment {
-    struct ast *ident, *expr;
+    struct ast *lhs, *expr;
     int op;
 };
 
@@ -174,7 +174,7 @@ struct ast_alias {
 
 struct ast_decl {
     struct ast *type;
-    struct ast *name_s;     /* one ident or a list of idents */
+    struct ast *rhs;     /* one ident or a list of idents */
     int tp;                 /* declaration type (var/const) */
 };
 

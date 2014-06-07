@@ -18,7 +18,7 @@ set(NOLLI_SOURCES
     lexer.c
     parser.c
     ast.c
-    #ast_graph.c
+    ast_graph.c
     #walk.c
     symtable.c
     type.c
