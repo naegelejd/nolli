@@ -15,6 +15,7 @@ set(NOLLI_NAME nolli)
 set(NOLLI_SOURCES
     init.c
     alloc.c
+    strtab.c
     lexer.c
     parser.c
     ast.c

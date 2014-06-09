@@ -39,19 +39,19 @@ struct ast* ast_make_real_num(double d)
     return node;
 }
 
-struct ast* ast_make_str_lit(const char *s)
+struct ast* ast_make_str_lit(struct string *s)
 {
     assert(s);
     struct ast *node = make_node(AST_STR_LIT);
-    node->s = strdup(s);
+    node->s = s;
     return node;
 }
 
-struct ast* ast_make_ident(const char *s)
+struct ast* ast_make_ident(struct string *s)
 {
     assert(s);
     struct ast *node = make_node(AST_IDENT);
-    node->s = strdup(s);
+    node->s = s;
     return node;
 }
 

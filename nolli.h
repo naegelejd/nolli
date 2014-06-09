@@ -25,6 +25,7 @@ void nolli_init(struct nolli_state *state);
 #include "debug.h"
 #include "alloc.h"
 #include "error.h"
+#include "strtab.h"
 #include "lexer.h"
 #include "parser.h"
 #include "type.h"

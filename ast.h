@@ -188,7 +188,7 @@ struct ast {
         char c;
         long l;
         double d;
-        char *s;
+        struct string *s;
 
         struct ast_list_type list_type;
         struct ast_map_type map_type;
@@ -226,9 +226,9 @@ struct ast *ast_make_bool_lit(bool b);
 struct ast *ast_make_char_lit(char c);
 struct ast *ast_make_int_num(long l);
 struct ast *ast_make_real_num(double d);
-struct ast *ast_make_str_lit(const char *s);
+struct ast *ast_make_str_lit(struct string *s);
 
-struct ast *ast_make_ident(const char *s);
+struct ast *ast_make_ident(struct string *s);
 
 struct ast *ast_make_list_type(struct ast*);
 struct ast *ast_make_map_type(struct ast*, struct ast*);

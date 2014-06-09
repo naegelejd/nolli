@@ -5,12 +5,9 @@
 
 enum { MAX_IDENT_LENGTH = 1024 };
 
-struct lexer;
-
 struct parser {
-    jmp_buf jmp;
     struct lexer *lexer;
-    char **bufptr;
+    struct stringtable *strtab;
     int cur;
     bool error;
 };
