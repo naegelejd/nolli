@@ -406,9 +406,10 @@ const char *get_tok_name(int tok)
     return token_names[tok];
 }
 
-void lexer_init(struct lexer *lexer)
+void lexer_init(struct lexer *lexer, char *buffer)
 {
     assert(lexer);
+    assert(buffer);
 
     size_t bufsize = 16;
     lexer->curbuff = nalloc(bufsize);
@@ -418,24 +419,12 @@ void lexer_init(struct lexer *lexer)
 
     lexer->line = 1;
     lexer->col = 0;
-}
-
-int lexer_set(struct lexer *lexer, char *buffer)
-{
-    assert(lexer);
-    assert(buffer);
 
     lexer->input = buffer;
     lexer->sptr = lexer->input;
 
-    /* reset these: */
-    lexer->line = 1;
-    lexer->col = 0;
-
     /* sync lexer on first char in input */
     next(lexer);
-
-    return NO_ERR;
 }
 
 int lexer_scan_all(struct lexer *lex)

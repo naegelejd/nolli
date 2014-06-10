@@ -1,4 +1,4 @@
-#include "ast_graph.h"
+#include "graph.h"
 
 typedef int (*ast_grapher) (struct ast*, FILE *, int id);
 
@@ -311,7 +311,14 @@ static int graph_function(struct ast *node, FILE *fp, int id)
     id = graph(node->function.type, fp, id);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->function.body, fp, id);
+
+    struct ast *body = node->function.body;
+    struct ast *stmt = body->list.head;
+    while (stmt) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(stmt, fp, id);
+        stmt = stmt->next;
+    }
 
     return id;
 }
@@ -533,10 +540,8 @@ static int graph(struct ast *root, FILE *fp, int id)
     return g(root, fp, id);
 }
 
-void dump_ast_graph(struct nolli_state *state)
+void dump_ast_graph(struct ast *root)
 {
-    assert(state);
-    struct ast* root = state->root;
     assert(root);
 
     FILE *fp = NULL;

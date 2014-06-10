@@ -1,6 +1,6 @@
 #include "nolli.h"
 
-int dofile(struct nolli_state *nstate, const char *filename)
+int compile(const char *filename)
 {
     FILE *fin = NULL;
     if (!(fin = fopen(filename, "r"))) {
@@ -14,7 +14,7 @@ int dofile(struct nolli_state *nstate, const char *filename)
     char *buff = nalloc(bytes + 1);
     fread(buff, bytes, 1, fin);
     buff[bytes] = '\0';
-    int err = parse_buffer(nstate, buff);
+    struct ast *root = parse_buffer(buff);
     free(buff);
 
     if (fclose(fin) != 0) {
@@ -22,28 +22,23 @@ int dofile(struct nolli_state *nstate, const char *filename)
         return EXIT_FAILURE;
     }
 
-    if (err) {
+    if (root == NULL) {
         NOLLI_ERROR("Parse errors... cannot continue");
-        return err;
+        return EXIT_FAILURE;
     }
 
-    dump_ast_graph(nstate);
-    /* type_check(nstate); */
+    dump_ast_graph(root);
+    /* type_check(root); */
 
     return EXIT_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
-    struct nolli_state nstate;
-    nolli_init(&nstate);
-
-    if (argc >= 2) {
-        const char *filename = argv[1];
-        return dofile(&nstate, filename);
-    } else {
+    if (argc < 2) {
         NOLLI_ERROR("Missing filename argument");
     }
 
-    return EXIT_SUCCESS;
+    const char *filename = argv[1];
+    return compile(filename);
 }

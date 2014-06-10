@@ -12,7 +12,6 @@ struct parser {
     bool error;
 };
 
-void parser_init(struct parser *parser);
-int parse_buffer(struct nolli_state*, char*);
+struct ast *parse_buffer(char*);
 
 #endif /* NOLLI_PARSER_H */

@@ -1,4 +1,4 @@
-#include "walk.h"
+#include "analyze.h"
 
 struct irstate {
     struct symtable *symtable;
@@ -53,10 +53,8 @@ static struct type *walk_statement_list(struct ast *node, struct irstate *irs);
 
 static struct type *walk(struct ast *root, struct irstate *irs);
 
-void type_check(struct nolli_state *nstate)
+void type_check(struct ast *root)
 {
-    assert(nstate);
-    struct ast* root = nstate->root;
     assert(root);
 
     struct irstate state;

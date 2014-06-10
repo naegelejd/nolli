@@ -52,8 +52,7 @@ struct lexer {
 };
 
 
-void lexer_init(struct lexer *lexer);
-int lexer_set(struct lexer *lexer, char *input);
+void lexer_init(struct lexer *, char *);
 
 int gettok(struct lexer *lex);
 const char *get_tok_name(int tok);

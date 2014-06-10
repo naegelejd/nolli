@@ -61,39 +61,24 @@ static struct ast* functype(struct parser *parser);
             next(P), false))
 
 
-void parser_init(struct parser *parser)
+struct ast *parse_buffer(char *buffer)
 {
-    assert(parser);
-
+    struct parser *parser = nalloc(sizeof(*parser));
     parser->strtab = nalloc(sizeof(*parser->strtab));
     parser->lexer = nalloc(sizeof(*parser->lexer));
-    lexer_init(parser->lexer);
-}
-
-int parse_buffer(struct nolli_state *state, char *buffer)
-{
-    struct parser *parser = state->parser;
-    assert(parser);
-
-    int ret = lexer_set(parser->lexer, buffer);
+    lexer_init(parser->lexer, buffer);
 
     /* DEBUGGING: lexer_scan_all(parser->lexer); */
 
-    if (ret != NO_ERR) {
-        return ret;
-    }
     next(parser);
 
-    state->root = program(parser);
+    struct ast *root = program(parser);
     expect(parser, TOK_EOF);
 
     /* DEBUG: dump all symbols/strings */
     /* stringtable_dump(parser->strtab, stdout); */
 
-    if (state->root == NULL) {
-        return ERR_PARSE;
-    }
-    return NO_ERR;
+    return root;
 }
 
 static char *current_buffer(struct parser *parser)
