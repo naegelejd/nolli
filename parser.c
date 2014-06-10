@@ -108,7 +108,7 @@ static struct ast* definitions(struct parser *parser)
 {
     bool err = false;
 
-    struct ast *defs = ast_make_list(LIST_STATEMENT);
+    struct ast *defs = ast_make_list();
     /* parse statements until we see a '}' token */
     while (!check(parser, TOK_EOF)) {
         struct ast *def = definition(parser);
@@ -169,7 +169,7 @@ static struct ast* import(struct parser *parser)
         err = true;
     }
 
-    struct ast *list = ast_make_list(LIST_IMPORT);
+    struct ast *list = ast_make_list();
     do {
         struct ast *module = ident(parser);
         list = ast_list_append(list, module);
@@ -227,7 +227,7 @@ static struct ast* data(struct parser *parser)
         err = true;
     }
 
-    struct ast *members = ast_make_list(LIST_MEMBER);
+    struct ast *members = ast_make_list();
     while (!check(parser, TOK_RCURLY)) {
         struct ast *member = data_member(parser);
         if (member == NULL) {
@@ -262,7 +262,7 @@ static struct ast* data_member(struct parser *parser)
     bool err = false;
 
     struct ast* tp = type(parser);
-    struct ast *names = ast_make_list(LIST_MEMBER);
+    struct ast *names = ast_make_list();
     do {
         struct ast *name = ident(parser);
         if (name == NULL) {
@@ -296,7 +296,7 @@ static struct ast* methods(struct parser *parser)
         err = true;
     }
 
-    struct ast *defs = ast_make_list(LIST_METHOD);
+    struct ast *defs = ast_make_list();
     while (!check(parser, TOK_RCURLY)) {
         struct ast *def = funcdef(parser);
         if (def == NULL) {
@@ -364,7 +364,7 @@ static struct ast* interface(struct parser *parser)
         err = true;
     }
 
-    struct ast *decls = ast_make_list(LIST_DECL);
+    struct ast *decls = ast_make_list();
     while (!check(parser, TOK_RCURLY)) {
         struct ast *decl = methdecl(parser);
         if (decl == NULL) {
@@ -498,7 +498,7 @@ static struct ast* declaration(struct parser *parser)
     struct ast *rhs = NULL;
     /* only make a declaration list if more than one name is declared */
     if (accept(parser, TOK_COMMA)) {
-        struct ast *list = ast_make_list(LIST_DECL);
+        struct ast *list = ast_make_list();
         list = ast_list_append(list, name);
         do {
             name = declrhs(parser);
@@ -581,11 +581,10 @@ static struct ast* type(struct parser *parser)
         type = ident(parser);
         /* parse types defined in other modules, e.g. std.file */
         if (accept(parser, TOK_DOT)) {
-            struct ast *extern_type = ast_make_list(LIST_SELECTOR);
-            extern_type = ast_list_append(extern_type, type);
-            type = ident(parser);
-            extern_type = ast_list_append(extern_type, type);
-            type = extern_type;
+            struct ast *type2 = ident(parser);
+            struct ast *qualified = ast_make_qualified(type, type2);
+            type = qualified;
+            PARSE_DEBUG(parser, "Parsed qualified type");
         }
     }
 
@@ -983,7 +982,7 @@ static struct ast* listlit(struct parser *parser)
         err = true;
     }
 
-    struct ast* expr_list = ast_make_list(LIST_LITERAL);
+    struct ast* expr_list = ast_make_list_lit();
     if (!check(parser, TOK_RSQUARE)) {
         do {
             struct ast* expr = expression(parser);
@@ -1013,7 +1012,7 @@ static struct ast* maplit(struct parser *parser)
         err = true;
     }
 
-    struct ast* keyval_list = ast_make_list(LIST_MAP_ITEM);
+    struct ast* keyval_list = ast_make_map_lit();
     if (!check(parser, TOK_RCURLY)) {
         do {
             struct ast* key = expression(parser);
@@ -1083,7 +1082,7 @@ static struct ast* datalit(struct parser *parser)
         err = true;
     }
 
-    struct ast* init_list = ast_make_list(LIST_STRUCT_INIT);
+    struct ast* init_list = ast_make_list();
     if (!check(parser, TOK_RCURLY)) {
         do {
             /*  data initializers can be either:
@@ -1135,7 +1134,7 @@ static struct ast* arguments(struct parser *parser)
         err = true;
     }
 
-    struct ast* arg_list = ast_make_list(LIST_ARG);
+    struct ast* arg_list = ast_make_list();
     if (!check(parser, TOK_RPAREN)) {
         do {
             struct ast* expr = expression(parser);
@@ -1168,7 +1167,7 @@ static struct ast* block(struct parser *parser)
         err = true;
     }
 
-    struct ast *statements = ast_make_list(LIST_STATEMENT);
+    struct ast *statements = ast_make_list();
     /* parse statements until we see a '}' token */
     do {
         struct ast *stmt = statement(parser);
@@ -1329,7 +1328,7 @@ static struct ast* parameters(struct parser *parser)
         err = true;
     }
 
-    struct ast *params = ast_make_list(LIST_PARAM);
+    struct ast *params = ast_make_list();
     if (!check(parser, TOK_RPAREN)) {
         do {
 

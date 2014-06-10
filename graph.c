@@ -35,6 +35,36 @@ static int graph_str_lit(struct ast *node, FILE *fp, int id)
     return id;
 }
 
+static int graph_list_lit(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+
+    fprintf(fp, "%d [label=\"list literal\"]\n", rID);
+
+    struct ast *item = node->list.head;
+    while (item) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(item, fp, id);
+        item = item->next;
+    }
+    return id;
+}
+
+static int graph_map_lit(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+
+    fprintf(fp, "%d [label=\"map literal\"]\n", rID);
+
+    struct ast *item = node->list.head;
+    while (item) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(item, fp, id);
+        item = item->next;
+    }
+    return id;
+}
+
 static int graph_ident(struct ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"ident: %s\"]\n", id, node->s->str);
@@ -60,6 +90,19 @@ static int graph_binexpr(struct ast *node, FILE *fp, int id)
     id = graph(node->binexpr.lhs, fp, id);
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->binexpr.rhs, fp, id);
+
+    return id;
+}
+
+static int graph_qualified(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+
+    fprintf(fp, "%d [label=\"qualified\"]\n", rID);
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->qualified.package, fp, id);
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->qualified.name, fp, id);
 
     return id;
 }
@@ -495,9 +538,12 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_int_num,
         graph_real_num,
         graph_str_lit,
+        graph_list_lit,
+        graph_map_lit,
 
         graph_ident,
 
+        graph_qualified,
         graph_list_type,
         graph_map_type,
         graph_func_type,
@@ -534,6 +580,9 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_import,
         graph_program
     };
+
+    /* Check that there are as many graphers as AST node types */
+    assert(sizeof(ast_graphers) / sizeof(*ast_graphers) == AST_PROGRAM + 1);
 
     ast_grapher g = ast_graphers[root->tag];
     assert(g);

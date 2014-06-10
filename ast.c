@@ -47,6 +47,22 @@ struct ast* ast_make_str_lit(struct string *s)
     return node;
 }
 
+struct ast* ast_make_list_lit(struct string *s)
+{
+    assert(s);
+    struct ast *node = make_node(AST_LIST);
+    node->tag = AST_LIST_LIT;
+    return node;
+}
+
+struct ast* ast_make_map_lit(struct string *s)
+{
+    assert(s);
+    struct ast *node = make_node(AST_LIST);
+    node->tag = AST_MAP_LIT;
+    return node;
+}
+
 struct ast* ast_make_ident(struct string *s)
 {
     assert(s);
@@ -71,6 +87,16 @@ struct ast* ast_make_alias(struct ast* type, struct ast *name)
     struct ast *node = make_node(AST_ALIAS);
     node->alias.type = type;
     node->alias.name = name;
+    return node;
+}
+
+struct ast *ast_make_qualified(struct ast *package, struct ast *name)
+{
+    assert(package);
+    assert(name);
+    struct ast *node = make_node(AST_QUALIFIED);
+    node->qualified.package = package;
+    node->qualified.name = name;
     return node;
 }
 
@@ -162,10 +188,9 @@ struct ast* ast_make_binexpr(struct ast* lhs, int op, struct ast* rhs)
     return node;
 }
 
-struct ast *ast_make_list(int type)
+struct ast *ast_make_list()
 {
     struct ast *node = make_node(AST_LIST);
-    node->list.type = type;
     node->list.head = NULL;
     node->list.tail = NULL;
     return node;
@@ -180,7 +205,9 @@ struct ast *ast_list_append(struct ast* node, struct ast* elem)
         node->list.head = elem;
         node->list.tail = elem;
     } else {
-        assert(node->tag == AST_LIST);
+        assert(node->tag == AST_LIST ||
+                node->tag == AST_LIST_LIT ||
+                node->tag == AST_MAP_LIT);
         node->list.tail->next = elem;
         node->list.tail = elem;
     }

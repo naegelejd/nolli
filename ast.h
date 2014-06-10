@@ -11,9 +11,12 @@ enum {
     AST_INT_NUM,
     AST_REAL_NUM,
     AST_STR_LIT,
+    AST_LIST_LIT,
+    AST_MAP_LIT,
 
     AST_IDENT,
 
+    AST_QUALIFIED,
     AST_LIST_TYPE,
     AST_MAP_TYPE,
     AST_FUNC_TYPE,
@@ -56,23 +59,12 @@ enum {
     DECL_CONST
 };
 
-enum {
-    LIST_DECL,
-    LIST_ARG,
-    LIST_PARAM,
-    LIST_TYPE,
-    LIST_LITERAL,
-    LIST_IMPORT,
-    LIST_MAP_ITEM,
-    LIST_SELECTOR,
-    LIST_MEMBER,
-    LIST_METHOD,
-    LIST_STRUCT_INIT,
-    LIST_STATEMENT,
-};
-
 struct ast_list_type {
     struct ast *name;
+};
+
+struct ast_qualified {
+    struct ast *package, *name;
 };
 
 struct ast_map_type {
@@ -128,7 +120,6 @@ struct ast_return {
 
 struct ast_list {
     struct ast *head, *tail;
-    int type;
     unsigned int count;
 };
 
@@ -193,6 +184,7 @@ struct ast {
         struct ast_list_type list_type;
         struct ast_map_type map_type;
         struct ast_func_type func_type;
+        struct ast_qualified qualified;
         struct ast_datalit datalit;
         struct ast_function function;
         struct ast_init init;
@@ -227,9 +219,12 @@ struct ast *ast_make_char_lit(char c);
 struct ast *ast_make_int_num(long l);
 struct ast *ast_make_real_num(double d);
 struct ast *ast_make_str_lit(struct string *s);
+struct ast *ast_make_list_lit();
+struct ast *ast_make_map_lit();
 
 struct ast *ast_make_ident(struct string *s);
 
+struct ast *ast_make_qualified(struct ast*, struct ast*);
 struct ast *ast_make_list_type(struct ast*);
 struct ast *ast_make_map_type(struct ast*, struct ast*);
 struct ast *ast_make_func_type(struct ast*, struct ast*);
@@ -238,7 +233,7 @@ struct ast *ast_make_initialization(struct ast*, struct ast*);
 struct ast *ast_make_unexpr(int op, struct ast*);
 struct ast *ast_make_binexpr(struct ast*, int op, struct ast*);
 
-struct ast *ast_make_list(int type);
+struct ast *ast_make_list();
 struct ast *ast_list_append(struct ast*, struct ast*);
 
 struct ast *ast_make_keyval(struct ast *key, struct ast *val);
@@ -258,6 +253,7 @@ struct ast *ast_make_continue(void);
 struct ast *ast_make_return(struct ast*);
 
 struct ast *ast_make_datalit(struct ast *, struct ast *);
+
 
 struct ast *ast_make_decl(int, struct ast*, struct ast*);
 struct ast *ast_make_function(struct ast*, struct ast*, struct ast*);
