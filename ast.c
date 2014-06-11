@@ -47,22 +47,6 @@ struct ast* ast_make_str_lit(struct string *s)
     return node;
 }
 
-struct ast* ast_make_list_lit(struct string *s)
-{
-    assert(s);
-    struct ast *node = make_node(AST_LIST);
-    node->tag = AST_LIST_LIT;
-    return node;
-}
-
-struct ast* ast_make_map_lit(struct string *s)
-{
-    assert(s);
-    struct ast *node = make_node(AST_LIST);
-    node->tag = AST_MAP_LIT;
-    return node;
-}
-
 struct ast* ast_make_ident(struct string *s)
 {
     assert(s);
@@ -188,9 +172,9 @@ struct ast* ast_make_binexpr(struct ast* lhs, int op, struct ast* rhs)
     return node;
 }
 
-struct ast *ast_make_list()
+struct ast *ast_make_list(int type)
 {
-    struct ast *node = make_node(AST_LIST);
+    struct ast *node = make_node(type);
     node->list.head = NULL;
     node->list.tail = NULL;
     return node;
@@ -205,9 +189,7 @@ struct ast *ast_list_append(struct ast* node, struct ast* elem)
         node->list.head = elem;
         node->list.tail = elem;
     } else {
-        assert(node->tag == AST_LIST ||
-                node->tag == AST_LIST_LIT ||
-                node->tag == AST_MAP_LIT);
+        assert(node->tag > AST_LIST_SENTINEL);
         node->list.tail->next = elem;
         node->list.tail = elem;
     }
@@ -235,13 +217,13 @@ struct ast* ast_make_lookup(struct ast* container, struct ast* index)
     return node;
 }
 
-struct ast *ast_make_short_decl(struct ast *ident, struct ast *expr)
+struct ast *ast_make_bind(struct ast *ident, struct ast *expr)
 {
     assert(ident);
     assert(expr);
-    struct ast* node = make_node(AST_SHORT_DECL);
-    node->short_decl.ident = ident;
-    node->short_decl.expr = expr;
+    struct ast* node = make_node(AST_BIND);
+    node->bind.ident = ident;
+    node->bind.expr = expr;
     return node;
 }
 
@@ -361,24 +343,24 @@ struct ast* ast_make_selector(struct ast *parent, struct ast *child)
     return node;
 }
 
-struct ast* ast_make_methods(struct ast *name, struct ast *methods)
+struct ast* ast_make_impl(struct ast *name, struct ast *methods)
 {
     assert(name);
     assert(methods);
 
-    struct ast *node = make_node(AST_METHODS);
-    node->methods.name = name;
-    node->methods.methods = methods;
+    struct ast *node = make_node(AST_IMPL);
+    node->impl.name = name;
+    node->impl.methods = methods;
     return node;
 }
 
-struct ast* ast_make_program(struct ast *package, struct ast *definitions)
+struct ast* ast_make_program(struct ast *package, struct ast *globals)
 {
     assert(package);
-    assert(definitions);
+    assert(globals);
 
     struct ast *node = make_node(AST_PROGRAM);
     node->program.package = package;
-    node->program.definitions = definitions;
+    node->program.globals = globals;
     return node;
 }

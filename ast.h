@@ -4,15 +4,13 @@
 #include "nolli.h"
 
 enum {
-    AST_BAD_TYPE,
+    AST_FIRST,
 
     AST_BOOL_LIT,
     AST_CHAR_LIT,
     AST_INT_NUM,
     AST_REAL_NUM,
     AST_STR_LIT,
-    AST_LIST_LIT,
-    AST_MAP_LIT,
 
     AST_IDENT,
 
@@ -27,13 +25,11 @@ enum {
     AST_UNEXPR,
     AST_BINEXPR,
 
-    AST_LIST,
-
     AST_KEYVAL,
     AST_LOOKUP,
     AST_SELECTOR,
 
-    AST_SHORT_DECL,
+    AST_BIND,
     AST_ASSIGN,
     AST_IFELSE,
     AST_WHILE,
@@ -46,12 +42,32 @@ enum {
     AST_BREAK,
     AST_CONTINUE,
 
-    AST_METHODS,
+    AST_IMPL,
     AST_DATA,
     AST_INTERFACE,
     AST_ALIAS,
     AST_IMPORT,
-    AST_PROGRAM
+    AST_PROGRAM,
+
+    AST_LIST_SENTINEL,  /* never used */
+
+    /* linked-lists */
+    AST_LIST_LISTLIT,
+    AST_LIST_MAPLIT,
+    AST_LIST_GLOBALS,
+    AST_LIST_IMPORTS,
+    AST_LIST_MEMBERS,
+    AST_LIST_STATEMENTS,
+    AST_LIST_IDENTS,
+    AST_LIST_METHODS,
+    AST_LIST_METHOD_DECLS,
+    AST_LIST_DECLS,
+    AST_LIST_DATA_INITS,
+    AST_LIST_PARAMS,
+    AST_LIST_ARGS,
+
+    AST_LAST
+
 };
 
 enum {
@@ -101,7 +117,7 @@ struct ast_call {
     struct ast *func, *args;
 };
 
-struct ast_short_decl {
+struct ast_bind {
     struct ast *ident,  *expr;
 };
 
@@ -120,6 +136,7 @@ struct ast_return {
 
 struct ast_list {
     struct ast *head, *tail;
+    int type;
     unsigned int count;
 };
 
@@ -147,7 +164,7 @@ struct ast_interface {
     struct ast *name, *methods;
 };
 
-struct ast_methods {
+struct ast_impl {
     struct ast *name, *methods;
 };
 
@@ -170,7 +187,7 @@ struct ast_import {
 };
 
 struct ast_program {
-    struct ast *package, *definitions;
+    struct ast *package, *globals;
 };
 
 struct ast {
@@ -191,7 +208,7 @@ struct ast {
         struct ast_unexpr unexpr;
         struct ast_binexpr binexpr;
         struct ast_call call;
-        struct ast_short_decl short_decl;
+        struct ast_bind bind;
         struct ast_assignment assignment;
         struct ast_keyval keyval;
         struct ast_return ret;
@@ -202,7 +219,7 @@ struct ast {
         struct ast_lookup lookup;
         struct ast_selector selector;
         struct ast_interface interface;
-        struct ast_methods methods;
+        struct ast_impl impl;
         struct ast_data data;
         struct ast_alias alias;
         struct ast_decl decl;
@@ -219,8 +236,6 @@ struct ast *ast_make_char_lit(char c);
 struct ast *ast_make_int_num(long l);
 struct ast *ast_make_real_num(double d);
 struct ast *ast_make_str_lit(struct string *s);
-struct ast *ast_make_list_lit();
-struct ast *ast_make_map_lit();
 
 struct ast *ast_make_ident(struct string *s);
 
@@ -233,14 +248,14 @@ struct ast *ast_make_initialization(struct ast*, struct ast*);
 struct ast *ast_make_unexpr(int op, struct ast*);
 struct ast *ast_make_binexpr(struct ast*, int op, struct ast*);
 
-struct ast *ast_make_list();
+struct ast *ast_make_list(int type);
 struct ast *ast_list_append(struct ast*, struct ast*);
 
 struct ast *ast_make_keyval(struct ast *key, struct ast *val);
 struct ast *ast_make_lookup(struct ast*, struct ast*);
 struct ast *ast_make_selector(struct ast*, struct ast*);
 
-struct ast *ast_make_short_decl(struct ast*, struct ast*);
+struct ast *ast_make_bind(struct ast*, struct ast*);
 struct ast *ast_make_assignment(struct ast*, int op, struct ast*);
 
 struct ast *ast_make_ifelse(struct ast*, struct ast*, struct ast*);
@@ -258,7 +273,7 @@ struct ast *ast_make_datalit(struct ast *, struct ast *);
 struct ast *ast_make_decl(int, struct ast*, struct ast*);
 struct ast *ast_make_function(struct ast*, struct ast*, struct ast*);
 struct ast *ast_make_data(struct ast *, struct ast*);
-struct ast *ast_make_methods(struct ast*, struct ast*);
+struct ast *ast_make_impl(struct ast*, struct ast*);
 struct ast *ast_make_interface(struct ast *, struct ast*);
 struct ast *ast_make_alias(struct ast*, struct ast *);
 struct ast *ast_make_import(struct ast *, struct ast*);
