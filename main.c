@@ -27,8 +27,8 @@ int compile(const char *filename)
         return EXIT_FAILURE;
     }
 
-    dump_ast_graph(root);
-    /* type_check(root); */
+    graph_ast(root);
+    analyze_ast(root);
 
     return EXIT_SUCCESS;
 }

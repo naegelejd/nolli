@@ -585,7 +585,7 @@ static int graph(struct ast *root, FILE *fp, int id)
     return g(root, fp, id);
 }
 
-void dump_ast_graph(struct ast *root)
+void graph_ast(struct ast *root)
 {
     assert(root);
 

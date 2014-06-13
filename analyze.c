@@ -4,592 +4,500 @@ struct irstate {
     struct symtable *symtable;
 };
 
-typedef struct type* (*walker) (struct ast*, struct irstate*);
+typedef struct type* (*analyzer) (struct ast*, struct irstate*);
 
-static struct type *walk_bool_lit(struct ast*, struct irstate*);
-static struct type *walk_char_lit(struct ast*, struct irstate*);
-static struct type *walk_int_num(struct ast*, struct irstate*);
-static struct type *walk_real_num(struct ast*, struct irstate*);
-static struct type *walk_str_lit(struct ast*, struct irstate*);
-static struct type *walk_ident(struct ast*, struct irstate*);
-static struct type *walk_unexpr(struct ast*, struct irstate*);
-static struct type *walk_binexpr(struct ast*, struct irstate*);
-static struct type *walk_list(struct ast*, struct irstate*);
-static struct type *walk_keyval(struct ast*, struct irstate*);
-static struct type *walk_short_decl(struct ast*, struct irstate*);
-static struct type *walk_assign(struct ast*, struct irstate*);
-static struct type *walk_call(struct ast*, struct irstate*);
-static struct type *walk_import(struct ast*, struct irstate*);
-static struct type *walk_list_type(struct ast*, struct irstate*);
-static struct type *walk_map_type(struct ast*, struct irstate*);
-static struct type *walk_func_type(struct ast*, struct irstate*);
-static struct type *walk_struct_type(struct ast*, struct irstate*);
-static struct type *walk_iface_type(struct ast*, struct irstate*);
-static struct type *walk_decl(struct ast*, struct irstate*);
-static struct type *walk_initialization(struct ast*, struct irstate*);
-static struct type *walk_ifelse(struct ast*, struct irstate*);
-static struct type *walk_while(struct ast*, struct irstate*);
-static struct type *walk_for(struct ast*, struct irstate*);
-static struct type *walk_alias(struct ast*, struct irstate*);
-static struct type *walk_return(struct ast*, struct irstate*);
-static struct type *walk_break(struct ast*, struct irstate*);
-static struct type *walk_continue(struct ast*, struct irstate*);
-static struct type *walk_contaccess(struct ast*, struct irstate*);
-static struct type *walk_funclit(struct ast*, struct irstate*);
-static struct type *walk_structlit(struct ast *, struct irstate *);
+static struct type *analyze(struct ast *root, struct irstate *irs);
 
-static struct type *walk_decl_list(struct ast *node, struct irstate *irs);
-static struct type *walk_arg_list(struct ast *node, struct irstate *irs);
-static struct type *walk_param_list(struct ast *node, struct irstate *irs);
-static struct type *walk_type_list(struct ast *node, struct irstate *irs);
-static struct type *walk_literal_list(struct ast *node, struct irstate *irs);
-static struct type *walk_import_list(struct ast *node, struct irstate *irs);
-static struct type *walk_map_item_list(struct ast *node, struct irstate *irs);
-static struct type *walk_selector_list(struct ast *node, struct irstate *irs);
-static struct type *walk_member_list(struct ast *node, struct irstate *irs);
-static struct type *walk_method_list(struct ast *node, struct irstate *irs);
-static struct type *walk_struct_init_list(struct ast *node, struct irstate *irs);
-static struct type *walk_statement_list(struct ast *node, struct irstate *irs);
 
-static struct type *walk(struct ast *root, struct irstate *irs);
-
-void type_check(struct ast *root)
+static struct type *analyze_bool_lit(struct ast *node, struct irstate *irs)
 {
-    assert(root);
-
-    struct irstate state;
-    state.symtable = symtable_create();
-    walk(root, &state);
-}
-
-static struct type *walk(struct ast *root, struct irstate *irs)
-{
-    static walker walkers[] = {
-        NULL, /* not a valid AST node */
-        walk_bool_lit,
-        walk_char_lit,
-        walk_int_num,
-        walk_real_num,
-        walk_str_lit,
-
-        walk_ident,
-
-        walk_import,
-        walk_alias,
-
-        walk_list_type,
-        walk_map_type,
-        walk_func_type,
-        walk_struct_type,
-        walk_iface_type,
-
-        walk_decl,
-        walk_initialization,
-
-        walk_unexpr,
-        walk_binexpr,
-        walk_list,
-
-        walk_keyval,
-        walk_contaccess,
-
-        walk_short_decl,
-        walk_assign,
-        walk_ifelse,
-        walk_while,
-        walk_for,
-        walk_call,
-        walk_funclit,
-        walk_structlit,
-
-        walk_return,
-        walk_break,
-        walk_continue,
-    };
-
-    walker w = walkers[root->type];
-    assert(w);
-    return w(root, irs);
-}
-
-
-static struct type *walk_bool_lit(struct ast *node, struct irstate *irs)
-{
-
     return &bool_type;
 }
 
-static struct type *walk_char_lit(struct ast *node, struct irstate *irs)
+static struct type *analyze_char_lit(struct ast *node, struct irstate *irs)
 {
-
     return &char_type;
 }
 
-static struct type *walk_int_num(struct ast *node, struct irstate *irs)
+static struct type *analyze_int_num(struct ast *node, struct irstate *irs)
 {
-
     return &int_type;
 }
 
-static struct type *walk_real_num(struct ast *node, struct irstate *irs)
+static struct type *analyze_real_num(struct ast *node, struct irstate *irs)
 {
-
     return &real_type;
 }
 
-static struct type *walk_str_lit(struct ast *node, struct irstate *irs)
+static struct type *analyze_str_lit(struct ast *node, struct irstate *irs)
 {
-
     return &str_type;
 }
 
-static struct type *walk_ident(struct ast *node, struct irstate *irs)
+static struct type *analyze_ident(struct ast *node, struct irstate *irs)
 {
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_qualified(struct ast *node, struct irstate *irs)
+{
+    return NULL;
+}
+
+static struct type *analyze_list_type(struct ast *node, struct irstate *irs)
+{
+    analyze(node->list_type.name, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_unexpr(struct ast *node, struct irstate *irs)
+static struct type *analyze_map_type(struct ast *node, struct irstate *irs)
 {
-    struct ast_unexpr* unexpr = (struct ast_unexpr*)node;
-    walk(unexpr->expr, irs);
+    analyze(node->map_type.keytype, irs);
+    analyze(node->map_type.valtype, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_binexpr(struct ast *node, struct irstate *irs)
+static struct type *analyze_func_type(struct ast *node, struct irstate *irs)
 {
-    struct ast_binexpr* binexpr = (struct ast_binexpr*)node;
-    struct type *rhs = walk(binexpr->lhs, irs);
-    struct type *lhs = walk(binexpr->rhs, irs);
+    if (node->func_type.ret_type) {
+        analyze(node->func_type.ret_type, irs);
+    }
+    if (node->func_type.params) {
+        analyze(node->func_type.params, irs);
+    }
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_decl(struct ast *node, struct irstate *irs)
+{
+    analyze(node->decl.type, irs);
+    if (node->decl.rhs) {
+        analyze(node->decl.rhs, irs);
+    }
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_init(struct ast *node, struct irstate *irs)
+{
+    analyze(node->init.ident, irs);
+    analyze(node->init.expr, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_unexpr(struct ast *node, struct irstate *irs)
+{
+    analyze(node->unexpr.expr, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_binexpr(struct ast *node, struct irstate *irs)
+{
+    struct type *rhs = analyze(node->binexpr.lhs, irs);
+    struct type *lhs = analyze(node->binexpr.rhs, irs);
     if (rhs != lhs) {
-        NOLLI_DIE("Type mismatch in binary expression");
+        NOLLI_DIEF("Type mismatch in binary expression on line %d", node->lineno);
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_decl_list(struct ast *node, struct irstate *irs)
+static struct type *analyze_keyval(struct ast *node, struct irstate *irs)
 {
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_arg_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_param_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_type_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_literal_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_import_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_map_item_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_selector_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_member_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_method_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_struct_init_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_statement_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    unsigned int i = 0;
-    for (i = 0; i < list->count; i++) {
-        walk(list->items[i], irs);
-    }
-    return NULL;
-}
-
-static struct type *walk_list(struct ast *node, struct irstate *irs)
-{
-    struct ast_list* list = (struct ast_list*)node;
-
-    static walker walkers[] = {
-        walk_decl_list,
-        walk_arg_list,
-        walk_param_list,
-        walk_type_list,
-        walk_literal_list,
-        walk_import_list,
-        walk_map_item_list,
-        walk_selector_list,
-        walk_member_list,
-        walk_method_list,
-        walk_struct_init_list,
-        walk_statement_list,
-    };
-
-    walker w = walkers[list->type];
-    assert(w);
-    return w(node, irs);
-}
-
-static struct type *walk_keyval(struct ast *node, struct irstate *irs)
-{
-    struct ast_keyval* keyval = (struct ast_keyval*)node;
-    walk(keyval->key, irs);
-    walk(keyval->val, irs);
+    analyze(node->keyval.key, irs);
+    analyze(node->keyval.val, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_short_decl(struct ast *node, struct irstate *irs)
+static struct type *analyze_lookup(struct ast *node, struct irstate *irs)
 {
-    struct ast_short_decl* short_decl = (struct ast_short_decl*)node;
-    walk(short_decl->ident, irs);
-    walk(short_decl->expr, irs);
+    analyze(node->lookup.container, irs);
+    analyze(node->lookup.index, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_assign(struct ast *node, struct irstate *irs)
+static struct type *analyze_selector(struct ast *node, struct irstate *irs)
 {
-    struct ast_assignment* assignment = (struct ast_assignment*)node;
-    walk(assignment->ident, irs);
-    walk(assignment->expr, irs);
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_bind(struct ast *node, struct irstate *irs)
+{
+    analyze(node->bind.ident, irs);
+    analyze(node->bind.expr, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_call(struct ast *node, struct irstate *irs)
+static struct type *analyze_assign(struct ast *node, struct irstate *irs)
 {
-    struct ast_call* call = (struct ast_call*)node;
-    walk(call->func, irs);
-    walk(call->args, irs);
+    analyze(node->assignment.lhs, irs);
+    analyze(node->assignment.expr, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_import(struct ast *node, struct irstate *irs)
+static struct type *analyze_ifelse(struct ast *node, struct irstate *irs)
 {
-    struct ast_import* import = (struct ast_import*)node;
-    if (import->from) {
-        /* import->from */
-    }
-
-    assert(import->modules);
-    walk(import->modules, irs);
-
-
-    return NULL;    /* FIXME */
-}
-
-static struct type *walk_list_type(struct ast *node, struct irstate *irs)
-{
-    struct ast_list_type *type = (struct ast_list_type*)node;
-    walk(type->name, irs);
-
-    return NULL;    /* FIXME */
-}
-
-static struct type *walk_map_type(struct ast *node, struct irstate *irs)
-{
-    struct ast_map_type *type = (struct ast_map_type*)node;
-    walk(type->keyname, irs);
-    walk(type->valname, irs);
-
-    return NULL;    /* FIXME */
-}
-
-static struct type *walk_func_type(struct ast *node, struct irstate *irs)
-{
-    struct ast_func_type *type = (struct ast_func_type*)node;
-    if (type->ret_type) {
-        walk(type->ret_type, irs);
-    }
-    if (type->param_types) {
-        walk(type->param_types, irs);
+    analyze(node->ifelse.cond, irs);
+    analyze(node->ifelse.if_body, irs);
+    if (node->ifelse.else_body) {
+        analyze(node->ifelse.else_body, irs);
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_struct_type(struct ast *node, struct irstate *irs)
+static struct type *analyze_while(struct ast *node, struct irstate *irs)
 {
-    struct ast_struct_type *type = (struct ast_struct_type*)node;
-    /* type->name */
-    walk(type->members, irs);
+    analyze(node->while_loop.cond, irs);
+    analyze(node->while_loop.body, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_structlit(struct ast *node, struct irstate *irs)
+static struct type *analyze_for(struct ast *node, struct irstate *irs)
 {
-    struct ast_structlit *init = (struct ast_structlit*)node;
-    /* type->name */
-    walk(init->items, irs);
+    analyze(node->for_loop.var, irs);
+    analyze(node->for_loop.range, irs);
+    analyze(node->for_loop.body, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_iface_type(struct ast *node, struct irstate *irs)
+static struct type *analyze_call(struct ast *node, struct irstate *irs)
 {
-    struct ast_iface_type *type = (struct ast_iface_type*)node;
-    /* type->name */
-    walk(type->methods, irs);
+    analyze(node->call.func, irs);
+    analyze(node->call.args, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_decl(struct ast *node, struct irstate *irs)
+static struct type *analyze_function(struct ast *node, struct irstate *irs)
 {
-    struct ast_decl *decl = (struct ast_decl *)node;
-    walk(decl->type, irs);
-    walk(decl->name_s, irs);
+    /* check if function is an un-named function literal */
+    if (node->function.name) {
+        analyze(node->function.name, irs);
+    }
+    analyze(node->function.type, irs);
+    analyze(node->function.body, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_initialization(struct ast *node, struct irstate *irs)
+static struct type *analyze_datalit(struct ast *node, struct irstate *irs)
 {
-    struct ast_init *init = (struct ast_init *)node;
-    walk(init->ident, irs);
-    walk(init->expr, irs);
-
+    analyze(node->datalit.name, irs);
+    analyze(node->datalit.items, irs);
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_ifelse(struct ast *node, struct irstate *irs)
+static struct type *analyze_return(struct ast *node, struct irstate *irs)
 {
-    struct ast_ifelse *ifelse = (struct ast_ifelse *)node;
-    walk(ifelse->cond, irs);
-    walk(ifelse->if_body, irs);
-    if (ifelse->else_body) {
-        walk(ifelse->else_body, irs);
+    if (node->ret.expr) {
+        analyze(node->ret.expr, irs);
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_while(struct ast *node, struct irstate *irs)
+static struct type *analyze_break(struct ast *node, struct irstate *irs)
 {
-    struct ast_while *wile = (struct ast_while *)node;
-    walk(wile->cond, irs);
-    walk(wile->body, irs);
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_continue(struct ast *node, struct irstate *irs)
+{
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_impl(struct ast *node, struct irstate *irs)
+{
+    analyze(node->impl.name, irs);
+    analyze(node->impl.methods, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_for(struct ast *node, struct irstate *irs)
+static struct type *analyze_data(struct ast *node, struct irstate *irs)
 {
-    struct ast_for *fore = (struct ast_for *)node;
-    walk(fore->var, irs);
-    walk(fore->range, irs);
-    walk(fore->body, irs);
+    analyze(node->data.name, irs);
+    analyze(node->data.members, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_alias(struct ast *node, struct irstate *irs)
+static struct type *analyze_interface(struct ast *node, struct irstate *irs)
 {
-    struct ast_alias *alias = (struct ast_alias*)node;
-    walk(alias->type, irs);
-    /* alias->name */
+    analyze(node->interface.name, irs);
+    analyze(node->interface.methods, irs);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_return(struct ast *node, struct irstate *irs)
+static struct type *analyze_alias(struct ast *node, struct irstate *irs)
 {
-    struct ast_return *ret = (struct ast_return*)node;
-    if (ret->expr) {
-        walk(ret->expr, irs);
+    analyze(node->alias.type, irs);
+    analyze(node->alias.name, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_import(struct ast *node, struct irstate *irs)
+{
+    if (node->import.from) {
+        analyze(node->import.from, irs);
+    }
+
+    assert(node->import.modules);
+    analyze(node->import.modules, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_program(struct ast *node, struct irstate *irs)
+{
+    analyze(node->program.package, irs);
+    analyze(node->program.globals, irs);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_list(struct ast *node, struct irstate *irs)
+{
+    struct ast *elem = node->list.head;
+    while (elem) {
+        struct type *tp = analyze(elem, irs);
+        elem = elem->next;
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *walk_break(struct ast *node, struct irstate *irs)
+static struct type* analyze_listlit(struct ast *node, struct irstate *irs)
 {
-
-    return NULL;    /* FIXME */
+    return analyze_list(node, irs);
 }
 
-static struct type *walk_continue(struct ast *node, struct irstate *irs)
+static struct type* analyze_maplit(struct ast *node, struct irstate *irs)
 {
-
-    return NULL;    /* FIXME */
+    return analyze_list(node, irs);
 }
 
-static struct type *walk_contaccess(struct ast *node, struct irstate *irs)
+static struct type* analyze_globals(struct ast *node, struct irstate *irs)
 {
-    struct ast_contaccess *ca = (struct ast_contaccess*)node;
-    walk(ca->ident, irs);
-    walk(ca->index, irs);
-
-    return NULL;    /* FIXME */
+    return analyze_list(node, irs);
 }
 
-static struct type *walk_funclit(struct ast *node, struct irstate *irs)
+static struct type* analyze_imports(struct ast *node, struct irstate *irs)
 {
-    struct ast_funclit *f = (struct ast_funclit*)node;
+    return analyze_list(node, irs);
+}
 
-    if (f->ret_type) {
-        walk(f->ret_type, irs);
-    }
-    if (f->params) {
-        walk(f->params, irs);
-    }
-    walk(f->body, irs);
+static struct type* analyze_members(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
 
-    return NULL;    /* FIXME */
+static struct type* analyze_statements(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
+static struct type* analyze_idents(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
+static struct type* analyze_methods(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
+static struct type* analyze_method_decls(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
+static struct type* analyze_decls(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
+static struct type* analyze_data_inits(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
+static struct type* analyze_params(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
+static struct type* analyze_args(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
 }
 
 static char *ast_name(struct ast* node)
 {
     static char *names[] = {
-        "BAD_TYPE",
+        "FIRST",
+
         "BOOL_LIT",
         "CHAR_LIT",
         "INT_NUM",
         "REAL_NUM",
         "STR_LIT",
+
         "IDENT",
-        "IMPORT",
-        "ALIAS",
+
+        "QUALIFIED",
         "LIST_TYPE",
         "MAP_TYPE",
         "FUNC_TYPE",
-        "STRUCT_TYPE",
-        "IFACE_TYPE",
+
         "DECL",
         "INIT",
+
         "UNEXPR",
         "BINEXPR",
-        "LIST",
+
         "KEYVAL",
-        "CONTACCESS",
-        "SHORT_DECL",
+        "LOOKUP",
+        "SELECTOR",
+
+        "BIND",
         "ASSIGN",
         "IFELSE",
         "WHILE",
         "FOR",
         "CALL",
-        "FUNCLIT",
+        "FUNCTION",
         "STRUCTLIT",
+
         "RETURN",
         "BREAK",
         "CONTINUE",
-    };
 
-    static char *list_names[] = {
-        "LIST_DECLS",
-        "LIST_ARGS",
-        "LIST_PARAMS",
-        "LIST_TYPES",
-        "LIST_LITERAL",
+        "IMPORT",
+        "DATA",
+        "INTERFACE",
+        "ALIAS",
+        "IMPORT",
+        "PROGRAM",
+
+        "LIST_SENTINEL",
+
+        "LIST_LISTLIT",
+        "LIST_MAPLIT",
+        "LIST_GLOBALS",
         "LIST_IMPORTS",
-        "LIST_MAP_ITEMS",
-        "LIST_SELECTORS",
         "LIST_MEMBERS",
-        "LIST_METHODS",
         "LIST_STATEMENTS",
+        "LIST_IDENTS",
+        "LIST_METHODS",
+        "LIST_METHOD_DECLS",
+        "LIST_DECLS",
+        "LIST_DATA_INITS",
+        "LIST_PARAMS",
+        "LIST_ARGS",
+
+        "LAST"
     };
 
-    if (node->type == AST_LIST) {
-        struct ast_list* list = (struct ast_list*)node;
-        return list_names[list->type];
-    }
-    return names[node->type];
+    return names[node->tag];
+}
+
+static struct type *analyze(struct ast *root, struct irstate *irs)
+{
+    static analyzer analyzers[] = {
+        NULL, /* not a valid AST node */
+        analyze_bool_lit,
+        analyze_char_lit,
+        analyze_int_num,
+        analyze_real_num,
+        analyze_str_lit,
+
+        analyze_ident,
+
+        analyze_qualified,
+        analyze_list_type,
+        analyze_map_type,
+        analyze_func_type,
+
+        analyze_decl,
+        analyze_init,
+
+        analyze_unexpr,
+        analyze_binexpr,
+
+        analyze_keyval,
+        analyze_lookup,
+        analyze_selector,
+
+        analyze_bind,
+        analyze_assign,
+        analyze_ifelse,
+        analyze_while,
+        analyze_for,
+        analyze_call,
+        analyze_function,
+        analyze_datalit,
+
+        analyze_return,
+        analyze_break,
+        analyze_continue,
+
+        analyze_impl,
+        analyze_data,
+        analyze_interface,
+        analyze_alias,
+        analyze_import,
+        analyze_program,
+
+        NULL,
+
+        analyze_listlit,
+        analyze_maplit,
+        analyze_globals,
+        analyze_imports,
+        analyze_members,
+        analyze_statements,
+        analyze_idents,
+        analyze_methods,
+        analyze_method_decls,
+        analyze_decls,
+        analyze_data_inits,
+        analyze_params,
+        analyze_args,
+
+        NULL
+    };
+
+    /* Check that there are as many analyzers as AST node types */
+    assert(sizeof(analyzers) / sizeof(*analyzers) == AST_LAST + 1);
+
+    assert(root);
+    /* printf("%s\n", ast_name(root)); */
+
+    analyzer w = analyzers[root->tag];
+    assert(w);
+    return w(root, irs);
+}
+
+void analyze_ast(struct ast *root)
+{
+    assert(root);
+
+    struct irstate state;
+    state.symtable = symtable_create();
+    analyze(root, &state);
 }

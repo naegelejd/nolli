@@ -17,10 +17,10 @@
 #include "strtab.h"
 #include "lexer.h"
 #include "parser.h"
-#include "type.h"
-#include "symtable.h"
 #include "ast.h"
 #include "graph.h"
+#include "type.h"
+#include "symtable.h"
 #include "analyze.h"
 
 #if defined ( WIN32 )

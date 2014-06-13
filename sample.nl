@@ -24,7 +24,7 @@ methods Rect {
         $.height *= x
     }
 
-    func () private {
+    func () _private {
         name.reverse()
     }
 }
@@ -32,7 +32,6 @@ methods Rect {
 func () rectDemo {
     sh := &Rect{width:14, height:12, "square", func int () { return 42; }}
 }
-
 
 var int a = func int () { return 42; }()
 

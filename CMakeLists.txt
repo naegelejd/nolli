@@ -19,9 +19,9 @@ set(NOLLI_SOURCES
     parser.c
     ast.c
     graph.c
-    #analyze.c
     symtable.c
     type.c
+    analyze.c
 )
 
 if (NOT WIN32)

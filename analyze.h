@@ -3,6 +3,6 @@
 
 #include "nolli.h"
 
-void analyze(struct ast*);
+void analyze_ast(struct ast*);
 
 #endif /* NOLLI_WALK_H */
