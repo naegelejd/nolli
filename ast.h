@@ -231,52 +231,52 @@ struct ast {
     int lineno;
 };
 
-struct ast *ast_make_bool_lit(bool b);
-struct ast *ast_make_char_lit(char c);
-struct ast *ast_make_int_num(long l);
-struct ast *ast_make_real_num(double d);
-struct ast *ast_make_str_lit(struct string *s);
+struct ast *ast_make_bool_lit(bool b, int);
+struct ast *ast_make_char_lit(char c, int);
+struct ast *ast_make_int_num(long l, int);
+struct ast *ast_make_real_num(double d, int);
+struct ast *ast_make_str_lit(struct string *s, int);
 
-struct ast *ast_make_ident(struct string *s);
+struct ast *ast_make_ident(struct string *s, int);
 
-struct ast *ast_make_qualified(struct ast*, struct ast*);
-struct ast *ast_make_list_type(struct ast*);
-struct ast *ast_make_map_type(struct ast*, struct ast*);
-struct ast *ast_make_func_type(struct ast*, struct ast*);
+struct ast *ast_make_qualified(struct ast*, struct ast*, int);
+struct ast *ast_make_list_type(struct ast*, int);
+struct ast *ast_make_map_type(struct ast*, struct ast*, int);
+struct ast *ast_make_func_type(struct ast*, struct ast*, int);
 
-struct ast *ast_make_initialization(struct ast*, struct ast*);
-struct ast *ast_make_unexpr(int op, struct ast*);
-struct ast *ast_make_binexpr(struct ast*, int op, struct ast*);
+struct ast *ast_make_initialization(struct ast*, struct ast*, int);
+struct ast *ast_make_unexpr(int op, struct ast*, int);
+struct ast *ast_make_binexpr(struct ast*, int op, struct ast*, int);
 
-struct ast *ast_make_list(int type);
+struct ast *ast_make_list(int type, int);
 struct ast *ast_list_append(struct ast*, struct ast*);
 
-struct ast *ast_make_keyval(struct ast *key, struct ast *val);
-struct ast *ast_make_lookup(struct ast*, struct ast*);
-struct ast *ast_make_selector(struct ast*, struct ast*);
+struct ast *ast_make_keyval(struct ast *key, struct ast *val, int);
+struct ast *ast_make_lookup(struct ast*, struct ast*, int);
+struct ast *ast_make_selector(struct ast*, struct ast*, int);
 
-struct ast *ast_make_bind(struct ast*, struct ast*);
-struct ast *ast_make_assignment(struct ast*, int op, struct ast*);
+struct ast *ast_make_bind(struct ast*, struct ast*, int);
+struct ast *ast_make_assignment(struct ast*, int op, struct ast*, int);
 
-struct ast *ast_make_ifelse(struct ast*, struct ast*, struct ast*);
-struct ast *ast_make_while(struct ast*, struct ast*);
-struct ast *ast_make_for(struct ast*, struct ast*, struct ast*);
-struct ast *ast_make_call(struct ast*, struct ast*);
+struct ast *ast_make_ifelse(struct ast*, struct ast*, struct ast*, int);
+struct ast *ast_make_while(struct ast*, struct ast*, int);
+struct ast *ast_make_for(struct ast*, struct ast*, struct ast*, int);
+struct ast *ast_make_call(struct ast*, struct ast*, int);
 
-struct ast *ast_make_break(void);
-struct ast *ast_make_continue(void);
-struct ast *ast_make_return(struct ast*);
+struct ast *ast_make_break(int);
+struct ast *ast_make_continue(int);
+struct ast *ast_make_return(struct ast*, int);
 
-struct ast *ast_make_datalit(struct ast *, struct ast *);
+struct ast *ast_make_datalit(struct ast *, struct ast *, int);
 
 
-struct ast *ast_make_decl(int, struct ast*, struct ast*);
-struct ast *ast_make_function(struct ast*, struct ast*, struct ast*);
-struct ast *ast_make_data(struct ast *, struct ast*);
-struct ast *ast_make_impl(struct ast*, struct ast*);
-struct ast *ast_make_interface(struct ast *, struct ast*);
-struct ast *ast_make_alias(struct ast*, struct ast *);
-struct ast *ast_make_import(struct ast *, struct ast*);
-struct ast *ast_make_program(struct ast*, struct ast*);
+struct ast *ast_make_decl(int, struct ast*, struct ast*, int);
+struct ast *ast_make_function(struct ast*, struct ast*, struct ast*, int);
+struct ast *ast_make_data(struct ast *, struct ast*, int);
+struct ast *ast_make_impl(struct ast*, struct ast*, int);
+struct ast *ast_make_interface(struct ast *, struct ast*, int);
+struct ast *ast_make_alias(struct ast*, struct ast *, int);
+struct ast *ast_make_import(struct ast *, struct ast*, int);
+struct ast *ast_make_program(struct ast*, struct ast*, int);
 
 #endif /* NOLLI_AST_H */
