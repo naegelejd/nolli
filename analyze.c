@@ -11,27 +11,32 @@ static struct type *analyze(struct ast *root, struct irstate *irs);
 
 static struct type *analyze_bool_lit(struct ast *node, struct irstate *irs)
 {
-    return &bool_type;
+    node->type = &bool_type;
+    return node->type;
 }
 
 static struct type *analyze_char_lit(struct ast *node, struct irstate *irs)
 {
-    return &char_type;
+    node->type = &char_type;
+    return node->type;
 }
 
 static struct type *analyze_int_num(struct ast *node, struct irstate *irs)
 {
-    return &int_type;
+    node->type = &int_type;
+    return node->type;
 }
 
 static struct type *analyze_real_num(struct ast *node, struct irstate *irs)
 {
-    return &real_type;
+    node->type = &real_type;
+    return node->type;
 }
 
 static struct type *analyze_str_lit(struct ast *node, struct irstate *irs)
 {
-    return &str_type;
+    node->type = &str_type;
+    return node->type;
 }
 
 static struct type *analyze_ident(struct ast *node, struct irstate *irs)
@@ -93,18 +98,26 @@ static struct type *analyze_unexpr(struct ast *node, struct irstate *irs)
 {
     analyze(node->unexpr.expr, irs);
 
-    return NULL;    /* FIXME */
+    node->type = node->unexpr.expr->type;
+    return node->type;    /* FIXME */
 }
 
 static struct type *analyze_binexpr(struct ast *node, struct irstate *irs)
 {
     struct type *rhs = analyze(node->binexpr.lhs, irs);
     struct type *lhs = analyze(node->binexpr.rhs, irs);
-    if (rhs != lhs) {
-        NOLLI_DIEF("Type mismatch in binary expression on line %d", node->lineno);
+    if (node->binexpr.lhs->type != node->binexpr.rhs->type) {
+        NOLLI_ERRORF("Type mismatch in binary expression on line %d", node->lineno);
     }
 
-    return NULL;    /* FIXME */
+    if (node->binexpr.op == TOK_EQ || node->binexpr.op == TOK_NEQ ||
+            (node->binexpr.op >= TOK_LT && node->binexpr.op <= TOK_AND)) {
+        node->type = &bool_type;
+    } else {
+        node->type = node->binexpr.lhs->type;
+    }
+
+    return node->type;
 }
 
 static struct type *analyze_keyval(struct ast *node, struct irstate *irs)
@@ -146,7 +159,12 @@ static struct type *analyze_assign(struct ast *node, struct irstate *irs)
 
 static struct type *analyze_ifelse(struct ast *node, struct irstate *irs)
 {
-    analyze(node->ifelse.cond, irs);
+    struct ast *cond = node->ifelse.cond;
+    analyze(cond, irs);
+    if (cond->type != &bool_type) {
+        NOLLI_ERRORF("Conditional expression must be boolean on line %d", cond->lineno);
+    }
+
     analyze(node->ifelse.if_body, irs);
     if (node->ifelse.else_body) {
         analyze(node->ifelse.else_body, irs);

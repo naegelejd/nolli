@@ -254,9 +254,16 @@ static int lex_ident(struct lexer *lex)
         next(lex);
     } while (isalnum(lex->cur) || lex->cur == '_');
 
+
     int keyword = lookup_keyword(lex);
     if (keyword) {
         return keyword;
+    }
+
+    /* this sucks */
+    if ((strcmp(lex->curbuff, "true") == 0) ||
+            (strcmp(lex->curbuff, "false") == 0)) {
+        return TOK_BOOL;
     }
 
     /* otherwise, it's an identifier */
@@ -333,9 +340,10 @@ nexttok:
         next(lex);
 
         switch (lex->lasttok) {
-            case TOK_IDENT: case TOK_BOOL: case TOK_CHAR: case TOK_INT:
-            case TOK_REAL: case TOK_STRING: case TOK_RPAREN: case TOK_RCURLY:
-            case TOK_RSQUARE: case TOK_RET: case TOK_BREAK: case TOK_CONT:
+            case TOK_IDENT: case TOK_BOOL: case TOK_CHAR:
+            case TOK_INT: case TOK_REAL: case TOK_STRING:
+            case TOK_RPAREN: case TOK_RCURLY: case TOK_RSQUARE:
+            case TOK_RET: case TOK_BREAK: case TOK_CONT:
                 appendc(lex, ';');
                 tok = TOK_SEMI;
                 break;

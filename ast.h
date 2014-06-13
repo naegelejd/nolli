@@ -227,6 +227,7 @@ struct ast {
         struct ast_program program;
     };
     struct ast* next;
+    struct type* type;
     int tag;
     int lineno;
 };

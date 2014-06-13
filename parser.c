@@ -940,10 +940,22 @@ static struct ast* operand(struct parser *parser)
     struct ast *op = NULL;
     if (check(parser, TOK_IDENT)) {
         op = ident(parser);
+    } else if (accept(parser, TOK_BOOL)) {
+        char *tmpbuff = current_buffer(parser);
+        if (strcmp(tmpbuff, "true") == 0) {
+            PARSE_DEBUGF(parser, "Parsed bool literal: %s", tmpbuff);
+            op = ast_make_bool_lit(true, lineno(parser));
+        } else if (strcmp(tmpbuff, "false") == 0) {
+            PARSE_DEBUGF(parser, "Parsed bool literal: %s", tmpbuff);
+            op = ast_make_bool_lit(false, lineno(parser));
+        } else {
+            PARSE_ERRORF(parser, "Invalid bool literal: %s", tmpbuff);
+            assert(false);  /* stupid but should never happen */
+        }
     } else if (accept(parser, TOK_CHAR)) {
         char *tmpbuff = current_buffer(parser);
-        PARSE_DEBUGF(parser, "Parsed char literal: %s", tmpbuff);
         char c = tmpbuff[0];
+        PARSE_DEBUGF(parser, "Parsed char literal: %s", tmpbuff);
         op = ast_make_char_lit(c, lineno(parser));
     } else if (check(parser, TOK_INT)) {
         op = intlit(parser);
