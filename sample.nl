@@ -28,7 +28,7 @@ class Rect {
 }
 
 func () rectDemo {
-    sh := &Rect{width:14, height:12, "square", func int () { return 42; }}
+    sh := new Rect{width:14, height:12, "square", func int () { return 42; }}
 }
 
 var int a = func int () { return 42; }()

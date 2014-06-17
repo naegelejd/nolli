@@ -956,7 +956,7 @@ static struct ast* operand(struct parser *parser)
         op = maplit(parser);
     } else if (check(parser, TOK_FUNC)) {
         op = funclit(parser);
-    } else if (check(parser, TOK_AMP)) {
+    } else if (check(parser, TOK_NEW)) {
         op = classlit(parser);
     } else {
         PARSE_ERRORF(parser, "Invalid operand: %s", current_buffer(parser));
@@ -1064,7 +1064,7 @@ static struct ast* classlit(struct parser *parser)
 {
     bool err = false;
 
-    if (!expect(parser, TOK_AMP)) {
+    if (!expect(parser, TOK_NEW)) {
         err = true;
     }
 

@@ -34,10 +34,10 @@ static const char *token_names[] = {
     "||", "&&",
 
     "(", ")", "[", "]", "{", "}",
-    ",", ";", ".", "&",
+    ",", ";", ".",
 
     "package", "import", "from",
-    "alias",
+    "new", "alias",
     "class", "interface",
     "func", "return",
     "break", "continue",
@@ -48,7 +48,7 @@ static const char *token_names[] = {
 
 static const char *keywords[] = {
     "package", "import", "from",
-    "alias",
+    "new", "alias",
     "class", "interface",
     "func", "return",
     "break", "continue",
@@ -298,7 +298,7 @@ static int lex_symbol(struct lexer *lex)
         case '&':
             next(lex);
             if (lex->cur != '&') {
-                return TOK_AMP;
+                LEX_ERRORF(lex, "Invalid symbol &%c", lex->cur);
             }
             appendc(lex, lex->cur);
             next(lex);
