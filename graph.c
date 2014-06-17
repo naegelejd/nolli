@@ -62,15 +62,46 @@ static int graph_binexpr(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_qualified(struct ast *node, FILE *fp, int id)
+static int graph_tmpl_type(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+
+    fprintf(fp, "%d [label=\"type\"]\n", rID);
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->tmpl_type.name, fp, id);
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->tmpl_type.tmpls, fp, id);
+
+    return id;
+}
+
+static int graph_qual_type(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
 
     fprintf(fp, "%d [label=\"qualified\"]\n", rID);
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->qualified.package, fp, id);
+    id = graph(node->qual_type.package, fp, id);
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->qualified.name, fp, id);
+    id = graph(node->qual_type.name, fp, id);
+
+    return id;
+}
+
+static int graph_func_type(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+
+    fprintf(fp, "%d [label=\"functype\"]\n", rID);
+
+    if (node->func_type.ret_type) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(node->func_type.ret_type, fp, id);
+    }
+    if (node->func_type.params) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(node->func_type.params, fp, id);
+    }
 
     return id;
 }
@@ -139,48 +170,6 @@ static int graph_call(struct ast *node, FILE *fp, int id)
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->call.args, fp, id);
-
-    return id;
-}
-
-static int graph_list_type(struct ast *node, FILE *fp, int id)
-{
-    int rID = id;
-
-    fprintf(fp, "%d [label=\"list-type\"]\n", rID);
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->list_type.name, fp, id);
-
-    return id;
-}
-
-static int graph_map_type(struct ast *node, FILE *fp, int id)
-{
-    int rID = id;
-
-    fprintf(fp, "%d [label=\"map-type\"]\n", rID);
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->map_type.keytype, fp, id);
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->map_type.valtype, fp, id);
-
-    return id;
-}
-
-static int graph_func_type(struct ast *node, FILE *fp, int id)
-{
-    int rID = id;
-
-    fprintf(fp, "%d [label=\"functype\"]\n", rID);
-
-    if (node->func_type.ret_type) {
-        fprintf(fp, "%d -> %d\n", rID, ++id);
-        id = graph(node->func_type.ret_type, fp, id);
-    }
-    if (node->func_type.params) {
-        fprintf(fp, "%d -> %d\n", rID, ++id);
-        id = graph(node->func_type.params, fp, id);
-    }
 
     return id;
 }
@@ -310,6 +299,11 @@ static int graph_classlit(struct ast *node, FILE *fp, int id)
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->classlit.name, fp, id);
 
+    if (node->classlit.tmpl) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(node->classlit.tmpl, fp, id);
+    }
+
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->classlit.items, fp, id);
 
@@ -356,6 +350,11 @@ static int graph_class(struct ast *node, FILE *fp, int id)
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->classdef.name, fp, id);
+
+    if (node->classlit.tmpl) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(node->classlit.tmpl, fp, id);
+    }
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->classdef.members, fp, id);
@@ -463,6 +462,11 @@ static int graph_idents(struct ast *node, FILE *fp, int id)
     return graph_list(node, fp, id, "idents");
 }
 
+static int graph_types(struct ast *node, FILE *fp, int id)
+{
+    return graph_list(node, fp, id, "types");
+}
+
 static int graph_methods(struct ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "methods");
@@ -511,9 +515,8 @@ static int graph(struct ast *root, FILE *fp, int id)
 
         graph_ident,
 
-        graph_qualified,
-        graph_list_type,
-        graph_map_type,
+        graph_tmpl_type,
+        graph_qual_type,
         graph_func_type,
 
         graph_decl,
@@ -554,6 +557,7 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_members,
         graph_statements,
         graph_idents,
+        graph_types,
         graph_methods,
         graph_method_decls,
         graph_decls,

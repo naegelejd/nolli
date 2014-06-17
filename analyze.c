@@ -44,24 +44,14 @@ static struct type *analyze_ident(struct ast *node, struct irstate *irs)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_qualified(struct ast *node, struct irstate *irs)
+static struct type *analyze_tmpl_type(struct ast *node, struct irstate *irs)
 {
     return NULL;
 }
 
-static struct type *analyze_list_type(struct ast *node, struct irstate *irs)
+static struct type *analyze_qual_type(struct ast *node, struct irstate *irs)
 {
-    analyze(node->list_type.name, irs);
-
-    return NULL;    /* FIXME */
-}
-
-static struct type *analyze_map_type(struct ast *node, struct irstate *irs)
-{
-    analyze(node->map_type.keytype, irs);
-    analyze(node->map_type.valtype, irs);
-
-    return NULL;    /* FIXME */
+    return NULL;
 }
 
 static struct type *analyze_func_type(struct ast *node, struct irstate *irs)
@@ -213,6 +203,9 @@ static struct type *analyze_function(struct ast *node, struct irstate *irs)
 static struct type *analyze_classlit(struct ast *node, struct irstate *irs)
 {
     analyze(node->classlit.name, irs);
+    if (node->classlit.tmpl) {
+        analyze(node->classlit.tmpl, irs);
+    }
     analyze(node->classlit.items, irs);
     return NULL;    /* FIXME */
 }
@@ -239,6 +232,9 @@ static struct type *analyze_continue(struct ast *node, struct irstate *irs)
 static struct type *analyze_class(struct ast *node, struct irstate *irs)
 {
     analyze(node->classdef.name, irs);
+    if (node->classdef.tmpl) {
+        analyze(node->classdef.tmpl, irs);
+    }
     analyze(node->classdef.members, irs);
 
     return NULL;    /* FIXME */
@@ -326,6 +322,11 @@ static struct type* analyze_idents(struct ast *node, struct irstate *irs)
     return analyze_list(node, irs);
 }
 
+static struct type* analyze_types(struct ast *node, struct irstate *irs)
+{
+    return analyze_list(node, irs);
+}
+
 static struct type* analyze_methods(struct ast *node, struct irstate *irs)
 {
     return analyze_list(node, irs);
@@ -369,9 +370,8 @@ static char *ast_name(struct ast* node)
 
         "IDENT",
 
-        "QUALIFIED",
-        "LIST_TYPE",
-        "MAP_TYPE",
+        "TMPL_TYPE",
+        "QUAL_TYPE",
         "FUNC_TYPE",
 
         "DECL",
@@ -391,7 +391,7 @@ static char *ast_name(struct ast* node)
         "FOR",
         "CALL",
         "FUNCTION",
-        "STRUCTLIT",
+        "CLASSLIT",
 
         "RETURN",
         "BREAK",
@@ -437,9 +437,8 @@ static struct type *analyze(struct ast *root, struct irstate *irs)
 
         analyze_ident,
 
-        analyze_qualified,
-        analyze_list_type,
-        analyze_map_type,
+        analyze_tmpl_type,
+        analyze_qual_type,
         analyze_func_type,
 
         analyze_decl,
@@ -480,6 +479,7 @@ static struct type *analyze(struct ast *root, struct irstate *irs)
         analyze_members,
         analyze_statements,
         analyze_idents,
+        analyze_types,
         analyze_methods,
         analyze_method_decls,
         analyze_decls,

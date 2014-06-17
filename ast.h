@@ -14,9 +14,8 @@ enum {
 
     AST_IDENT,
 
-    AST_QUALIFIED,
-    AST_LIST_TYPE,
-    AST_MAP_TYPE,
+    AST_TMPL_TYPE,
+    AST_QUAL_TYPE,
     AST_FUNC_TYPE,
 
     AST_DECL,
@@ -58,6 +57,7 @@ enum {
     AST_LIST_MEMBERS,
     AST_LIST_STATEMENTS,
     AST_LIST_IDENTS,
+    AST_LIST_TYPES,
     AST_LIST_METHODS,
     AST_LIST_METHOD_DECLS,
     AST_LIST_DECLS,
@@ -74,16 +74,12 @@ enum {
     DECL_CONST
 };
 
-struct ast_list_type {
-    struct ast *name;
+struct ast_tmpl_type {
+    struct ast *name, *tmpls;
 };
 
-struct ast_qualified {
+struct ast_qual_type {
     struct ast *package, *name;
-};
-
-struct ast_map_type {
-    struct ast *keytype, *valtype;
 };
 
 struct ast_func_type {
@@ -91,7 +87,7 @@ struct ast_func_type {
 };
 
 struct ast_classlit {
-    struct ast *name, *items;
+    struct ast *name, *tmpl, *items;
 };
 
 struct ast_function {
@@ -164,7 +160,7 @@ struct ast_interface {
 };
 
 struct ast_class {
-    struct ast *name, *members, *methods;
+    struct ast *name, *tmpl, *members, *methods;
 };
 
 struct ast_alias {
@@ -193,10 +189,9 @@ struct ast {
         double d;
         struct string *s;
 
-        struct ast_list_type list_type;
-        struct ast_map_type map_type;
+        struct ast_tmpl_type tmpl_type;
+        struct ast_qual_type qual_type;
         struct ast_func_type func_type;
-        struct ast_qualified qualified;
         struct ast_classlit classlit;
         struct ast_function function;
         struct ast_init init;
@@ -234,9 +229,8 @@ struct ast *ast_make_str_lit(struct string *s, int);
 
 struct ast *ast_make_ident(struct string *s, int);
 
-struct ast *ast_make_qualified(struct ast*, struct ast*, int);
-struct ast *ast_make_list_type(struct ast*, int);
-struct ast *ast_make_map_type(struct ast*, struct ast*, int);
+struct ast *ast_make_tmpl_type(struct ast*, struct ast*, int);
+struct ast *ast_make_qual_type(struct ast*, struct ast*, int);
 struct ast *ast_make_func_type(struct ast*, struct ast*, int);
 
 struct ast *ast_make_initialization(struct ast*, struct ast*, int);
@@ -262,12 +256,12 @@ struct ast *ast_make_break(int);
 struct ast *ast_make_continue(int);
 struct ast *ast_make_return(struct ast*, int);
 
-struct ast *ast_make_classlit(struct ast *, struct ast *, int);
+struct ast *ast_make_classlit(struct ast*, struct ast*, struct ast*, int);
 
 struct ast *ast_make_decl(int, struct ast*, struct ast*, int);
 struct ast *ast_make_function(struct ast*, struct ast*, struct ast*, int);
-struct ast *ast_make_class(struct ast *, struct ast*, struct ast *, int);
-struct ast *ast_make_interface(struct ast *, struct ast*, int);
+struct ast *ast_make_class(struct ast*, struct ast*, struct ast*, struct ast*, int);
+struct ast *ast_make_interface(struct ast*, struct ast*, int);
 struct ast *ast_make_alias(struct ast*, struct ast *, int);
 struct ast *ast_make_import(struct ast *, struct ast*, int);
 struct ast *ast_make_program(struct ast*, struct ast*, int);

@@ -75,31 +75,23 @@ struct ast* ast_make_alias(struct ast* type, struct ast *name, int lineno)
     return node;
 }
 
-struct ast *ast_make_qualified(struct ast *package, struct ast *name, int lineno)
+struct ast *ast_make_tmpl_type(struct ast *name, struct ast *tmpls, int lineno)
+{
+    assert(name);
+    assert(tmpls);
+    struct ast *node = make_node(AST_TMPL_TYPE, lineno);
+    node->tmpl_type.name = name;
+    node->tmpl_type.tmpls = tmpls;
+    return node;
+}
+
+struct ast *ast_make_qual_type(struct ast *package, struct ast *name, int lineno)
 {
     assert(package);
     assert(name);
-    struct ast *node = make_node(AST_QUALIFIED, lineno);
-    node->qualified.package = package;
-    node->qualified.name = name;
-    return node;
-}
-
-struct ast* ast_make_list_type(struct ast *name, int lineno)
-{
-    assert(name);
-    struct ast *node = make_node(AST_LIST_TYPE, lineno);
-    node->list_type.name = name;
-    return node;
-}
-
-struct ast* ast_make_map_type(struct ast *keytype, struct ast *valtype, int lineno)
-{
-    assert(keytype);
-    assert(valtype);
-    struct ast *node = make_node(AST_MAP_TYPE, lineno);
-    node->map_type.keytype = keytype;
-    node->map_type.valtype = valtype;
+    struct ast *node = make_node(AST_QUAL_TYPE, lineno);
+    node->qual_type.package = package;
+    node->qual_type.name = name;
     return node;
 }
 
@@ -112,13 +104,14 @@ struct ast* ast_make_func_type(struct ast *ret_type, struct ast *params, int lin
     return node;
 }
 
-struct ast* ast_make_class(struct ast *name, struct ast *members, struct ast *methods, int lineno)
+struct ast* ast_make_class(struct ast *name, struct ast *tmpl, struct ast *members, struct ast *methods, int lineno)
 {
     assert(name);
     assert(members);
     assert(methods);
     struct ast *node = make_node(AST_CLASS, lineno);
     node->classdef.name = name;
+    node->classdef.tmpl = tmpl;
     node->classdef.members = members;
     node->classdef.methods = methods;
     return node;
@@ -324,13 +317,14 @@ struct ast* ast_make_function(struct ast *name, struct ast *type,
     return node;
 }
 
-struct ast* ast_make_classlit(struct ast *name, struct ast *items, int lineno)
+struct ast* ast_make_classlit(struct ast *name, struct ast *tmpl, struct ast *items, int lineno)
 {
     assert(name);
     assert(items);
 
     struct ast *node = make_node(AST_CLASSLIT, lineno);
     node->classlit.name = name;
+    node->classlit.tmpl = tmpl;
     node->classlit.items = items;
     return node;
 }

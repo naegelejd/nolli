@@ -44,6 +44,7 @@ static struct ast* parameters(struct parser *parser);
 static struct ast* arguments(struct parser *parser);
 static struct ast* block(struct parser *parser);
 static struct ast* type(struct parser *parser);
+static struct ast* templ(struct parser *parser);
 static struct ast* functype(struct parser *parser);
 
 
@@ -236,6 +237,14 @@ static struct ast* classdef(struct parser *parser)
         err = true;
     }
 
+    struct ast *tmpl = NULL;
+    if (check(parser, TOK_LT)) {
+        tmpl = templ(parser);
+        if (tmpl == NULL) {
+            err = true;
+        }
+    }
+
     if (!expect(parser, TOK_LCURLY)) {
         err = true;
     }
@@ -300,7 +309,7 @@ static struct ast* classdef(struct parser *parser)
     if (err) {
         c = NULL;   /* TODO: destroy name & members & methods */
     } else {
-        c = ast_make_class(name, members, methods, lineno(parser));
+        c = ast_make_class(name, tmpl, members, methods, lineno(parser));
     }
 
     return c;
@@ -535,23 +544,7 @@ static struct ast* type(struct parser *parser)
 
     struct ast *type = NULL;
 
-    if (accept(parser, TOK_LSQUARE)) {
-        struct ast *listtype = ident(parser);
-        if (!expect(parser, TOK_RSQUARE)) {
-            err = true;
-        }
-        type = ast_make_list_type(listtype, lineno(parser));
-    } else if (accept(parser, TOK_LCURLY)) {
-        struct ast *keytype = ident(parser);
-        if (!expect(parser, TOK_COMMA)) {
-            err = true;
-        }
-        struct ast *valtype = ident(parser);
-        if (!expect(parser, TOK_RCURLY)) {
-            err = true;
-        }
-        type = ast_make_map_type(keytype, valtype, lineno(parser));
-    } else if (check(parser, TOK_FUNC)) {
+    if (check(parser, TOK_FUNC)) {
         type = functype(parser);
         if (type == NULL) {
             err = true;
@@ -562,9 +555,17 @@ static struct ast* type(struct parser *parser)
         /* parse types defined in other modules, e.g. std.file */
         if (accept(parser, TOK_DOT)) {
             struct ast *type2 = ident(parser);
-            struct ast *qualified = ast_make_qualified(type, type2, lineno(parser));
+            struct ast *qualified = ast_make_qual_type(type, type2, lineno(parser));
             type = qualified;
             PARSE_DEBUG(parser, "Parsed qualified type");
+        }
+
+        if (check(parser, TOK_LT)) {
+            struct ast *tmpl = templ(parser);
+            if (templ == NULL) {
+                err = true;
+            }
+            type = ast_make_tmpl_type(type, tmpl, lineno(parser));
         }
     }
 
@@ -572,6 +573,34 @@ static struct ast* type(struct parser *parser)
         type = NULL;    /* TODO: destroy type */
     }
     return type;
+}
+
+static struct ast *templ(struct parser *parser)
+{
+    bool err = false;
+
+    if (!expect(parser, TOK_LT)) {
+        err = true;
+    }
+
+    struct ast *tps = ast_make_list(AST_LIST_TYPES, lineno(parser));
+    do {
+        struct ast *tp = type(parser);
+        if (tp == NULL) {
+            err = true;
+            break;
+        }
+        tps = ast_list_append(tps, tp);
+    } while (accept(parser, TOK_COMMA));
+
+    if (!expect(parser, TOK_GT)) {
+        err = true;
+    }
+
+    if (err) {
+        tps = NULL;    /* TODO: destroy tps */
+    }
+    return tps;
 }
 
 static struct ast* ident_statement(struct parser *parser)
@@ -1070,6 +1099,14 @@ static struct ast* classlit(struct parser *parser)
 
     struct ast *name = ident(parser);
 
+    struct ast *tmpl = NULL;
+    if (check(parser, TOK_LT)) {
+        tmpl = templ(parser);
+        if (tmpl == NULL) {
+            err = true;
+        }
+    }
+
     if (!expect(parser, TOK_LCURLY)) {
         err = true;
     }
@@ -1113,7 +1150,7 @@ static struct ast* classlit(struct parser *parser)
     if (err) {
         clit = NULL;     /* TODO: destroy keyval_list */
     } else {
-        clit = ast_make_classlit(name, init_list, lineno(parser));
+        clit = ast_make_classlit(name, tmpl, init_list, lineno(parser));
     }
     return clit;
 }
