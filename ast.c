@@ -112,13 +112,15 @@ struct ast* ast_make_func_type(struct ast *ret_type, struct ast *params, int lin
     return node;
 }
 
-struct ast* ast_make_data(struct ast *name, struct ast *members, int lineno)
+struct ast* ast_make_class(struct ast *name, struct ast *members, struct ast *methods, int lineno)
 {
     assert(name);
     assert(members);
-    struct ast *node = make_node(AST_DATA, lineno);
-    node->data.name = name;
-    node->data.members = members;
+    assert(methods);
+    struct ast *node = make_node(AST_CLASS, lineno);
+    node->classdef.name = name;
+    node->classdef.members = members;
+    node->classdef.methods = methods;
     return node;
 }
 
@@ -322,14 +324,14 @@ struct ast* ast_make_function(struct ast *name, struct ast *type,
     return node;
 }
 
-struct ast* ast_make_datalit(struct ast *name, struct ast *items, int lineno)
+struct ast* ast_make_classlit(struct ast *name, struct ast *items, int lineno)
 {
     assert(name);
     assert(items);
 
-    struct ast *node = make_node(AST_DATALIT, lineno);
-    node->datalit.name = name;
-    node->datalit.items = items;
+    struct ast *node = make_node(AST_CLASSLIT, lineno);
+    node->classlit.name = name;
+    node->classlit.items = items;
     return node;
 }
 
@@ -341,17 +343,6 @@ struct ast* ast_make_selector(struct ast *parent, struct ast *child, int lineno)
     struct ast *node = make_node(AST_SELECTOR, lineno);
     node->selector.parent = parent;
     node->selector.child = child;
-    return node;
-}
-
-struct ast* ast_make_impl(struct ast *name, struct ast *methods, int lineno)
-{
-    assert(name);
-    assert(methods);
-
-    struct ast *node = make_node(AST_IMPL, lineno);
-    node->impl.name = name;
-    node->impl.methods = methods;
     return node;
 }
 

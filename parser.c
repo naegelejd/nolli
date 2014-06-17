@@ -19,9 +19,7 @@ static struct ast* ident(struct parser *parser);
 static struct ast* import(struct parser *parser);
 static struct ast* declaration(struct parser *parser);
 static struct ast* declrhs(struct parser *parser);
-static struct ast* data(struct parser *parser);
-static struct ast* data_member(struct parser *parser);
-static struct ast* methods(struct parser *parser);
+static struct ast* classdef(struct parser *parser);
 static struct ast* interface(struct parser *parser);
 static struct ast* methdecl(struct parser *parser);
 static struct ast* funcdef(struct parser *parser);
@@ -41,7 +39,7 @@ static struct ast* reallit(struct parser *parser);
 static struct ast* listlit(struct parser *parser);
 static struct ast* maplit(struct parser *parser);
 static struct ast* funclit(struct parser *parser);
-static struct ast* datalit(struct parser *parser);
+static struct ast* classlit(struct parser *parser);
 static struct ast* parameters(struct parser *parser);
 static struct ast* arguments(struct parser *parser);
 static struct ast* block(struct parser *parser);
@@ -104,8 +102,17 @@ static struct ast* program(struct parser *parser)
     }
 
     struct ast *defs = globals(parser);
+    if (defs == NULL) {
+        err = true;
+    }
 
-    return ast_make_program(pkg, defs, lineno(parser));
+    struct ast *prog = NULL;
+    if (err) {
+        prog = NULL;    /* TODO: destroy pkg, defs */
+    } else {
+        prog = ast_make_program(pkg, defs, lineno(parser));
+    }
+    return prog;
 }
 
 static struct ast* globals(struct parser *parser)
@@ -142,10 +149,8 @@ static struct ast* global(struct parser *parser)
         def = import(parser);
     } else if (check(parser, TOK_VAR) || check(parser, TOK_CONST)) {
         def = declaration(parser);
-    } else if (check(parser, TOK_DATA)) {
-        def = data(parser);
-    } else if (check(parser, TOK_METHODS)) {
-        def = methods(parser);
+    } else if (check(parser, TOK_CLASS)) {
+        def = classdef(parser);
     } else if (check(parser, TOK_INTERFACE)) {
         def = interface(parser);
     } else if (check(parser, TOK_FUNC)) {
@@ -218,117 +223,87 @@ static struct ast* alias(struct parser *parser)
     return ali;
 }
 
-static struct ast* data(struct parser *parser)
+static struct ast* classdef(struct parser *parser)
 {
     bool err = false;
 
-    if (!expect(parser, TOK_DATA)) {
+    if (!expect(parser, TOK_CLASS)) {
         err = true;
     }
 
     struct ast *name = ident(parser);
+    if (name == NULL) {
+        err = true;
+    }
 
     if (!expect(parser, TOK_LCURLY)) {
         err = true;
     }
 
     struct ast *members = ast_make_list(AST_LIST_MEMBERS, lineno(parser));
+    struct ast *methods = ast_make_list(AST_LIST_METHODS, lineno(parser));
+
     while (!check(parser, TOK_RCURLY)) {
-        struct ast *member = data_member(parser);
-        if (member == NULL) {
+
+        struct ast *tp = type(parser);
+        if (tp == NULL) {
             err = true;
-            PARSE_ERROR(parser, "Invalid data member");
+            PARSE_ERROR(parser, "Invalid class member type");
             break;
         }
-        if (!expect(parser, TOK_SEMI)) {
-            err = true;
-            break;
-        }
-        members = ast_list_append(members, member);
-    }
-    if (!expect(parser, TOK_RCURLY)) {
-        err = true;
-    }
 
-    PARSE_DEBUG(parser, "Parsed `data`");
-
-    struct ast *d = NULL;
-    if (err) {
-        d = NULL;   /* TODO: destroy name & members */
-    } else {
-        d = ast_make_data(name, members, lineno(parser));
-    }
-
-    return d;
-}
-
-static struct ast* data_member(struct parser *parser)
-{
-    bool err = false;
-
-    struct ast* tp = type(parser);
-    struct ast *names = ast_make_list(AST_LIST_IDENTS, lineno(parser));
-    do {
         struct ast *name = ident(parser);
         if (name == NULL) {
             err = true;
-            PARSE_ERROR(parser, "Invalid data member name");
-            break;
         }
-        names = ast_list_append(names, name);
-    } while (accept(parser, TOK_COMMA));
 
-    struct ast *member = NULL;
-    if (err) {
-        member = NULL;  /* TODO: destroy tp, names */
-    } else {
-        member = ast_make_decl(DECL_VAR, tp, names, lineno(parser));
-    }
-    return member;
-}
+        if (check(parser, TOK_LCURLY)) {
+            /* Parsing a method definition */
+            struct ast *blk = block(parser);
+            if (blk == NULL) {
+                err = true;
+                break;
+            }
 
-static struct ast* methods(struct parser *parser)
-{
-    bool err = false;
-
-    if (!expect(parser, TOK_METHODS)) {
-        err = true;
-    }
-
-    struct ast *name = ident(parser);
-
-    if (!expect(parser, TOK_LCURLY)) {
-        err = true;
-    }
-
-    struct ast *defs = ast_make_list(AST_LIST_METHODS, lineno(parser));
-    while (!check(parser, TOK_RCURLY)) {
-        struct ast *def = funcdef(parser);
-        if (def == NULL) {
-            err = true;
-            PARSE_ERROR(parser, "Invalid method definition");
-            break;
+            struct ast *method = ast_make_function(tp, name, blk, lineno(parser));
+            PARSE_DEBUG(parser, "Parsed class method");
+            methods = ast_list_append(methods, method);
+        } else {
+            /* Parsing class member(s) */
+            struct ast *names = ast_make_list(AST_LIST_IDENTS, lineno(parser));
+            names = ast_list_append(names, name);
+            while (accept(parser, TOK_COMMA)) {
+                struct ast *name = ident(parser);
+                if (name == NULL) {
+                    err = true;
+                    break;
+                }
+                names = ast_list_append(names, name);
+            }
+            struct ast *member = ast_make_decl(DECL_VAR, tp, names, lineno(parser));
+            PARSE_DEBUG(parser, "Parsed line of class members");
+            members = ast_list_append(members, member);
         }
+
         if (!expect(parser, TOK_SEMI)) {
             err = true;
             break;
         }
-        defs = ast_list_append(defs, def);
     }
-
     if (!expect(parser, TOK_RCURLY)) {
         err = true;
     }
 
-    PARSE_DEBUG(parser, "Parsed `methods`");
+    PARSE_DEBUG(parser, "Parsed `class`");
 
-    struct ast *meths = NULL;
+    struct ast *c = NULL;
     if (err) {
-        meths = NULL;   /* TODO: clean up name and funcdefs */
+        c = NULL;   /* TODO: destroy name & members & methods */
     } else {
-        meths = ast_make_impl(name, defs, lineno(parser));
+        c = ast_make_class(name, members, methods, lineno(parser));
     }
-    return meths;
+
+    return c;
 }
 
 static struct ast* funcdef(struct parser *parser)
@@ -982,7 +957,7 @@ static struct ast* operand(struct parser *parser)
     } else if (check(parser, TOK_FUNC)) {
         op = funclit(parser);
     } else if (check(parser, TOK_AMP)) {
-        op = datalit(parser);
+        op = classlit(parser);
     } else {
         PARSE_ERRORF(parser, "Invalid operand: %s", current_buffer(parser));
         op = NULL;
@@ -1085,7 +1060,7 @@ static struct ast* funclit(struct parser *parser)
     return fnlit;
 }
 
-static struct ast* datalit(struct parser *parser)
+static struct ast* classlit(struct parser *parser)
 {
     bool err = false;
 
@@ -1099,10 +1074,10 @@ static struct ast* datalit(struct parser *parser)
         err = true;
     }
 
-    struct ast* init_list = ast_make_list(AST_LIST_DATA_INITS, lineno(parser));
+    struct ast* init_list = ast_make_list(AST_LIST_CLASS_INITS, lineno(parser));
     if (!check(parser, TOK_RCURLY)) {
         do {
-            /*  data initializers can be either:
+            /*  class initializers can be either:
                     ident : expression
                     expression
                 since they are ordered by their declaration */
@@ -1112,7 +1087,7 @@ static struct ast* datalit(struct parser *parser)
             if (check(parser, TOK_IDENT)) {
                 item = ident(parser);
                 if (accept(parser, TOK_COLON)) {
-                    /* forget about the data member name */
+                    /* forget about the class member name */
                     item = expression(parser);
                 }
             } else {
@@ -1121,7 +1096,7 @@ static struct ast* datalit(struct parser *parser)
 
             if (item == NULL) {
                 err = true;
-                PARSE_ERROR(parser, "Invalid item in data initializer");
+                PARSE_ERROR(parser, "Invalid item in class initializer");
             }
 
             init_list = ast_list_append(init_list, item);
@@ -1132,15 +1107,15 @@ static struct ast* datalit(struct parser *parser)
         err = true;
     }
 
-    PARSE_DEBUG(parser, "Parsed data initializer");
+    PARSE_DEBUG(parser, "Parsed class initializer");
 
-    struct ast *dlit = NULL;
+    struct ast *clit = NULL;
     if (err) {
-        dlit = NULL;     /* TODO: destroy keyval_list */
+        clit = NULL;     /* TODO: destroy keyval_list */
     } else {
-        dlit = ast_make_datalit(name, init_list, lineno(parser));
+        clit = ast_make_classlit(name, init_list, lineno(parser));
     }
-    return dlit;
+    return clit;
 }
 
 static struct ast* arguments(struct parser *parser)

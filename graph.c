@@ -302,16 +302,16 @@ static int graph_function(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_datalit(struct ast *node, FILE *fp, int id)
+static int graph_classlit(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"struclit\"]\n", rID);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->datalit.name, fp, id);
+    id = graph(node->classlit.name, fp, id);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->datalit.items, fp, id);
+    id = graph(node->classlit.items, fp, id);
 
     return id;
 }
@@ -333,21 +333,6 @@ static int graph_decl(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_impl(struct ast *node, FILE *fp, int id)
-{
-    int rID = id;
-
-    fprintf(fp, "%d [label=\"methods\"]\n", rID);
-
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->impl.name, fp, id);
-
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->impl.methods, fp, id);
-
-    return id;
-}
-
 static int graph_interface(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
@@ -363,17 +348,20 @@ static int graph_interface(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_data(struct ast *node, FILE *fp, int id)
+static int graph_class(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
 
-    fprintf(fp, "%d [label=\"struct\"]\n", rID);
+    fprintf(fp, "%d [label=\"class\"]\n", rID);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->data.name, fp, id);
+    id = graph(node->classdef.name, fp, id);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->data.members, fp, id);
+    id = graph(node->classdef.members, fp, id);
+
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->classdef.methods, fp, id);
 
     return id;
 }
@@ -490,9 +478,9 @@ static int graph_decls(struct ast *node, FILE *fp, int id)
     return graph_list(node, fp, id, "declarations");
 }
 
-static int graph_data_inits(struct ast *node, FILE *fp, int id)
+static int graph_class_inits(struct ast *node, FILE *fp, int id)
 {
-    return graph_list(node, fp, id, "data literal inits");
+    return graph_list(node, fp, id, "class literal inits");
 }
 
 static int graph_params(struct ast *node, FILE *fp, int id)
@@ -545,14 +533,13 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_for,
         graph_call,
         graph_function,
-        graph_datalit,
+        graph_classlit,
 
         graph_return,
         graph_break,
         graph_continue,
 
-        graph_impl,
-        graph_data,
+        graph_class,
         graph_interface,
         graph_alias,
         graph_import,
@@ -570,7 +557,7 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_methods,
         graph_method_decls,
         graph_decls,
-        graph_data_inits,
+        graph_class_inits,
         graph_params,
         graph_args,
 

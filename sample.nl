@@ -8,13 +8,11 @@ interface Shape {
     func (int) scale
 }
 
-data Rect {
+class Rect {
     int width, height
     str name
-    func int () id
-}
+    func int () id1, id2
 
-methods Rect {
     func int () area {
         return width * height
     }

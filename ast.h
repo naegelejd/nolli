@@ -36,14 +36,13 @@ enum {
     AST_FOR,
     AST_CALL,
     AST_FUNCTION,
-    AST_DATALIT,
+    AST_CLASSLIT,
 
     AST_RETURN,
     AST_BREAK,
     AST_CONTINUE,
 
-    AST_IMPL,
-    AST_DATA,
+    AST_CLASS,
     AST_INTERFACE,
     AST_ALIAS,
     AST_IMPORT,
@@ -62,7 +61,7 @@ enum {
     AST_LIST_METHODS,
     AST_LIST_METHOD_DECLS,
     AST_LIST_DECLS,
-    AST_LIST_DATA_INITS,
+    AST_LIST_CLASS_INITS,
     AST_LIST_PARAMS,
     AST_LIST_ARGS,
 
@@ -91,7 +90,7 @@ struct ast_func_type {
     struct ast *ret_type, *params;
 };
 
-struct ast_datalit {
+struct ast_classlit {
     struct ast *name, *items;
 };
 
@@ -164,12 +163,8 @@ struct ast_interface {
     struct ast *name, *methods;
 };
 
-struct ast_impl {
-    struct ast *name, *methods;
-};
-
-struct ast_data {
-    struct ast *name, *members;
+struct ast_class {
+    struct ast *name, *members, *methods;
 };
 
 struct ast_alias {
@@ -202,7 +197,7 @@ struct ast {
         struct ast_map_type map_type;
         struct ast_func_type func_type;
         struct ast_qualified qualified;
-        struct ast_datalit datalit;
+        struct ast_classlit classlit;
         struct ast_function function;
         struct ast_init init;
         struct ast_unexpr unexpr;
@@ -219,8 +214,7 @@ struct ast {
         struct ast_lookup lookup;
         struct ast_selector selector;
         struct ast_interface interface;
-        struct ast_impl impl;
-        struct ast_data data;
+        struct ast_class classdef;
         struct ast_alias alias;
         struct ast_decl decl;
         struct ast_import import;
@@ -268,13 +262,11 @@ struct ast *ast_make_break(int);
 struct ast *ast_make_continue(int);
 struct ast *ast_make_return(struct ast*, int);
 
-struct ast *ast_make_datalit(struct ast *, struct ast *, int);
-
+struct ast *ast_make_classlit(struct ast *, struct ast *, int);
 
 struct ast *ast_make_decl(int, struct ast*, struct ast*, int);
 struct ast *ast_make_function(struct ast*, struct ast*, struct ast*, int);
-struct ast *ast_make_data(struct ast *, struct ast*, int);
-struct ast *ast_make_impl(struct ast*, struct ast*, int);
+struct ast *ast_make_class(struct ast *, struct ast*, struct ast *, int);
 struct ast *ast_make_interface(struct ast *, struct ast*, int);
 struct ast *ast_make_alias(struct ast*, struct ast *, int);
 struct ast *ast_make_import(struct ast *, struct ast*, int);

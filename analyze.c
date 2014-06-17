@@ -210,10 +210,10 @@ static struct type *analyze_function(struct ast *node, struct irstate *irs)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_datalit(struct ast *node, struct irstate *irs)
+static struct type *analyze_classlit(struct ast *node, struct irstate *irs)
 {
-    analyze(node->datalit.name, irs);
-    analyze(node->datalit.items, irs);
+    analyze(node->classlit.name, irs);
+    analyze(node->classlit.items, irs);
     return NULL;    /* FIXME */
 }
 
@@ -236,18 +236,10 @@ static struct type *analyze_continue(struct ast *node, struct irstate *irs)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_impl(struct ast *node, struct irstate *irs)
+static struct type *analyze_class(struct ast *node, struct irstate *irs)
 {
-    analyze(node->impl.name, irs);
-    analyze(node->impl.methods, irs);
-
-    return NULL;    /* FIXME */
-}
-
-static struct type *analyze_data(struct ast *node, struct irstate *irs)
-{
-    analyze(node->data.name, irs);
-    analyze(node->data.members, irs);
+    analyze(node->classdef.name, irs);
+    analyze(node->classdef.members, irs);
 
     return NULL;    /* FIXME */
 }
@@ -349,7 +341,7 @@ static struct type* analyze_decls(struct ast *node, struct irstate *irs)
     return analyze_list(node, irs);
 }
 
-static struct type* analyze_data_inits(struct ast *node, struct irstate *irs)
+static struct type* analyze_class_inits(struct ast *node, struct irstate *irs)
 {
     return analyze_list(node, irs);
 }
@@ -405,8 +397,7 @@ static char *ast_name(struct ast* node)
         "BREAK",
         "CONTINUE",
 
-        "IMPORT",
-        "DATA",
+        "CLASS",
         "INTERFACE",
         "ALIAS",
         "IMPORT",
@@ -424,7 +415,7 @@ static char *ast_name(struct ast* node)
         "LIST_METHODS",
         "LIST_METHOD_DECLS",
         "LIST_DECLS",
-        "LIST_DATA_INITS",
+        "LIST_CLASS_INITS",
         "LIST_PARAMS",
         "LIST_ARGS",
 
@@ -468,14 +459,13 @@ static struct type *analyze(struct ast *root, struct irstate *irs)
         analyze_for,
         analyze_call,
         analyze_function,
-        analyze_datalit,
+        analyze_classlit,
 
         analyze_return,
         analyze_break,
         analyze_continue,
 
-        analyze_impl,
-        analyze_data,
+        analyze_class,
         analyze_interface,
         analyze_alias,
         analyze_import,
@@ -493,7 +483,7 @@ static struct type *analyze(struct ast *root, struct irstate *irs)
         analyze_methods,
         analyze_method_decls,
         analyze_decls,
-        analyze_data_inits,
+        analyze_class_inits,
         analyze_params,
         analyze_args,
 
