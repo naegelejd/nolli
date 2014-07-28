@@ -5,15 +5,10 @@
 
 #define INIT_SYMTABLE_SIZE 8     /**< initial allocated size of a map */
 
-struct sym {
-    const char *name;
-    void *value;
-    const unsigned int tid;
-};
-
-/* TODO: use a single array of key-val pairs instead of two separate
+/* TODO?: maybe use a single array of key-val pairs instead of two separate
  * arrays. This should decrease cache misses */
 struct symtable {
+    struct symtable *parent;
     char **keys;
     void **vals;
     unsigned int size_idx;      /**< identifier for current size of table */
@@ -26,7 +21,7 @@ enum {SYMTABLE_SEARCH = 0, SYMTABLE_INSERT = 1};
 
 void *check_symbol(struct symtable *, const char *);
 void *add_symbol(struct symtable *, const char *, void *);
-struct symtable* symtable_create(void);
+struct symtable* symtable_create(struct symtable *parent);
 void symtable_destroy(struct symtable *st);
 
-#endif
+#endif /* NOLLI_SYMTABLE_H */

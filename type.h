@@ -12,16 +12,30 @@ enum {
     TYPE_INT,
     TYPE_REAL,
     TYPE_STR,
-    TYPE_FILE,
-    TYPE_LIST,
-    TYPE_MAP,
-    TYPE_USER
+    TYPE_FUNC,
+    TYPE_CLASS,
+    TYPE_end
+};
+
+struct type_func {
+    struct type *ret_type;
+    struct type *param_type_head;
+};
+
+struct type_class {
+    struct type *tmpls_head;
 };
 
 struct type {
-    int id;
-    const char* name;
-    struct type** kinds;
+    union {
+        struct type_func func;
+        struct type_class clss;
+    };
+
+    struct type *next;
+    const char* repr;
+
+    int tag;
     unsigned int n;
 };
 
@@ -30,11 +44,10 @@ extern struct type char_type;
 extern struct type int_type;
 extern struct type real_type;
 extern struct type str_type;
-extern struct type file_type;
 
 /* TODO: all types should be hashed when they are first parsed! */
-struct type* new_list_type(struct type* tp);
-struct type* new_map_type(struct type* ktp, struct type* vtp);
-struct type* new_user_type(char *name);
+struct type* type_new_func(struct type *ret_type, struct type *param_types_head);
+struct type* type_new_class(const char *name);
+
 
 #endif /* NOLLI_TYPE_H */

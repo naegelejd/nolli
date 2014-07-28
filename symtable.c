@@ -8,7 +8,6 @@
  * @returns  index into hash table
  */
 /* #define GET_INDEX(H0, H1, I, N)   ( ( (H0) + ((I) * (I)) * (H1) ) % (N) ) */
-#define GET_INDEX(H0, I, N)   (((H0) + (I)) % (N))
 
 
 static struct symtable *symtable_grow(struct symtable*);
@@ -89,12 +88,13 @@ static struct symtable *symtable_resize(struct symtable *st, unsigned int new_si
  *
  * @returns new struct symtable
  */
-struct symtable *symtable_create()
+struct symtable *symtable_create(struct symtable *parent)
 {
     struct symtable *st = nalloc(sizeof(*st));
     st->size_idx = 0;
     st->size = SYMTABLE_SIZES[st->size_idx];
 
+    st->parent = parent;
     st->keys = nalloc(st->size * sizeof(*st->keys));
     st->vals = nalloc(st->size * sizeof(*st->vals));
 
@@ -130,7 +130,7 @@ static void *symtable_do(struct symtable *table, const char *key, void *val, int
 
     unsigned int i = 0;
     for (i = 0; i < table->size; i++) {
-        unsigned int idx = GET_INDEX(hash0, i, table->size);
+        unsigned int idx = (hash0 + i) % table->size;
         const char *curkey = table->keys[idx];
 
         if (curkey == NULL) {
@@ -139,6 +139,10 @@ static void *symtable_do(struct symtable *table, const char *key, void *val, int
                 table->vals[idx] = val;
                 table->count++;
                 return table->vals[idx];
+            } else if (table->parent != NULL) {
+                table = table->parent;
+                i = 0;
+                continue;
             } else {
                 return NULL;
             }
@@ -172,6 +176,8 @@ void *add_symbol(struct symtable *symtable, const char *name, void *value)
  */
 void symtable_destroy(struct symtable *st)
 {
+    free(st->keys);
+    free(st->vals);
     free(st);
 }
 

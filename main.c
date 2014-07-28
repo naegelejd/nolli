@@ -1,6 +1,6 @@
 #include "nolli.h"
 
-int compile(const char *filename)
+int compile_file(const char *filename)
 {
     FILE *fin = NULL;
     if (!(fin = fopen(filename, "r"))) {
@@ -27,18 +27,31 @@ int compile(const char *filename)
         return EXIT_FAILURE;
     }
 
-    graph_ast(root);
+    /* graph_ast(root); */
     analyze_ast(root);
 
-    return EXIT_SUCCESS;
+    return NO_ERR;
+}
+
+int compile_files(char * const *paths, int count)
+{
+    int i = 0;
+    for (i = 0; i < count; ++i) {
+        int err = compile_file(paths[i]);
+        if (err) {
+            // do something
+        }
+    }
+
+    return NO_ERR;
 }
 
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        NOLLI_ERROR("Missing filename argument");
+        NOLLI_ERROR("Nothing to compile :(");
     }
 
-    const char *filename = argv[1];
-    return compile(filename);
+    char **paths = ++argv;
+    return compile_files(paths, --argc);
 }

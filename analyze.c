@@ -1,101 +1,109 @@
 #include "analyze.h"
 
-struct irstate {
-    struct symtable *symtable;
+struct analysis {
+    struct symtable *packages;
+    struct string *pkgname;
+    struct symtable *curtable;
 };
 
-typedef struct type* (*analyzer) (struct ast*, struct irstate*);
+static struct symtable *new_scope(struct analysis *analysis)
+{
+    return symtable_create(analysis->curtable);
+}
 
-static struct type *analyze(struct ast *root, struct irstate *irs);
+
+typedef struct type* (*analyzer) (struct ast*, struct analysis*);
+
+static struct type *analyze(struct ast *root, struct analysis *analysis);
 
 
-static struct type *analyze_bool_lit(struct ast *node, struct irstate *irs)
+static struct type *analyze_bool_lit(struct ast *node, struct analysis *analysis)
 {
     node->type = &bool_type;
     return node->type;
 }
 
-static struct type *analyze_char_lit(struct ast *node, struct irstate *irs)
+static struct type *analyze_char_lit(struct ast *node, struct analysis *analysis)
 {
     node->type = &char_type;
     return node->type;
 }
 
-static struct type *analyze_int_num(struct ast *node, struct irstate *irs)
+static struct type *analyze_int_num(struct ast *node, struct analysis *analysis)
 {
     node->type = &int_type;
     return node->type;
 }
 
-static struct type *analyze_real_num(struct ast *node, struct irstate *irs)
+static struct type *analyze_real_num(struct ast *node, struct analysis *analysis)
 {
     node->type = &real_type;
     return node->type;
 }
 
-static struct type *analyze_str_lit(struct ast *node, struct irstate *irs)
+static struct type *analyze_str_lit(struct ast *node, struct analysis *analysis)
 {
     node->type = &str_type;
     return node->type;
 }
 
-static struct type *analyze_ident(struct ast *node, struct irstate *irs)
+static struct type *analyze_ident(struct ast *node, struct analysis *analysis)
 {
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_tmpl_type(struct ast *node, struct irstate *irs)
+static struct type *analyze_tmpl_type(struct ast *node, struct analysis *analysis)
 {
     return NULL;
 }
 
-static struct type *analyze_qual_type(struct ast *node, struct irstate *irs)
+static struct type *analyze_qual_type(struct ast *node, struct analysis *analysis)
 {
     return NULL;
 }
 
-static struct type *analyze_func_type(struct ast *node, struct irstate *irs)
+static struct type *analyze_func_type(struct ast *node, struct analysis *analysis)
 {
     if (node->func_type.ret_type) {
-        analyze(node->func_type.ret_type, irs);
+        analyze(node->func_type.ret_type, analysis);
     }
     if (node->func_type.params) {
-        analyze(node->func_type.params, irs);
+        analyze(node->func_type.params, analysis);
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_decl(struct ast *node, struct irstate *irs)
+static struct type *analyze_decl(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->decl.type, irs);
+    analyze(node->decl.type, analysis);
     if (node->decl.rhs) {
-        analyze(node->decl.rhs, irs);
+        analyze(node->decl.rhs, analysis);
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_init(struct ast *node, struct irstate *irs)
+static struct type *analyze_init(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->init.ident, irs);
-    analyze(node->init.expr, irs);
+    analyze(node->init.ident, analysis);
+    analyze(node->init.expr, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_unexpr(struct ast *node, struct irstate *irs)
+static struct type *analyze_unexpr(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->unexpr.expr, irs);
+    analyze(node->unexpr.expr, analysis);
 
     node->type = node->unexpr.expr->type;
     return node->type;    /* FIXME */
 }
 
-static struct type *analyze_binexpr(struct ast *node, struct irstate *irs)
+static struct type *analyze_binexpr(struct ast *node, struct analysis *analysis)
 {
-    struct type *rhs = analyze(node->binexpr.lhs, irs);
-    struct type *lhs = analyze(node->binexpr.rhs, irs);
+    struct type *rhs = analyze(node->binexpr.lhs, analysis);
+    struct type *lhs = analyze(node->binexpr.rhs, analysis);
     if (node->binexpr.lhs->type != node->binexpr.rhs->type) {
         NOLLI_ERRORF("Type mismatch in binary expression on line %d", node->lineno);
     }
@@ -110,257 +118,308 @@ static struct type *analyze_binexpr(struct ast *node, struct irstate *irs)
     return node->type;
 }
 
-static struct type *analyze_keyval(struct ast *node, struct irstate *irs)
+static struct type *analyze_keyval(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->keyval.key, irs);
-    analyze(node->keyval.val, irs);
+    analyze(node->keyval.key, analysis);
+    analyze(node->keyval.val, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_lookup(struct ast *node, struct irstate *irs)
+static struct type *analyze_lookup(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->lookup.container, irs);
-    analyze(node->lookup.index, irs);
+    analyze(node->lookup.container, analysis);
+    analyze(node->lookup.index, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_selector(struct ast *node, struct irstate *irs)
+static struct type *analyze_selector(struct ast *node, struct analysis *analysis)
 {
-    return NULL;    /* FIXME */
-}
+    if (node->selector.parent->tag == AST_IDENT) {
+        printf("selector: %s\n", node->selector.parent->s->str);
+    }
 
-static struct type *analyze_bind(struct ast *node, struct irstate *irs)
-{
-    analyze(node->bind.ident, irs);
-    analyze(node->bind.expr, irs);
+    /* lookup type of the selector parent (e.g. package, class) */
+    analyze(node->selector.parent, analysis);
 
-    return NULL;    /* FIXME */
-}
-
-static struct type *analyze_assign(struct ast *node, struct irstate *irs)
-{
-    analyze(node->assignment.lhs, irs);
-    analyze(node->assignment.expr, irs);
+    /* lookup type of child in parent */
+    analyze(node->selector.child, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_ifelse(struct ast *node, struct irstate *irs)
+static struct type *analyze_bind(struct ast *node, struct analysis *analysis)
+{
+    analyze(node->bind.ident, analysis);
+    analyze(node->bind.expr, analysis);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_assign(struct ast *node, struct analysis *analysis)
+{
+    analyze(node->assignment.lhs, analysis);
+    analyze(node->assignment.expr, analysis);
+
+    return NULL;    /* FIXME */
+}
+
+static struct type *analyze_ifelse(struct ast *node, struct analysis *analysis)
 {
     struct ast *cond = node->ifelse.cond;
-    analyze(cond, irs);
+    analyze(cond, analysis);
     if (cond->type != &bool_type) {
         NOLLI_ERRORF("Conditional expression must be boolean on line %d", cond->lineno);
     }
 
-    analyze(node->ifelse.if_body, irs);
+    analyze(node->ifelse.if_body, analysis);
     if (node->ifelse.else_body) {
-        analyze(node->ifelse.else_body, irs);
+        analyze(node->ifelse.else_body, analysis);
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_while(struct ast *node, struct irstate *irs)
+static struct type *analyze_while(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->while_loop.cond, irs);
-    analyze(node->while_loop.body, irs);
+    analyze(node->while_loop.cond, analysis);
+    analyze(node->while_loop.body, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_for(struct ast *node, struct irstate *irs)
+static struct type *analyze_for(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->for_loop.var, irs);
-    analyze(node->for_loop.range, irs);
-    analyze(node->for_loop.body, irs);
+    analyze(node->for_loop.var, analysis);
+    analyze(node->for_loop.range, analysis);
+    analyze(node->for_loop.body, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_call(struct ast *node, struct irstate *irs)
+static struct type *analyze_call(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->call.func, irs);
-    analyze(node->call.args, irs);
+    /* get type of callee */
+    struct type *ft = analyze(node->call.func, analysis);
 
+    /* error if not a function type */
+
+    /* compare types of params to args */
+    analyze(node->call.args, analysis);
+
+    /* return the return-type of the callee */
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_function(struct ast *node, struct irstate *irs)
+static struct type *analyze_function(struct ast *node, struct analysis *analysis)
 {
+    struct type *ft = analyze(node->function.type, analysis);
+
     /* check if function is an un-named function literal */
     if (node->function.name) {
-        analyze(node->function.name, irs);
+        add_symbol(analysis->curtable, node->function.name->s->str, ft);
     }
-    analyze(node->function.type, irs);
-    analyze(node->function.body, irs);
 
-    return NULL;    /* FIXME */
+    struct symtable *functable = new_scope(analysis);
+    analysis->curtable = functable;
+    analyze(node->function.body, analysis);
+    analysis->curtable = functable->parent;
+
+    return ft;
 }
 
-static struct type *analyze_classlit(struct ast *node, struct irstate *irs)
+static struct type *analyze_classlit(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->classlit.name, irs);
+    analyze(node->classlit.name, analysis);
     if (node->classlit.tmpl) {
-        analyze(node->classlit.tmpl, irs);
+        analyze(node->classlit.tmpl, analysis);
     }
-    analyze(node->classlit.items, irs);
+    analyze(node->classlit.items, analysis);
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_return(struct ast *node, struct irstate *irs)
+static struct type *analyze_return(struct ast *node, struct analysis *analysis)
 {
     if (node->ret.expr) {
-        analyze(node->ret.expr, irs);
+        analyze(node->ret.expr, analysis);
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_break(struct ast *node, struct irstate *irs)
+static struct type *analyze_break(struct ast *node, struct analysis *analysis)
 {
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_continue(struct ast *node, struct irstate *irs)
+static struct type *analyze_continue(struct ast *node, struct analysis *analysis)
 {
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_class(struct ast *node, struct irstate *irs)
+static struct type *analyze_class(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->classdef.name, irs);
+    assert(node->classdef.name->tag == AST_IDENT);
+
+    /* create a new type */
+    struct type *ct = type_new_class(node->classdef.name->s->str);
+
+    analyze(node->classdef.name, analysis);
+
     if (node->classdef.tmpl) {
-        analyze(node->classdef.tmpl, irs);
+        analyze(node->classdef.tmpl, analysis);
     }
-    analyze(node->classdef.members, irs);
+
+    analyze(node->classdef.members, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_interface(struct ast *node, struct irstate *irs)
+static struct type *analyze_interface(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->interface.name, irs);
-    analyze(node->interface.methods, irs);
+    analyze(node->interface.name, analysis);
+    analyze(node->interface.methods, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_alias(struct ast *node, struct irstate *irs)
+static struct type *analyze_alias(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->alias.type, irs);
-    analyze(node->alias.name, irs);
+    analyze(node->alias.type, analysis);
+    analyze(node->alias.name, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_import(struct ast *node, struct irstate *irs)
+static struct type *analyze_import(struct ast *node, struct analysis *analysis)
 {
     if (node->import.from) {
-        analyze(node->import.from, irs);
+        analyze(node->import.from, analysis);
     }
 
     assert(node->import.modules);
-    analyze(node->import.modules, irs);
+    analyze(node->import.modules, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_program(struct ast *node, struct irstate *irs)
+static struct type *analyze_program(struct ast *node, struct analysis *analysis)
 {
-    analyze(node->program.package, irs);
-    analyze(node->program.globals, irs);
+    struct ast *pkg = node->program.package;
+    assert(pkg->tag == AST_IDENT);
+    analysis->pkgname = pkg->s;
+
+    struct symtable *package_table = new_scope(analysis);
+    /* Add this package symbol to the top-level "package table" */
+    add_symbol(analysis->packages, pkg->s->str, package_table);
+    analysis->curtable = package_table;
+
+    analyze(node->program.globals, analysis);
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_list(struct ast *node, struct irstate *irs)
+static struct type *analyze_list(struct ast *node, struct analysis *analysis)
 {
     struct ast *elem = node->list.head;
     while (elem) {
-        struct type *tp = analyze(elem, irs);
+        struct type *tp = analyze(elem, analysis);
         elem = elem->next;
     }
 
     return NULL;    /* FIXME */
 }
 
-static struct type* analyze_listlit(struct ast *node, struct irstate *irs)
+static struct type* analyze_listlit(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_maplit(struct ast *node, struct irstate *irs)
+static struct type* analyze_maplit(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_globals(struct ast *node, struct irstate *irs)
+static struct type* analyze_globals(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_imports(struct ast *node, struct irstate *irs)
+static struct type* analyze_imports(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    struct ast *module = node->list.head;
+    while (module) {
+        assert(module->tag == AST_IDENT);
+
+        /* DELETE THIS CRAP */
+        char fname[1024];
+        memset(fname, 0, 1024);
+        strcat(fname, module->s->str);
+        strcat(fname, ".nl");
+        printf("LOADING module %s\n", fname);
+        compile_file(fname);
+
+        module = module->next;
+    }
+
+    return NULL;    /* FIXME? */
 }
 
-static struct type* analyze_members(struct ast *node, struct irstate *irs)
+static struct type* analyze_members(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_statements(struct ast *node, struct irstate *irs)
+static struct type* analyze_statements(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_idents(struct ast *node, struct irstate *irs)
+static struct type* analyze_idents(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_types(struct ast *node, struct irstate *irs)
+static struct type* analyze_types(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_methods(struct ast *node, struct irstate *irs)
+static struct type* analyze_methods(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_method_decls(struct ast *node, struct irstate *irs)
+static struct type* analyze_method_decls(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_decls(struct ast *node, struct irstate *irs)
+static struct type* analyze_decls(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_class_inits(struct ast *node, struct irstate *irs)
+static struct type* analyze_class_inits(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_params(struct ast *node, struct irstate *irs)
+static struct type* analyze_params(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
-static struct type* analyze_args(struct ast *node, struct irstate *irs)
+static struct type* analyze_args(struct ast *node, struct analysis *analysis)
 {
-    return analyze_list(node, irs);
+    return analyze_list(node, analysis);
 }
 
 static char *ast_name(struct ast* node)
 {
     static char *names[] = {
-        "FIRST",
+        "FanalysisT",
 
         "BOOL_LIT",
         "CHAR_LIT",
@@ -425,7 +484,7 @@ static char *ast_name(struct ast* node)
     return names[node->tag];
 }
 
-static struct type *analyze(struct ast *root, struct irstate *irs)
+static struct type *analyze(struct ast *root, struct analysis *analysis)
 {
     static analyzer analyzers[] = {
         NULL, /* not a valid AST node */
@@ -498,14 +557,15 @@ static struct type *analyze(struct ast *root, struct irstate *irs)
 
     analyzer w = analyzers[root->tag];
     assert(w);
-    return w(root, irs);
+    return w(root, analysis);
 }
 
 void analyze_ast(struct ast *root)
 {
     assert(root);
 
-    struct irstate state;
-    state.symtable = symtable_create();
-    analyze(root, &state);
+    struct analysis analysis;
+    analysis.packages = symtable_create(NULL);
+    /* analysis.curtable = analysis.packages; */
+    analyze(root, &analysis);
 }
