@@ -27,6 +27,7 @@ enum {
     AST_KEYVAL,
     AST_LOOKUP,
     AST_SELECTOR,
+    AST_PACKAGE_REF,
 
     AST_BIND,
     AST_ASSIGN,
@@ -45,7 +46,7 @@ enum {
     AST_INTERFACE,
     AST_ALIAS,
     AST_IMPORT,
-    AST_PROGRAM,
+    AST_UNIT,
 
     AST_LIST_SENTINEL,  /* never used */
 
@@ -155,6 +156,10 @@ struct ast_selector {
     struct ast *parent, *child;
 };
 
+struct ast_package_ref {
+    struct ast *package, *expr;
+};
+
 struct ast_interface {
     struct ast *name, *methods;
 };
@@ -177,7 +182,7 @@ struct ast_import {
     struct ast *from, *modules;
 };
 
-struct ast_program {
+struct ast_unit {
     struct ast *package, *globals;
 };
 
@@ -208,12 +213,13 @@ struct ast {
         struct ast_for for_loop;
         struct ast_lookup lookup;
         struct ast_selector selector;
+        struct ast_package_ref package_ref;
         struct ast_interface interface;
         struct ast_class classdef;
         struct ast_alias alias;
         struct ast_decl decl;
         struct ast_import import;
-        struct ast_program program;
+        struct ast_unit unit;
     };
     struct ast* next;
     struct type* type;
@@ -244,6 +250,7 @@ struct ast *ast_make_keyval(struct ast *key, struct ast *val, int);
 struct ast *ast_make_lookup(struct ast*, struct ast*, int);
 struct ast *ast_make_selector(struct ast*, struct ast*, int);
 
+struct ast *ast_make_package_ref(struct ast*, struct ast*, int);
 struct ast *ast_make_bind(struct ast*, struct ast*, int);
 struct ast *ast_make_assignment(struct ast*, int op, struct ast*, int);
 
@@ -264,6 +271,6 @@ struct ast *ast_make_class(struct ast*, struct ast*, struct ast*, struct ast*, i
 struct ast *ast_make_interface(struct ast*, struct ast*, int);
 struct ast *ast_make_alias(struct ast*, struct ast *, int);
 struct ast *ast_make_import(struct ast *, struct ast*, int);
-struct ast *ast_make_program(struct ast*, struct ast*, int);
+struct ast *ast_make_unit(struct ast*, struct ast*, int);
 
 #endif /* NOLLI_AST_H */

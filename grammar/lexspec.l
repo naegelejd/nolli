@@ -101,6 +101,7 @@ WS          [ \t\f\r]+
 "<"     { YIELD('<'); }
 ">"     { YIELD('>'); }
 
+"::"    { YIELD(PREF); }
 "||"    { YIELD(OR); }
 "&&"    { YIELD(AND); }
 "!"     { YIELD('!'); }

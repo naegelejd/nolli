@@ -30,6 +30,7 @@ extern int yylex();
 %left '*' '/' '%'
 %left '^'
 %left '~'
+%left PREF
 %right INIT
 %right '=' IADD ISUB IMUL IDIV IMOD IPOW ICMP
 %right UPLUS UMINUS UNOT UAMP UAT
@@ -39,7 +40,7 @@ extern int yylex();
 
 %%
 
-program: package ';' definitions;
+unit: package ';' definitions;
 
 package: PACKAGE ident ;
 definitions: definition | definitions definition ;

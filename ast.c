@@ -340,13 +340,23 @@ struct ast* ast_make_selector(struct ast *parent, struct ast *child, int lineno)
     return node;
 }
 
-struct ast* ast_make_program(struct ast *package, struct ast *globals, int lineno)
+struct ast *ast_make_package_ref(struct ast *package, struct ast *expr, int lineno)
+{
+    assert(package);
+    assert(expr);
+    struct ast *node = make_node(AST_PACKAGE_REF, lineno);
+    node->package_ref.package = package;
+    node->package_ref.expr = expr;
+    return node;
+}
+
+struct ast* ast_make_unit(struct ast *package, struct ast *globals, int lineno)
 {
     assert(package);
     assert(globals);
 
-    struct ast *node = make_node(AST_PROGRAM, lineno);
-    node->program.package = package;
-    node->program.globals = globals;
+    struct ast *node = make_node(AST_UNIT, lineno);
+    node->unit.package = package;
+    node->unit.globals = globals;
     return node;
 }

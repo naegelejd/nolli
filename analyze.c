@@ -134,6 +134,12 @@ static struct type *analyze_lookup(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
+static struct type *analyze_package_ref(struct ast *node, struct analysis *analysis)
+{
+
+    return NULL;    /* FIXME */
+}
+
 static struct type *analyze_selector(struct ast *node, struct analysis *analysis)
 {
     if (node->selector.parent->tag == AST_IDENT) {
@@ -304,9 +310,9 @@ static struct type *analyze_import(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_program(struct ast *node, struct analysis *analysis)
+static struct type *analyze_unit(struct ast *node, struct analysis *analysis)
 {
-    struct ast *pkg = node->program.package;
+    struct ast *pkg = node->unit.package;
     assert(pkg->tag == AST_IDENT);
     analysis->pkgname = pkg->s;
 
@@ -315,7 +321,7 @@ static struct type *analyze_program(struct ast *node, struct analysis *analysis)
     add_symbol(analysis->packages, pkg->s->str, package_table);
     analysis->curtable = package_table;
 
-    analyze(node->program.globals, analysis);
+    analyze(node->unit.globals, analysis);
 
     return NULL;    /* FIXME */
 }
@@ -442,6 +448,7 @@ static char *ast_name(struct ast* node)
         "KEYVAL",
         "LOOKUP",
         "SELECTOR",
+        "PACKAGEREF",
 
         "BIND",
         "ASSIGN",
@@ -460,7 +467,7 @@ static char *ast_name(struct ast* node)
         "INTERFACE",
         "ALIAS",
         "IMPORT",
-        "PROGRAM",
+        "UNIT",
 
         "LIST_SENTINEL",
 
@@ -509,6 +516,7 @@ static struct type *analyze(struct ast *root, struct analysis *analysis)
         analyze_keyval,
         analyze_lookup,
         analyze_selector,
+        analyze_package_ref,
 
         analyze_bind,
         analyze_assign,
@@ -527,7 +535,7 @@ static struct type *analyze(struct ast *root, struct analysis *analysis)
         analyze_interface,
         analyze_alias,
         analyze_import,
-        analyze_program,
+        analyze_unit,
 
         NULL,
 

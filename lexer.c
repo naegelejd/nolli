@@ -34,7 +34,7 @@ static const char *token_names[] = {
     "||", "&&",
 
     "(", ")", "[", "]", "{", "}",
-    ",", ";", ".",
+    ",", ";", ".", "::",
 
     "package", "import", "from",
     "new", "alias",
@@ -323,6 +323,14 @@ static int lex_symbol(struct lexer *lex)
         /* in-place operations follow their base op equivalent */
         return tok + 1;
     }
+
+    /* special treatment for double colon (package dereference token) */
+    if (tok == TOK_COLON && lex->cur == ':') {
+        appendc(lex, lex->cur);
+        next(lex);
+        return TOK_PREF;
+    }
+
     return tok;
 }
 

@@ -12,7 +12,7 @@
 
 #define PARSE_ERROR(P, S) PARSE_ERRORF(P, "%s", S)
 
-static struct ast* program(struct parser *parser);
+static struct ast* unit(struct parser *parser);
 static struct ast* globals(struct parser *parser);
 static struct ast* global(struct parser *parser);
 static struct ast* ident(struct parser *parser);
@@ -70,7 +70,7 @@ struct ast *parse_buffer(char *buffer)
 
     next(parser);
 
-    struct ast *root = program(parser);
+    struct ast *root = unit(parser);
     expect(parser, TOK_EOF);
 
     /* DEBUG: dump all symbols/strings */
@@ -89,7 +89,7 @@ static int lineno(struct parser *parser)
     return parser->lexer->line;
 }
 
-static struct ast* program(struct parser *parser)
+static struct ast* unit(struct parser *parser)
 {
     bool err = false;
 
@@ -111,7 +111,7 @@ static struct ast* program(struct parser *parser)
     if (err) {
         prog = NULL;    /* TODO: destroy pkg, defs */
     } else {
-        prog = ast_make_program(pkg, defs, lineno(parser));
+        prog = ast_make_unit(pkg, defs, lineno(parser));
     }
     return prog;
 }
@@ -552,8 +552,8 @@ static struct ast* type(struct parser *parser)
         }
     } else {
         type = ident(parser);
-        /* parse types defined in other modules, e.g. std.file */
-        if (accept(parser, TOK_DOT)) {
+        /* parse types defined in specific packages, e.g. std::file */
+        if (accept(parser, TOK_PREF)) {
             struct ast *type2 = ident(parser);
             struct ast *qualified = ast_make_qual_type(type, type2, lineno(parser));
             type = qualified;
@@ -944,6 +944,10 @@ static struct ast* operand(struct parser *parser)
     struct ast *op = NULL;
     if (check(parser, TOK_IDENT)) {
         op = ident(parser);
+        if (accept(parser, TOK_PREF)) {
+            struct ast *child = ident(parser);
+            op = ast_make_package_ref(op, child, lineno(parser));
+        }
     } else if (accept(parser, TOK_BOOL)) {
         char *tmpbuff = current_buffer(parser);
         if (strcmp(tmpbuff, "true") == 0) {

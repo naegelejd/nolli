@@ -1,6 +1,6 @@
 ## Semantic Analysis
 
-### Program
+### Unit (A single file)
 
 - Make or find package table for specified package name.
 

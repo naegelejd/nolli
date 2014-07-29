@@ -1,4 +1,4 @@
-program = package { definition ';' } ;
+unit = package { definition ';' } ;
 package = 'package' ident ;
 definition = import | declaration | data | methods | interface | funcdef | alias ;
 
@@ -36,7 +36,8 @@ args = expr { ',' expr } ;
 assignment = term assignop expr ;
 assignop = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '~=' ;
 
-type = ident | ident '.' ident | listtype | maptype | functype ;
+type = ident | qualified | listtype | maptype | functype ;
+qualified = ident '::' ident ;
 listtype = '[' type ']' ;
 maptype = '{' type ',' type '}' ;
 functype = 'func' [ type ] '(' [ params ] ')' ;
@@ -53,7 +54,7 @@ binexpr = expr binop expr ;
 unop = '-' | '!' ;
 binop = '+' | '-' | '*' | '/' | '%' | '^' | '~' | '==' | '!=' | '<' | '<=' | '>' | '>=' ;
 
-operand = ident | literal | '(' expr ')' ;
+operand = ident | qualified | literal | '(' expr ')' ;
 literal = bool | char | int | real | string | listlit | maplit | funclit | struclit ;
 listlit = '[' [ exprs ] ']' ;
 pair = expr ':' expr ;

@@ -27,7 +27,7 @@ int compile_file(const char *filename)
         return EXIT_FAILURE;
     }
 
-    /* graph_ast(root); */
+    graph_ast(root);
     analyze_ast(root);
 
     return NO_ERR;

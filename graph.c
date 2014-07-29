@@ -106,6 +106,21 @@ static int graph_func_type(struct ast *node, FILE *fp, int id)
     return id;
 }
 
+static int graph_package_ref(struct ast *node, FILE *fp, int id)
+{
+    int rID = id;
+
+    fprintf(fp, "%d [label=\"package ref\"]\n", rID);
+
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->package_ref.package, fp, id);
+
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->package_ref.expr, fp, id);
+
+    return id;
+}
+
 static int graph_selector(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
@@ -398,16 +413,16 @@ static int graph_import(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_program(struct ast *node, FILE *fp, int id)
+static int graph_unit(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
-    fprintf(fp, "%d [label=\"program\"]\n", rID);
+    fprintf(fp, "%d [label=\"unit\"]\n", rID);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->program.package, fp, id);
+    id = graph(node->unit.package, fp, id);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->program.globals, fp, id);
+    id = graph(node->unit.globals, fp, id);
 
     return id;
 }
@@ -528,6 +543,7 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_keyval,
         graph_lookup,
         graph_selector,
+        graph_package_ref,
 
         graph_bind,
         graph_assign,
@@ -546,7 +562,7 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_interface,
         graph_alias,
         graph_import,
-        graph_program,
+        graph_unit,
 
         NULL,   /* sentinel separator */
 

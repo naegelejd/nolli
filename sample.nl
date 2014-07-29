@@ -1,7 +1,7 @@
 package experimental
 
-import math
-from hell import fire, lightning
+# import math
+# from std import print
 
 interface Shape {
     func int () area
@@ -50,7 +50,7 @@ func int (list<str> args) main {
 
     print(a,b,c)
 
-    var real a = (4.0 + .4) / 3.14
+    var real a = (4.0 + .4) / math::pi
     const int b = (sum(5, 6) - 3) * 2
 
     var int len = range(l)
@@ -102,11 +102,11 @@ func int (list<str> args) main {
     main2 := cool()
     stupid := dumb()
     stupid("hello, world")
-    print(std.sum([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
+    print(std::sum([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
 
     # called function literal
     func () {
-        var std.file f = std.open("helloworld.txt")
+        var std::file f = std::open("helloworld.txt")
         print(f.Read(128))
     }()
 
