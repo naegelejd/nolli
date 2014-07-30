@@ -1,38 +1,43 @@
 #include "type.h"
 
 struct type bool_type = {
-    TYPE_BOOL,
-    "bool",
-    0,
-    0
+    .func = {NULL},
+    .next = NULL,
+    .repr = "bool",
+    .tag = TYPE_BOOL,
+    .n = 0
 };
 
 struct type char_type = {
-    TYPE_CHAR,
-    "char",
-    0,
-    0
+    .func = {NULL},
+    .next = NULL,
+    .repr = "char",
+    .tag = TYPE_CHAR,
+    .n = 0
 };
 
 struct type int_type = {
-    TYPE_INT,
-    "int",
-    0,
-    0
+    .func = {NULL},
+    .next = NULL,
+    .repr = "int",
+    .tag = TYPE_INT,
+    .n = 0
 };
 
 struct type real_type = {
-    TYPE_REAL,
-    "real",
-    0,
-    0
+    .func = {NULL},
+    .next = NULL,
+    .repr = "real",
+    .tag = TYPE_REAL,
+    .n = 0
 };
 
 struct type str_type = {
-    TYPE_STR,
-    "str",
-    0,
-    0
+    .func = {NULL},
+    .next = NULL,
+    .repr = "str",
+    .tag = TYPE_STR,
+    .n = 0
 };
 
 struct type* type_new_func(struct type *ret_type, struct type *param_types_head)

@@ -1,55 +1,68 @@
 #include "nolli.h"
 
-int compile_file(const char *filename)
+struct ast *compile_file(const char *filename)
 {
     FILE *fin = NULL;
     if (!(fin = fopen(filename, "r"))) {
         NOLLI_ERRORF("Can't read from file %s", filename);
-        return EXIT_FAILURE;
+        return NULL;
     }
 
     fseek(fin, 0, SEEK_END);
     long bytes = ftell(fin);
     rewind(fin);
     char *buff = nalloc(bytes + 1);
-    fread(buff, bytes, 1, fin);
+    if (fread(buff, 1, bytes, fin) < bytes) {
+        NOLLI_ERRORF("Failed to read file %s", filename);
+        return NULL;
+    }
+
     buff[bytes] = '\0';
     struct ast *root = parse_buffer(buff);
     free(buff);
 
     if (fclose(fin) != 0) {
         NOLLI_ERRORF("Failed to close file %s", filename);
-        return EXIT_FAILURE;
+        return NULL;
     }
 
     if (root == NULL) {
         NOLLI_ERROR("Parse errors... cannot continue");
-        return EXIT_FAILURE;
+        return NULL;
     }
 
-    graph_ast(root);
-    analyze_ast(root);
-
-    return NO_ERR;
+    return root;
 }
 
 int compile_files(char * const *paths, int count)
 {
+    assert(count > 0);
+
+    struct ast *head = NULL;
+    struct ast **cur = &head;
+
     int i = 0;
     for (i = 0; i < count; ++i) {
-        int err = compile_file(paths[i]);
-        if (err) {
-            // do something
+        struct ast *tmp = compile_file(paths[i]);
+        if (tmp == NULL) {
+            return EXIT_FAILURE;
         }
+
+        *cur = tmp;
+        cur = &(*cur)->next;
     }
 
-    return NO_ERR;
+    /* graph_asts(node); */
+    /* analyze_asts(node); */
+
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
     if (argc < 2) {
         NOLLI_ERROR("Nothing to compile :(");
+        return EXIT_FAILURE;
     }
 
     char **paths = ++argv;

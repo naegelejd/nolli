@@ -364,7 +364,7 @@ static struct type* analyze_imports(struct ast *node, struct analysis *analysis)
         strcat(fname, module->s->str);
         strcat(fname, ".nl");
         printf("LOADING module %s\n", fname);
-        compile_file(fname);
+        struct ast *root = compile_file(fname);
 
         module = module->next;
     }

@@ -2,10 +2,11 @@
 #define NOLLI_ERROR_H
 
 enum {
-    NO_ERR = 0,
-    ERR_LEX,
-    ERR_PARSE,
-    ERR_EOF,
+    NL_NO_ERR = 0,
+    NL_ERR_LEX,
+    NL_ERR_PARSE,
+    NL_ERR_IO,
+    NL_ERR_EOF,
 };
 
 #endif /* NOLLI_ERROR_H */

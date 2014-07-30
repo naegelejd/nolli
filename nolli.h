@@ -23,7 +23,7 @@
 #include "symtable.h"
 #include "analyze.h"
 
-int compile_file(const char *filename);
+struct ast *compile_file(const char *filename);
 
 #if defined ( WIN32 )
 #include "os.h"
