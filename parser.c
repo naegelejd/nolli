@@ -1202,7 +1202,7 @@ static struct ast* block(struct parser *parser)
 
     struct ast *statements = ast_make_list(AST_LIST_STATEMENTS, lineno(parser));
     /* parse statements until we see a '}' token */
-    do {
+    while (!check(parser, TOK_RCURLY)) {
         struct ast *stmt = statement(parser);
         if (stmt == NULL) {
             err = true;
@@ -1219,7 +1219,7 @@ static struct ast* block(struct parser *parser)
             break;
         }
         statements = ast_list_append(statements, stmt);
-    } while (!check(parser, TOK_RCURLY));
+    }
 
     if (!expect(parser, TOK_RCURLY)) {
         err = true;
