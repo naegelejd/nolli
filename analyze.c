@@ -298,14 +298,10 @@ static struct type *analyze_alias(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_import(struct ast *node, struct analysis *analysis)
+static struct type *analyze_using(struct ast *node, struct analysis *analysis)
 {
-    if (node->import.from) {
-        analyze(node->import.from, analysis);
-    }
-
-    assert(node->import.modules);
-    analyze(node->import.modules, analysis);
+    assert(node->usings.names);
+    analyze(node->usings.names, analysis);
 
     return NULL;    /* FIXME */
 }
@@ -352,21 +348,21 @@ static struct type* analyze_globals(struct ast *node, struct analysis *analysis)
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_imports(struct ast *node, struct analysis *analysis)
+static struct type* analyze_usings(struct ast *node, struct analysis *analysis)
 {
-    struct ast *module = node->list.head;
-    while (module) {
-        assert(module->tag == AST_IDENT);
+    struct ast *pkg = node->list.head;
+    while (pkg) {
+        assert(pkg->tag == AST_IDENT);
 
         /* DELETE THIS CRAP */
         char fname[1024];
         memset(fname, 0, 1024);
-        strcat(fname, module->s->str);
+        strcat(fname, pkg->s->str);
         strcat(fname, ".nl");
-        printf("LOADING module %s\n", fname);
+        printf("LOADING pkg %s\n", fname);
         struct ast *root = compile_file(fname);
 
-        module = module->next;
+        pkg = pkg->next;
     }
 
     return NULL;    /* FIXME? */
@@ -466,7 +462,7 @@ static char *ast_name(struct ast* node)
         "CLASS",
         "INTERFACE",
         "ALIAS",
-        "IMPORT",
+        "USING",
         "UNIT",
 
         "LIST_SENTINEL",
@@ -474,7 +470,7 @@ static char *ast_name(struct ast* node)
         "LIST_LISTLIT",
         "LIST_MAPLIT",
         "LIST_GLOBALS",
-        "LIST_IMPORTS",
+        "LIST_USINGS",
         "LIST_MEMBERS",
         "LIST_STATEMENTS",
         "LIST_IDENTS",
@@ -534,7 +530,7 @@ static struct type *analyze(struct ast *root, struct analysis *analysis)
         analyze_class,
         analyze_interface,
         analyze_alias,
-        analyze_import,
+        analyze_using,
         analyze_unit,
 
         NULL,
@@ -542,7 +538,7 @@ static struct type *analyze(struct ast *root, struct analysis *analysis)
         analyze_listlit,
         analyze_maplit,
         analyze_globals,
-        analyze_imports,
+        analyze_usings,
         analyze_members,
         analyze_statements,
         analyze_idents,

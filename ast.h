@@ -45,7 +45,7 @@ enum {
     AST_CLASS,
     AST_INTERFACE,
     AST_ALIAS,
-    AST_IMPORT,
+    AST_USING,
     AST_UNIT,
 
     AST_LIST_SENTINEL,  /* never used */
@@ -54,7 +54,7 @@ enum {
     AST_LIST_LISTLIT,
     AST_LIST_MAPLIT,
     AST_LIST_GLOBALS,
-    AST_LIST_IMPORTS,
+    AST_LIST_USINGS,
     AST_LIST_MEMBERS,
     AST_LIST_STATEMENTS,
     AST_LIST_IDENTS,
@@ -178,8 +178,8 @@ struct ast_decl {
     int tp;                 /* declaration type (var/const) */
 };
 
-struct ast_import {
-    struct ast *from, *modules;
+struct ast_using {
+    struct ast *names;
 };
 
 struct ast_unit {
@@ -218,7 +218,7 @@ struct ast {
         struct ast_class classdef;
         struct ast_alias alias;
         struct ast_decl decl;
-        struct ast_import import;
+        struct ast_using usings;
         struct ast_unit unit;
     };
     struct ast* next;
@@ -270,7 +270,7 @@ struct ast *ast_make_function(struct ast*, struct ast*, struct ast*, int);
 struct ast *ast_make_class(struct ast*, struct ast*, struct ast*, struct ast*, int);
 struct ast *ast_make_interface(struct ast*, struct ast*, int);
 struct ast *ast_make_alias(struct ast*, struct ast *, int);
-struct ast *ast_make_import(struct ast *, struct ast*, int);
+struct ast *ast_make_using(struct ast*, int);
 struct ast *ast_make_unit(struct ast*, struct ast*, int);
 
 #endif /* NOLLI_AST_H */

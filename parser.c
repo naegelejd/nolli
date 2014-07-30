@@ -16,7 +16,7 @@ static struct ast* unit(struct parser *parser);
 static struct ast* globals(struct parser *parser);
 static struct ast* global(struct parser *parser);
 static struct ast* ident(struct parser *parser);
-static struct ast* import(struct parser *parser);
+static struct ast* using(struct parser *parser);
 static struct ast* declaration(struct parser *parser);
 static struct ast* declrhs(struct parser *parser);
 static struct ast* classdef(struct parser *parser);
@@ -146,8 +146,8 @@ static struct ast* globals(struct parser *parser)
 static struct ast* global(struct parser *parser)
 {
     struct ast* def = NULL;
-    if (check(parser, TOK_IMPORT) || check(parser, TOK_FROM)) {
-        def = import(parser);
+    if (check(parser, TOK_USING)) {
+        def = using(parser);
     } else if (check(parser, TOK_VAR) || check(parser, TOK_CONST)) {
         def = declaration(parser);
     } else if (check(parser, TOK_CLASS)) {
@@ -166,33 +166,27 @@ static struct ast* global(struct parser *parser)
     return def;
 }
 
-static struct ast* import(struct parser *parser)
+static struct ast* using(struct parser *parser)
 {
     bool err = false;
-    struct ast *from = NULL;
 
-    if (accept(parser, TOK_FROM)) {
-        from = ident(parser);
-        if (!expect(parser, TOK_IMPORT)) {
-            err = true;
-        }
-    } else if (!expect(parser, TOK_IMPORT)) {
+    if (!expect(parser, TOK_USING)) {
         err = true;
     }
 
-    struct ast *list = ast_make_list(AST_LIST_IMPORTS, lineno(parser));
+    struct ast *list = ast_make_list(AST_LIST_USINGS, lineno(parser));
     do {
-        struct ast *module = ident(parser);
-        list = ast_list_append(list, module);
+        struct ast *pkg = ident(parser);
+        list = ast_list_append(list, pkg);
     } while (accept(parser, TOK_COMMA));
 
-    PARSE_DEBUG(parser, "Parsed `import`");
+    PARSE_DEBUG(parser, "Parsed `using`");
 
     struct ast *imp = NULL;
     if (err) {
         imp = NULL;     /* TODO: destroy from & list */
     } else {
-        imp = ast_make_import(from, list, lineno(parser));
+        imp = ast_make_using(list, lineno(parser));
     }
     return imp;
 }

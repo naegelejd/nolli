@@ -56,12 +56,11 @@ struct ast* ast_make_ident(struct string *s, int lineno)
     return node;
 }
 
-struct ast* ast_make_import(struct ast* from, struct ast* modules, int lineno)
+struct ast* ast_make_using(struct ast* names, int lineno)
 {
-    assert(modules);
-    struct ast *node = make_node(AST_IMPORT, lineno);
-    node->import.from = from;
-    node->import.modules = modules;
+    assert(names);
+    struct ast *node = make_node(AST_USING, lineno);
+    node->usings.names = names;
     return node;
 }
 

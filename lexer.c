@@ -36,7 +36,7 @@ static const char *token_names[] = {
     "(", ")", "[", "]", "{", "}",
     ",", ";", ".", "::",
 
-    "package", "import", "from",
+    "package", "using",
     "new", "alias",
     "class", "interface",
     "func", "return",
@@ -47,7 +47,7 @@ static const char *token_names[] = {
 };
 
 static const char *keywords[] = {
-    "package", "import", "from",
+    "package", "using",
     "new", "alias",
     "class", "interface",
     "func", "return",

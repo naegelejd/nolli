@@ -52,8 +52,8 @@ int compile_files(char * const *paths, int count)
         cur = &(*cur)->next;
     }
 
-    /* graph_asts(node); */
-    /* analyze_asts(node); */
+    graph_ast(head);
+    analyze_ast(head);
 
     return EXIT_SUCCESS;
 }

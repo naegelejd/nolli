@@ -1,7 +1,6 @@
 package experimental
 
-# import math
-# from std import print
+using math, net
 
 interface Shape {
     func int () area

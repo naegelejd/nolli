@@ -395,20 +395,15 @@ static int graph_alias(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_import(struct ast *node, FILE *fp, int id)
+static int graph_using(struct ast *node, FILE *fp, int id)
 {
     int rID = id;
-    fprintf(fp, "%d [label=\"import\"]\n", rID);
+    fprintf(fp, "%d [label=\"using\"]\n", rID);
 
-    if (node->import.from) {
-        fprintf(fp, "%d -> %d\n", rID, ++id);
-        id = graph(node->import.from, fp, id);
-    }
-
-    assert(node->import.modules);
+    assert(node->usings.names);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->import.modules, fp, id);
+    id = graph(node->usings.names, fp, id);
 
     return id;
 }
@@ -457,9 +452,9 @@ static int graph_globals(struct ast *node, FILE *fp, int id)
     return graph_list(node, fp, id, "globals");
 }
 
-static int graph_imports(struct ast *node, FILE *fp, int id)
+static int graph_usings(struct ast *node, FILE *fp, int id)
 {
-    return graph_list(node, fp, id, "imports");
+    return graph_list(node, fp, id, "usings");
 }
 
 static int graph_members(struct ast *node, FILE *fp, int id)
@@ -561,7 +556,7 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_class,
         graph_interface,
         graph_alias,
-        graph_import,
+        graph_using,
         graph_unit,
 
         NULL,   /* sentinel separator */
@@ -569,7 +564,7 @@ static int graph(struct ast *root, FILE *fp, int id)
         graph_listlit,
         graph_maplit,
         graph_globals,
-        graph_imports,
+        graph_usings,
         graph_members,
         graph_statements,
         graph_idents,
