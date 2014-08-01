@@ -11,7 +11,7 @@ struct string *stringtable_wrap(struct stringtable *tab, char *str)
         ptr = &cur->next;
     }
 
-    *ptr = nalloc(sizeof(*ptr));
+    *ptr = nl_alloc(sizeof(*ptr));
     (*ptr)->str = strdup(str);
     return *ptr;
 }

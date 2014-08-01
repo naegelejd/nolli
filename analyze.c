@@ -1,4 +1,4 @@
-#include "analyze.h"
+#include "nolli.h"
 
 struct analysis {
     struct symtable *packages;
@@ -12,57 +12,57 @@ static struct symtable *new_scope(struct analysis *analysis)
 }
 
 
-typedef struct type* (*analyzer) (struct ast*, struct analysis*);
+typedef struct type* (*analyzer) (struct nl_ast*, struct analysis*);
 
-static struct type *analyze(struct ast *root, struct analysis *analysis);
+static struct type *analyze(struct nl_ast *root, struct analysis *analysis);
 
 
-static struct type *analyze_bool_lit(struct ast *node, struct analysis *analysis)
+static struct type *analyze_bool_lit(struct nl_ast *node, struct analysis *analysis)
 {
     node->type = &bool_type;
     return node->type;
 }
 
-static struct type *analyze_char_lit(struct ast *node, struct analysis *analysis)
+static struct type *analyze_char_lit(struct nl_ast *node, struct analysis *analysis)
 {
     node->type = &char_type;
     return node->type;
 }
 
-static struct type *analyze_int_num(struct ast *node, struct analysis *analysis)
+static struct type *analyze_int_num(struct nl_ast *node, struct analysis *analysis)
 {
     node->type = &int_type;
     return node->type;
 }
 
-static struct type *analyze_real_num(struct ast *node, struct analysis *analysis)
+static struct type *analyze_real_num(struct nl_ast *node, struct analysis *analysis)
 {
     node->type = &real_type;
     return node->type;
 }
 
-static struct type *analyze_str_lit(struct ast *node, struct analysis *analysis)
+static struct type *analyze_str_lit(struct nl_ast *node, struct analysis *analysis)
 {
     node->type = &str_type;
     return node->type;
 }
 
-static struct type *analyze_ident(struct ast *node, struct analysis *analysis)
+static struct type *analyze_ident(struct nl_ast *node, struct analysis *analysis)
 {
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_tmpl_type(struct ast *node, struct analysis *analysis)
+static struct type *analyze_tmpl_type(struct nl_ast *node, struct analysis *analysis)
 {
     return NULL;
 }
 
-static struct type *analyze_qual_type(struct ast *node, struct analysis *analysis)
+static struct type *analyze_qual_type(struct nl_ast *node, struct analysis *analysis)
 {
     return NULL;
 }
 
-static struct type *analyze_func_type(struct ast *node, struct analysis *analysis)
+static struct type *analyze_func_type(struct nl_ast *node, struct analysis *analysis)
 {
     if (node->func_type.ret_type) {
         analyze(node->func_type.ret_type, analysis);
@@ -74,7 +74,7 @@ static struct type *analyze_func_type(struct ast *node, struct analysis *analysi
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_decl(struct ast *node, struct analysis *analysis)
+static struct type *analyze_decl(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->decl.type, analysis);
     if (node->decl.rhs) {
@@ -84,7 +84,7 @@ static struct type *analyze_decl(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_init(struct ast *node, struct analysis *analysis)
+static struct type *analyze_init(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->init.ident, analysis);
     analyze(node->init.expr, analysis);
@@ -92,7 +92,7 @@ static struct type *analyze_init(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_unexpr(struct ast *node, struct analysis *analysis)
+static struct type *analyze_unexpr(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->unexpr.expr, analysis);
 
@@ -100,7 +100,7 @@ static struct type *analyze_unexpr(struct ast *node, struct analysis *analysis)
     return node->type;    /* FIXME */
 }
 
-static struct type *analyze_binexpr(struct ast *node, struct analysis *analysis)
+static struct type *analyze_binexpr(struct nl_ast *node, struct analysis *analysis)
 {
     struct type *rhs = analyze(node->binexpr.lhs, analysis);
     struct type *lhs = analyze(node->binexpr.rhs, analysis);
@@ -118,7 +118,7 @@ static struct type *analyze_binexpr(struct ast *node, struct analysis *analysis)
     return node->type;
 }
 
-static struct type *analyze_keyval(struct ast *node, struct analysis *analysis)
+static struct type *analyze_keyval(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->keyval.key, analysis);
     analyze(node->keyval.val, analysis);
@@ -126,7 +126,7 @@ static struct type *analyze_keyval(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_lookup(struct ast *node, struct analysis *analysis)
+static struct type *analyze_lookup(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->lookup.container, analysis);
     analyze(node->lookup.index, analysis);
@@ -134,15 +134,15 @@ static struct type *analyze_lookup(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_package_ref(struct ast *node, struct analysis *analysis)
+static struct type *analyze_package_ref(struct nl_ast *node, struct analysis *analysis)
 {
 
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_selector(struct ast *node, struct analysis *analysis)
+static struct type *analyze_selector(struct nl_ast *node, struct analysis *analysis)
 {
-    if (node->selector.parent->tag == AST_IDENT) {
+    if (node->selector.parent->tag == NL_AST_IDENT) {
         printf("selector: %s\n", node->selector.parent->s->str);
     }
 
@@ -155,7 +155,7 @@ static struct type *analyze_selector(struct ast *node, struct analysis *analysis
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_bind(struct ast *node, struct analysis *analysis)
+static struct type *analyze_bind(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->bind.ident, analysis);
     analyze(node->bind.expr, analysis);
@@ -163,7 +163,7 @@ static struct type *analyze_bind(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_assign(struct ast *node, struct analysis *analysis)
+static struct type *analyze_assign(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->assignment.lhs, analysis);
     analyze(node->assignment.expr, analysis);
@@ -171,9 +171,9 @@ static struct type *analyze_assign(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_ifelse(struct ast *node, struct analysis *analysis)
+static struct type *analyze_ifelse(struct nl_ast *node, struct analysis *analysis)
 {
-    struct ast *cond = node->ifelse.cond;
+    struct nl_ast *cond = node->ifelse.cond;
     analyze(cond, analysis);
     if (cond->type != &bool_type) {
         NOLLI_ERRORF("Conditional expression must be boolean on line %d", cond->lineno);
@@ -187,7 +187,7 @@ static struct type *analyze_ifelse(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_while(struct ast *node, struct analysis *analysis)
+static struct type *analyze_while(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->while_loop.cond, analysis);
     analyze(node->while_loop.body, analysis);
@@ -195,7 +195,7 @@ static struct type *analyze_while(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_for(struct ast *node, struct analysis *analysis)
+static struct type *analyze_for(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->for_loop.var, analysis);
     analyze(node->for_loop.range, analysis);
@@ -204,7 +204,7 @@ static struct type *analyze_for(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_call(struct ast *node, struct analysis *analysis)
+static struct type *analyze_call(struct nl_ast *node, struct analysis *analysis)
 {
     /* get type of callee */
     struct type *ft = analyze(node->call.func, analysis);
@@ -218,7 +218,7 @@ static struct type *analyze_call(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_function(struct ast *node, struct analysis *analysis)
+static struct type *analyze_function(struct nl_ast *node, struct analysis *analysis)
 {
     struct type *ft = analyze(node->function.type, analysis);
 
@@ -235,7 +235,7 @@ static struct type *analyze_function(struct ast *node, struct analysis *analysis
     return ft;
 }
 
-static struct type *analyze_classlit(struct ast *node, struct analysis *analysis)
+static struct type *analyze_classlit(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->classlit.name, analysis);
     if (node->classlit.tmpl) {
@@ -245,7 +245,7 @@ static struct type *analyze_classlit(struct ast *node, struct analysis *analysis
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_return(struct ast *node, struct analysis *analysis)
+static struct type *analyze_return(struct nl_ast *node, struct analysis *analysis)
 {
     if (node->ret.expr) {
         analyze(node->ret.expr, analysis);
@@ -254,19 +254,19 @@ static struct type *analyze_return(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_break(struct ast *node, struct analysis *analysis)
+static struct type *analyze_break(struct nl_ast *node, struct analysis *analysis)
 {
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_continue(struct ast *node, struct analysis *analysis)
+static struct type *analyze_continue(struct nl_ast *node, struct analysis *analysis)
 {
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_class(struct ast *node, struct analysis *analysis)
+static struct type *analyze_class(struct nl_ast *node, struct analysis *analysis)
 {
-    assert(node->classdef.name->tag == AST_IDENT);
+    assert(node->classdef.name->tag == NL_AST_IDENT);
 
     /* create a new type */
     struct type *ct = type_new_class(node->classdef.name->s->str);
@@ -282,7 +282,7 @@ static struct type *analyze_class(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_interface(struct ast *node, struct analysis *analysis)
+static struct type *analyze_interface(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->interface.name, analysis);
     analyze(node->interface.methods, analysis);
@@ -290,7 +290,7 @@ static struct type *analyze_interface(struct ast *node, struct analysis *analysi
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_alias(struct ast *node, struct analysis *analysis)
+static struct type *analyze_alias(struct nl_ast *node, struct analysis *analysis)
 {
     analyze(node->alias.type, analysis);
     analyze(node->alias.name, analysis);
@@ -298,7 +298,7 @@ static struct type *analyze_alias(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_using(struct ast *node, struct analysis *analysis)
+static struct type *analyze_using(struct nl_ast *node, struct analysis *analysis)
 {
     assert(node->usings.names);
     analyze(node->usings.names, analysis);
@@ -306,10 +306,10 @@ static struct type *analyze_using(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_unit(struct ast *node, struct analysis *analysis)
+static struct type *analyze_unit(struct nl_ast *node, struct analysis *analysis)
 {
-    struct ast *pkg = node->unit.package;
-    assert(pkg->tag == AST_IDENT);
+    struct nl_ast *pkg = node->unit.package;
+    assert(pkg->tag == NL_AST_IDENT);
     analysis->pkgname = pkg->s;
 
     struct symtable *package_table = new_scope(analysis);
@@ -322,9 +322,9 @@ static struct type *analyze_unit(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type *analyze_list(struct ast *node, struct analysis *analysis)
+static struct type *analyze_list(struct nl_ast *node, struct analysis *analysis)
 {
-    struct ast *elem = node->list.head;
+    struct nl_ast *elem = node->list.head;
     while (elem) {
         struct type *tp = analyze(elem, analysis);
         elem = elem->next;
@@ -333,26 +333,26 @@ static struct type *analyze_list(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME */
 }
 
-static struct type* analyze_listlit(struct ast *node, struct analysis *analysis)
+static struct type* analyze_listlit(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_maplit(struct ast *node, struct analysis *analysis)
+static struct type* analyze_maplit(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_globals(struct ast *node, struct analysis *analysis)
+static struct type* analyze_globals(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_usings(struct ast *node, struct analysis *analysis)
+static struct type* analyze_usings(struct nl_ast *node, struct analysis *analysis)
 {
-    struct ast *pkg = node->list.head;
+    struct nl_ast *pkg = node->list.head;
     while (pkg) {
-        assert(pkg->tag == AST_IDENT);
+        assert(pkg->tag == NL_AST_IDENT);
 
         /* DELETE THIS CRAP */
         char fname[1024];
@@ -360,7 +360,7 @@ static struct type* analyze_usings(struct ast *node, struct analysis *analysis)
         strcat(fname, pkg->s->str);
         strcat(fname, ".nl");
         printf("LOADING pkg %s\n", fname);
-        struct ast *root = compile_file(fname);
+        /* struct nl_ast *root = nl_compile_file(fname); */
 
         pkg = pkg->next;
     }
@@ -368,57 +368,57 @@ static struct type* analyze_usings(struct ast *node, struct analysis *analysis)
     return NULL;    /* FIXME? */
 }
 
-static struct type* analyze_members(struct ast *node, struct analysis *analysis)
+static struct type* analyze_members(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_statements(struct ast *node, struct analysis *analysis)
+static struct type* analyze_statements(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_idents(struct ast *node, struct analysis *analysis)
+static struct type* analyze_idents(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_types(struct ast *node, struct analysis *analysis)
+static struct type* analyze_types(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_methods(struct ast *node, struct analysis *analysis)
+static struct type* analyze_methods(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_method_decls(struct ast *node, struct analysis *analysis)
+static struct type* analyze_method_decls(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_decls(struct ast *node, struct analysis *analysis)
+static struct type* analyze_decls(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_class_inits(struct ast *node, struct analysis *analysis)
+static struct type* analyze_class_inits(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_params(struct ast *node, struct analysis *analysis)
+static struct type* analyze_params(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static struct type* analyze_args(struct ast *node, struct analysis *analysis)
+static struct type* analyze_args(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
 }
 
-static char *ast_name(struct ast* node)
+static char *ast_name(struct nl_ast* node)
 {
     static char *names[] = {
         "FanalysisT",
@@ -487,10 +487,10 @@ static char *ast_name(struct ast* node)
     return names[node->tag];
 }
 
-static struct type *analyze(struct ast *root, struct analysis *analysis)
+static struct type *analyze(struct nl_ast *root, struct analysis *analysis)
 {
     static analyzer analyzers[] = {
-        NULL, /* not a valid AST node */
+        NULL, /* not a valid nl_ast node */
         analyze_bool_lit,
         analyze_char_lit,
         analyze_int_num,
@@ -553,8 +553,8 @@ static struct type *analyze(struct ast *root, struct analysis *analysis)
         NULL
     };
 
-    /* Check that there are as many analyzers as AST node types */
-    assert(sizeof(analyzers) / sizeof(*analyzers) == AST_LAST + 1);
+    /* Check that there are as many analyzers as nl_ast node types */
+    assert(sizeof(analyzers) / sizeof(*analyzers) == NL_AST_LAST + 1);
 
     assert(root);
     /* printf("%s\n", ast_name(root)); */
@@ -564,7 +564,7 @@ static struct type *analyze(struct ast *root, struct analysis *analysis)
     return w(root, analysis);
 }
 
-void analyze_ast(struct ast *root)
+void nl_analyze(struct nl_ast *root)
 {
     assert(root);
 

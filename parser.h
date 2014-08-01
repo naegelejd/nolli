@@ -3,15 +3,12 @@
 
 #include "nolli.h"
 
-enum { MAX_IDENT_LENGTH = 1024 };
-
-struct parser {
-    struct lexer *lexer;
+struct nl_parser {
+    struct nl_lexer *lexer;
     struct stringtable *strtab;
     int cur;
-    bool error;
 };
 
-struct ast *parse_buffer(char*);
+struct nl_ast *nl_parse_buffer(char*);
 
 #endif /* NOLLI_PARSER_H */

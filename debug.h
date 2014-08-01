@@ -24,11 +24,11 @@
         fprintf(stderr, RED_ERROR "[%s:%d]: " fmt "\n", \
                 __func__, __LINE__, __VA_ARGS__)
 
-#define NOLLI_DIEF(fmt, ...) \
+#define NOLLI_FATALF(fmt, ...) \
     do { \
         fprintf(stderr, RED_FATAL "[%s:%d:%s]: " fmt "\n", \
                 __FILE__, __LINE__, __func__, __VA_ARGS__); \
-        exit(EXIT_FAILURE); \
+        exit(NL_ERR_FATAL); \
     } while (0)
 
 #else   /* DEBUG */
@@ -38,16 +38,16 @@
 #define NOLLI_ERRORF(fmt, ...) \
         fprintf(stderr, RED_ERROR fmt "\n", __VA_ARGS__)
 
-#define NOLLI_DIEF(fmt, ...) \
+#define NOLLI_FATALF(fmt, ...) \
     do { \
         fprintf(stderr, RED_FATAL fmt "\n", __VA_ARGS__); \
-        exit(EXIT_FAILURE); \
+        exit(NL_ERR_FATAL); \
     } while (0)
 
 #endif  /* DEBUG */
 
 #define NOLLI_DEBUG(S) NOLLI_DEBUGF("%s", S)
 #define NOLLI_ERROR(S) NOLLI_ERRORF("%s", S)
-#define NOLLI_DIE(S) NOLLI_DIEF("%s", S)
+#define NOLLI_FATAL(S) NOLLI_FATALF("%s", S)
 
 #endif /* NOLLI_DEBUG_H */

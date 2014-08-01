@@ -18,9 +18,6 @@ static void *symtable_do(struct symtable *table,
         const char *key, void *val, int what);
 
 static unsigned int string_hash0(const char*);
-static unsigned int string_hash1(const char*);
-static unsigned int string_hash2(const char*);
-static unsigned int string_hash3(const char*);
 
 /** total number of possible hash table sizes */
 const unsigned int MAX_TABLE_SIZE_OPTIONS = 28;
@@ -68,8 +65,8 @@ static struct symtable *symtable_resize(struct symtable *st, unsigned int new_si
     st->count = 0;
     st->collisions = 0;
 
-    st->keys = nalloc(st->size * sizeof(*st->keys));
-    st->vals = nalloc(st->size * sizeof(*st->vals));
+    st->keys = nl_alloc(st->size * sizeof(*st->keys));
+    st->vals = nl_alloc(st->size * sizeof(*st->vals));
 
     unsigned int i;
     for (i = 0; i < old_size; i++) {
@@ -90,13 +87,13 @@ static struct symtable *symtable_resize(struct symtable *st, unsigned int new_si
  */
 struct symtable *symtable_create(struct symtable *parent)
 {
-    struct symtable *st = nalloc(sizeof(*st));
+    struct symtable *st = nl_alloc(sizeof(*st));
     st->size_idx = 0;
     st->size = SYMTABLE_SIZES[st->size_idx];
 
     st->parent = parent;
-    st->keys = nalloc(st->size * sizeof(*st->keys));
-    st->vals = nalloc(st->size * sizeof(*st->vals));
+    st->keys = nl_alloc(st->size * sizeof(*st->keys));
+    st->vals = nl_alloc(st->size * sizeof(*st->vals));
 
     return st;
 }
@@ -124,6 +121,8 @@ static void *symtable_do(struct symtable *table, const char *key, void *val, int
 {
     if (table->count > (table->size * 0.60)) {
         symtable_grow(table);
+    } else if (table->count < (table->size * 0.20)) {
+        symtable_shrink(table);
     }
 
     unsigned int hash0 = string_hash0(key);
@@ -203,6 +202,7 @@ static unsigned int string_hash0(const char* s)
     return h;
 }
 
+#if 0
 /* SDBM:
  *
  * hash(i) = hash(i - 1) * 65599 + str[i]
@@ -257,3 +257,4 @@ static unsigned int string_hash3(const char *s)
     }
     return h;
 }
+#endif

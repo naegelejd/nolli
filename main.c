@@ -1,6 +1,7 @@
 #include "nolli.h"
+#include <stdlib.h>
 
-struct ast *compile_file(const char *filename)
+struct nl_ast *compile_file(const char *filename)
 {
     FILE *fin = NULL;
     if (!(fin = fopen(filename, "r"))) {
@@ -11,14 +12,14 @@ struct ast *compile_file(const char *filename)
     fseek(fin, 0, SEEK_END);
     long bytes = ftell(fin);
     rewind(fin);
-    char *buff = nalloc(bytes + 1);
+    char *buff = nl_alloc(bytes + 1);
     if (fread(buff, 1, bytes, fin) < bytes) {
         NOLLI_ERRORF("Failed to read file %s", filename);
         return NULL;
     }
 
     buff[bytes] = '\0';
-    struct ast *root = parse_buffer(buff);
+    struct nl_ast *root = nl_parse_buffer(buff);
     free(buff);
 
     if (fclose(fin) != 0) {
@@ -38,12 +39,12 @@ int compile_files(char * const *paths, int count)
 {
     assert(count > 0);
 
-    struct ast *head = NULL;
-    struct ast **cur = &head;
+    struct nl_ast *head = NULL;
+    struct nl_ast **cur = &head;
 
     int i = 0;
     for (i = 0; i < count; ++i) {
-        struct ast *tmp = compile_file(paths[i]);
+        struct nl_ast *tmp = compile_file(paths[i]);
         if (tmp == NULL) {
             return EXIT_FAILURE;
         }
@@ -52,8 +53,8 @@ int compile_files(char * const *paths, int count)
         cur = &(*cur)->next;
     }
 
-    graph_ast(head);
-    analyze_ast(head);
+    nl_graph_ast(head);
+    nl_analyze(head);
 
     return EXIT_SUCCESS;
 }

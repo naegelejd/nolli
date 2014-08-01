@@ -35,7 +35,7 @@ enum {
     TOK_WHILE, TOK_FOR, TOK_IN
 };
 
-struct lexer {
+struct nl_lexer {
     char *input;
     char *sptr;
 
@@ -52,11 +52,11 @@ struct lexer {
 };
 
 
-void lexer_init(struct lexer *, char *);
+void nl_lexer_init(struct nl_lexer *, char *);
 
-int gettok(struct lexer *lex);
-const char *get_tok_name(int tok);
+int nl_gettok(struct nl_lexer *lex);
+const char *nl_get_tok_name(int tok);
 
-int lexer_scan_all(struct lexer *lex);
+int nl_lexer_scan_all(struct nl_lexer *lex);
 
 #endif /* NOLLI_LEXER_H */

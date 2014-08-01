@@ -1,45 +1,45 @@
-#include "graph.h"
+#include "nolli.h"
 
-static int graph(struct ast *root, FILE *, int id);
+static int graph(struct nl_ast *root, FILE *, int id);
 
-static int graph_bool_lit(struct ast *node, FILE *fp, int id)
+static int graph_bool_lit(struct nl_ast *node, FILE *fp, int id)
 {
     static char *bs[] = {"false", "true"};
     fprintf(fp, "%d [label=\"bool: %s\"]\n", id, bs[node->b]);
     return id;
 }
 
-static int graph_char_lit(struct ast *node, FILE *fp, int id)
+static int graph_char_lit(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"char: %c\"]\n", id, node->c);
     return id;
 }
 
-static int graph_int_num(struct ast *node, FILE *fp, int id)
+static int graph_int_num(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"int: %ld\"]\n", id, node->l);
     return id;
 }
 
-static int graph_real_num(struct ast *node, FILE *fp, int id)
+static int graph_real_num(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"real: %g\"]\n", id, node->d);
     return id;
 }
 
-static int graph_str_lit(struct ast *node, FILE *fp, int id)
+static int graph_str_lit(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"str: \\\"%s\\\"\"]\n", id, node->s->str);
     return id;
 }
 
-static int graph_ident(struct ast *node, FILE *fp, int id)
+static int graph_ident(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"ident: %s\"]\n", id, node->s->str);
     return id;
 }
 
-static int graph_unexpr(struct ast *node, FILE *fp, int id)
+static int graph_unexpr(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=[\"unexpr\"]\n", rID);
@@ -49,11 +49,11 @@ static int graph_unexpr(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_binexpr(struct ast *node, FILE *fp, int id)
+static int graph_binexpr(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
-    fprintf(fp, "%d [label=\"%s\"]\n", rID, get_tok_name(node->binexpr.op));
+    fprintf(fp, "%d [label=\"%s\"]\n", rID, nl_get_tok_name(node->binexpr.op));
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->binexpr.lhs, fp, id);
     fprintf(fp, "%d -> %d\n", rID, ++id);
@@ -62,7 +62,7 @@ static int graph_binexpr(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_tmpl_type(struct ast *node, FILE *fp, int id)
+static int graph_tmpl_type(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -75,7 +75,7 @@ static int graph_tmpl_type(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_qual_type(struct ast *node, FILE *fp, int id)
+static int graph_qual_type(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -88,7 +88,7 @@ static int graph_qual_type(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_func_type(struct ast *node, FILE *fp, int id)
+static int graph_func_type(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -106,7 +106,7 @@ static int graph_func_type(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_package_ref(struct ast *node, FILE *fp, int id)
+static int graph_package_ref(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -121,7 +121,7 @@ static int graph_package_ref(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_selector(struct ast *node, FILE *fp, int id)
+static int graph_selector(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -136,7 +136,7 @@ static int graph_selector(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_keyval(struct ast *node, FILE *fp, int id)
+static int graph_keyval(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"keyval\"]\n", rID);
@@ -149,7 +149,7 @@ static int graph_keyval(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_bind(struct ast *node, FILE *fp, int id)
+static int graph_bind(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -162,7 +162,7 @@ static int graph_bind(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_assign(struct ast *node, FILE *fp, int id)
+static int graph_assign(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -175,7 +175,7 @@ static int graph_assign(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_call(struct ast *node, FILE *fp, int id)
+static int graph_call(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -189,7 +189,7 @@ static int graph_call(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_init(struct ast *node, FILE *fp, int id)
+static int graph_init(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -202,7 +202,7 @@ static int graph_init(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_ifelse(struct ast *node, FILE *fp, int id)
+static int graph_ifelse(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -221,7 +221,7 @@ static int graph_ifelse(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_while(struct ast *node, FILE *fp, int id)
+static int graph_while(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -234,7 +234,7 @@ static int graph_while(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_for(struct ast *node, FILE *fp, int id)
+static int graph_for(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -249,7 +249,7 @@ static int graph_for(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_return(struct ast *node, FILE *fp, int id)
+static int graph_return(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"return\"]\n", rID);
@@ -262,19 +262,19 @@ static int graph_return(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_break(struct ast *node, FILE *fp, int id)
+static int graph_break(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"break\"]\n", id);
     return id;
 }
 
-static int graph_continue(struct ast *node, FILE *fp, int id)
+static int graph_continue(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"continue\"]\n", id);
     return id;
 }
 
-static int graph_lookup(struct ast *node, FILE *fp, int id)
+static int graph_lookup(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -287,7 +287,7 @@ static int graph_lookup(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_function(struct ast *node, FILE *fp, int id)
+static int graph_function(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"function\"]\n", rID);
@@ -306,7 +306,7 @@ static int graph_function(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_classlit(struct ast *node, FILE *fp, int id)
+static int graph_classlit(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"struclit\"]\n", rID);
@@ -325,7 +325,7 @@ static int graph_classlit(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_decl(struct ast *node, FILE *fp, int id)
+static int graph_decl(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -333,7 +333,7 @@ static int graph_decl(struct ast *node, FILE *fp, int id)
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->decl.type, fp, id);
 
-    struct ast *rhs = node->decl.rhs;
+    struct nl_ast *rhs = node->decl.rhs;
     if (rhs) {
         fprintf(fp, "%d -> %d\n", rID, ++id);
         id = graph(node->decl.rhs, fp, id);
@@ -342,7 +342,7 @@ static int graph_decl(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_interface(struct ast *node, FILE *fp, int id)
+static int graph_interface(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -357,7 +357,7 @@ static int graph_interface(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_class(struct ast *node, FILE *fp, int id)
+static int graph_class(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -380,7 +380,7 @@ static int graph_class(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_alias(struct ast *node, FILE *fp, int id)
+static int graph_alias(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
 
@@ -395,7 +395,7 @@ static int graph_alias(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_using(struct ast *node, FILE *fp, int id)
+static int graph_using(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"using\"]\n", rID);
@@ -408,7 +408,7 @@ static int graph_using(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_unit(struct ast *node, FILE *fp, int id)
+static int graph_unit(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"unit\"]\n", rID);
@@ -422,12 +422,12 @@ static int graph_unit(struct ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_list(struct ast *node, FILE *fp, int id, const char *name)
+static int graph_list(struct nl_ast *node, FILE *fp, int id, const char *name)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"%s\"]\n", rID, name);
 
-    struct ast *elem = node->list.head;
+    struct nl_ast *elem = node->list.head;
     while (elem) {
         fprintf(fp, "%d -> %d\n", rID, ++id);
         id = graph(elem, fp, id);
@@ -437,80 +437,80 @@ static int graph_list(struct ast *node, FILE *fp, int id, const char *name)
     return id;
 }
 
-static int graph_listlit(struct ast *node, FILE *fp, int id)
+static int graph_listlit(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "list literal");
 }
 
-static int graph_maplit(struct ast *node, FILE *fp, int id)
+static int graph_maplit(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "map literal");
 }
 
-static int graph_globals(struct ast *node, FILE *fp, int id)
+static int graph_globals(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "globals");
 }
 
-static int graph_usings(struct ast *node, FILE *fp, int id)
+static int graph_usings(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "usings");
 }
 
-static int graph_members(struct ast *node, FILE *fp, int id)
+static int graph_members(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "members");
 }
 
-static int graph_statements(struct ast *node, FILE *fp, int id)
+static int graph_statements(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "statements");
 }
 
-static int graph_idents(struct ast *node, FILE *fp, int id)
+static int graph_idents(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "idents");
 }
 
-static int graph_types(struct ast *node, FILE *fp, int id)
+static int graph_types(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "types");
 }
 
-static int graph_methods(struct ast *node, FILE *fp, int id)
+static int graph_methods(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "methods");
 }
 
-static int graph_method_decls(struct ast *node, FILE *fp, int id)
+static int graph_method_decls(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "method decls");
 }
 
-static int graph_decls(struct ast *node, FILE *fp, int id)
+static int graph_decls(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "declarations");
 }
 
-static int graph_class_inits(struct ast *node, FILE *fp, int id)
+static int graph_class_inits(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "class literal inits");
 }
 
-static int graph_params(struct ast *node, FILE *fp, int id)
+static int graph_params(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "params");
 }
 
-static int graph_args(struct ast *node, FILE *fp, int id)
+static int graph_args(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, "args");
 }
 
 
-typedef int (*grapher) (struct ast*, FILE *, int id);
+typedef int (*grapher) (struct nl_ast*, FILE *, int id);
 
-static int graph(struct ast *root, FILE *fp, int id)
+static int graph(struct nl_ast *root, FILE *fp, int id)
 {
     assert(root);
 
@@ -579,15 +579,15 @@ static int graph(struct ast *root, FILE *fp, int id)
         NULL, /* sentinel */
     };
 
-    /* Check that there are as many graphers as AST node types */
-    assert(sizeof(graphers) / sizeof(*graphers) == AST_LAST + 1);
+    /* Check that there are as many graphers as nl_ast node types */
+    assert(sizeof(graphers) / sizeof(*graphers) == NL_AST_LAST + 1);
 
     grapher g = graphers[root->tag];
     assert(g);
     return g(root, fp, id);
 }
 
-void graph_ast(struct ast *root)
+void nl_graph_ast(struct nl_ast *root)
 {
     assert(root);
 

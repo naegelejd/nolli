@@ -3,190 +3,191 @@
 
 #include "nolli.h"
 
+#include <stdbool.h>
+
 enum {
-    AST_FIRST,
+    NL_AST_FIRST,
 
-    AST_BOOL_LIT,
-    AST_CHAR_LIT,
-    AST_INT_NUM,
-    AST_REAL_NUM,
-    AST_STR_LIT,
+    NL_AST_BOOL_LIT,
+    NL_AST_CHAR_LIT,
+    NL_AST_INT_NUM,
+    NL_AST_REAL_NUM,
+    NL_AST_STR_LIT,
 
-    AST_IDENT,
+    NL_AST_IDENT,
 
-    AST_TMPL_TYPE,
-    AST_QUAL_TYPE,
-    AST_FUNC_TYPE,
+    NL_AST_TMPL_TYPE,
+    NL_AST_QUAL_TYPE,
+    NL_AST_FUNC_TYPE,
 
-    AST_DECL,
-    AST_INIT,
+    NL_AST_DECL,
+    NL_AST_INIT,
 
-    AST_UNEXPR,
-    AST_BINEXPR,
+    NL_AST_UNEXPR,
+    NL_AST_BINEXPR,
 
-    AST_KEYVAL,
-    AST_LOOKUP,
-    AST_SELECTOR,
-    AST_PACKAGE_REF,
+    NL_AST_KEYVAL,
+    NL_AST_LOOKUP,
+    NL_AST_SELECTOR,
+    NL_AST_PACKAGE_REF,
 
-    AST_BIND,
-    AST_ASSIGN,
-    AST_IFELSE,
-    AST_WHILE,
-    AST_FOR,
-    AST_CALL,
-    AST_FUNCTION,
-    AST_CLASSLIT,
+    NL_AST_BIND,
+    NL_AST_ASSIGN,
+    NL_AST_IFELSE,
+    NL_AST_WHILE,
+    NL_AST_FOR,
+    NL_AST_CALL,
+    NL_AST_FUNCTION,
+    NL_AST_CLASSLIT,
 
-    AST_RETURN,
-    AST_BREAK,
-    AST_CONTINUE,
+    NL_AST_RETURN,
+    NL_AST_BREAK,
+    NL_AST_CONTINUE,
 
-    AST_CLASS,
-    AST_INTERFACE,
-    AST_ALIAS,
-    AST_USING,
-    AST_UNIT,
+    NL_AST_CLASS,
+    NL_AST_INTERFACE,
+    NL_AST_ALIAS,
+    NL_AST_USING,
+    NL_AST_UNIT,
 
-    AST_LIST_SENTINEL,  /* never used */
+    NL_AST_LIST_SENTINEL,  /* never used */
 
     /* linked-lists */
-    AST_LIST_LISTLIT,
-    AST_LIST_MAPLIT,
-    AST_LIST_GLOBALS,
-    AST_LIST_USINGS,
-    AST_LIST_MEMBERS,
-    AST_LIST_STATEMENTS,
-    AST_LIST_IDENTS,
-    AST_LIST_TYPES,
-    AST_LIST_METHODS,
-    AST_LIST_METHOD_DECLS,
-    AST_LIST_DECLS,
-    AST_LIST_CLASS_INITS,
-    AST_LIST_PARAMS,
-    AST_LIST_ARGS,
+    NL_AST_LIST_LISTLIT,
+    NL_AST_LIST_MAPLIT,
+    NL_AST_LIST_GLOBALS,
+    NL_AST_LIST_USINGS,
+    NL_AST_LIST_MEMBERS,
+    NL_AST_LIST_STATEMENTS,
+    NL_AST_LIST_IDENTS,
+    NL_AST_LIST_TYPES,
+    NL_AST_LIST_METHODS,
+    NL_AST_LIST_METHOD_DECLS,
+    NL_AST_LIST_DECLS,
+    NL_AST_LIST_CLASS_INITS,
+    NL_AST_LIST_PARAMS,
+    NL_AST_LIST_ARGS,
 
-    AST_LAST
-
+    NL_AST_LAST
 };
 
 enum {
-    DECL_VAR,
-    DECL_CONST
+    NL_DECL_VAR,
+    NL_DECL_CONST
 };
 
-struct ast_tmpl_type {
-    struct ast *name, *tmpls;
+struct nl_ast_tmpl_type {
+    struct nl_ast *name, *tmpls;
 };
 
-struct ast_qual_type {
-    struct ast *package, *name;
+struct nl_ast_qual_type {
+    struct nl_ast *package, *name;
 };
 
-struct ast_func_type {
-    struct ast *ret_type, *params;
+struct nl_ast_func_type {
+    struct nl_ast *ret_type, *params;
 };
 
-struct ast_classlit {
-    struct ast *name, *tmpl, *items;
+struct nl_ast_classlit {
+    struct nl_ast *name, *tmpl, *items;
 };
 
-struct ast_function {
-    struct ast *name, *type, *body;
+struct nl_ast_function {
+    struct nl_ast *name, *type, *body;
 };
 
-struct ast_init {
-    struct ast *ident, *expr;
+struct nl_ast_init {
+    struct nl_ast *ident, *expr;
 };
 
-struct ast_unexpr {
-    struct ast *expr;
+struct nl_ast_unexpr {
+    struct nl_ast *expr;
     int op;
 };
 
-struct ast_binexpr {
-    struct ast *lhs, *rhs;
+struct nl_ast_binexpr {
+    struct nl_ast *lhs, *rhs;
     int op;
 };
 
-struct ast_call {
-    struct ast *func, *args;
+struct nl_ast_call {
+    struct nl_ast *func, *args;
 };
 
-struct ast_bind {
-    struct ast *ident,  *expr;
+struct nl_ast_bind {
+    struct nl_ast *ident,  *expr;
 };
 
-struct ast_assignment {
-    struct ast *lhs, *expr;
+struct nl_ast_assignment {
+    struct nl_ast *lhs, *expr;
     int op;
 };
 
-struct ast_keyval {
-    struct ast *key, *val;
+struct nl_ast_keyval {
+    struct nl_ast *key, *val;
 };
 
-struct ast_return {
-    struct ast *expr;
+struct nl_ast_return {
+    struct nl_ast *expr;
 };
 
-struct ast_list {
-    struct ast *head, *tail;
+struct nl_ast_list {
+    struct nl_ast *head, *tail;
     int type;
     unsigned int count;
 };
 
-struct ast_ifelse {
-    struct ast *cond, *if_body, *else_body;
+struct nl_ast_ifelse {
+    struct nl_ast *cond, *if_body, *else_body;
 };
 
-struct ast_while {
-    struct ast *cond, *body;
+struct nl_ast_while {
+    struct nl_ast *cond, *body;
 };
 
-struct ast_for {
-    struct ast *var, *range, *body;
+struct nl_ast_for {
+    struct nl_ast *var, *range, *body;
 };
 
-struct ast_lookup {
-    struct ast *container, *index;
+struct nl_ast_lookup {
+    struct nl_ast *container, *index;
 };
 
-struct ast_selector {
-    struct ast *parent, *child;
+struct nl_ast_selector {
+    struct nl_ast *parent, *child;
 };
 
-struct ast_package_ref {
-    struct ast *package, *expr;
+struct nl_ast_package_ref {
+    struct nl_ast *package, *expr;
 };
 
-struct ast_interface {
-    struct ast *name, *methods;
+struct nl_ast_interface {
+    struct nl_ast *name, *methods;
 };
 
-struct ast_class {
-    struct ast *name, *tmpl, *members, *methods;
+struct nl_ast_class {
+    struct nl_ast *name, *tmpl, *members, *methods;
 };
 
-struct ast_alias {
-    struct ast *type, *name;
+struct nl_ast_alias {
+    struct nl_ast *type, *name;
 };
 
-struct ast_decl {
-    struct ast *type;
-    struct ast *rhs;     /* one ident or a list of idents */
+struct nl_ast_decl {
+    struct nl_ast *type;
+    struct nl_ast *rhs;     /* one ident or a list of idents */
     int tp;                 /* declaration type (var/const) */
 };
 
-struct ast_using {
-    struct ast *names;
+struct nl_ast_using {
+    struct nl_ast *names;
 };
 
-struct ast_unit {
-    struct ast *package, *globals;
+struct nl_ast_unit {
+    struct nl_ast *package, *globals;
 };
 
-struct ast {
+struct nl_ast {
     union {
         bool b;
         char c;
@@ -194,83 +195,83 @@ struct ast {
         double d;
         struct string *s;
 
-        struct ast_tmpl_type tmpl_type;
-        struct ast_qual_type qual_type;
-        struct ast_func_type func_type;
-        struct ast_classlit classlit;
-        struct ast_function function;
-        struct ast_init init;
-        struct ast_unexpr unexpr;
-        struct ast_binexpr binexpr;
-        struct ast_call call;
-        struct ast_bind bind;
-        struct ast_assignment assignment;
-        struct ast_keyval keyval;
-        struct ast_return ret;
-        struct ast_list list;
-        struct ast_ifelse ifelse;
-        struct ast_while while_loop;
-        struct ast_for for_loop;
-        struct ast_lookup lookup;
-        struct ast_selector selector;
-        struct ast_package_ref package_ref;
-        struct ast_interface interface;
-        struct ast_class classdef;
-        struct ast_alias alias;
-        struct ast_decl decl;
-        struct ast_using usings;
-        struct ast_unit unit;
+        struct nl_ast_tmpl_type tmpl_type;
+        struct nl_ast_qual_type qual_type;
+        struct nl_ast_func_type func_type;
+        struct nl_ast_classlit classlit;
+        struct nl_ast_function function;
+        struct nl_ast_init init;
+        struct nl_ast_unexpr unexpr;
+        struct nl_ast_binexpr binexpr;
+        struct nl_ast_call call;
+        struct nl_ast_bind bind;
+        struct nl_ast_assignment assignment;
+        struct nl_ast_keyval keyval;
+        struct nl_ast_return ret;
+        struct nl_ast_list list;
+        struct nl_ast_ifelse ifelse;
+        struct nl_ast_while while_loop;
+        struct nl_ast_for for_loop;
+        struct nl_ast_lookup lookup;
+        struct nl_ast_selector selector;
+        struct nl_ast_package_ref package_ref;
+        struct nl_ast_interface interface;
+        struct nl_ast_class classdef;
+        struct nl_ast_alias alias;
+        struct nl_ast_decl decl;
+        struct nl_ast_using usings;
+        struct nl_ast_unit unit;
     };
-    struct ast* next;
+    struct nl_ast* next;
     struct type* type;
     int tag;
     int lineno;
 };
 
-struct ast *ast_make_bool_lit(bool b, int);
-struct ast *ast_make_char_lit(char c, int);
-struct ast *ast_make_int_num(long l, int);
-struct ast *ast_make_real_num(double d, int);
-struct ast *ast_make_str_lit(struct string *s, int);
+struct nl_ast *nl_ast_make_bool_lit(bool b, int);
+struct nl_ast *nl_ast_make_char_lit(char c, int);
+struct nl_ast *nl_ast_make_int_num(long l, int);
+struct nl_ast *nl_ast_make_real_num(double d, int);
+struct nl_ast *nl_ast_make_str_lit(struct string *s, int);
 
-struct ast *ast_make_ident(struct string *s, int);
+struct nl_ast *nl_ast_make_ident(struct string *s, int);
 
-struct ast *ast_make_tmpl_type(struct ast*, struct ast*, int);
-struct ast *ast_make_qual_type(struct ast*, struct ast*, int);
-struct ast *ast_make_func_type(struct ast*, struct ast*, int);
+struct nl_ast *nl_ast_make_tmpl_type(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_qual_type(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_func_type(struct nl_ast*, struct nl_ast*, int);
 
-struct ast *ast_make_initialization(struct ast*, struct ast*, int);
-struct ast *ast_make_unexpr(int op, struct ast*, int);
-struct ast *ast_make_binexpr(struct ast*, int op, struct ast*, int);
+struct nl_ast *nl_ast_make_initialization(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_unexpr(int op, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_binexpr(struct nl_ast*, int op, struct nl_ast*, int);
 
-struct ast *ast_make_list(int type, int);
-struct ast *ast_list_append(struct ast*, struct ast*);
+struct nl_ast *nl_ast_make_list(int type, int);
+struct nl_ast *nl_ast_list_append(struct nl_ast*, struct nl_ast*);
 
-struct ast *ast_make_keyval(struct ast *key, struct ast *val, int);
-struct ast *ast_make_lookup(struct ast*, struct ast*, int);
-struct ast *ast_make_selector(struct ast*, struct ast*, int);
+struct nl_ast *nl_ast_make_keyval(struct nl_ast *key, struct nl_ast *val, int);
+struct nl_ast *nl_ast_make_lookup(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_selector(struct nl_ast*, struct nl_ast*, int);
 
-struct ast *ast_make_package_ref(struct ast*, struct ast*, int);
-struct ast *ast_make_bind(struct ast*, struct ast*, int);
-struct ast *ast_make_assignment(struct ast*, int op, struct ast*, int);
+struct nl_ast *nl_ast_make_package_ref(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_bind(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_assignment(struct nl_ast*, int op, struct nl_ast*, int);
 
-struct ast *ast_make_ifelse(struct ast*, struct ast*, struct ast*, int);
-struct ast *ast_make_while(struct ast*, struct ast*, int);
-struct ast *ast_make_for(struct ast*, struct ast*, struct ast*, int);
-struct ast *ast_make_call(struct ast*, struct ast*, int);
+struct nl_ast *nl_ast_make_ifelse(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_while(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_for(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_call(struct nl_ast*, struct nl_ast*, int);
 
-struct ast *ast_make_break(int);
-struct ast *ast_make_continue(int);
-struct ast *ast_make_return(struct ast*, int);
+struct nl_ast *nl_ast_make_break(int);
+struct nl_ast *nl_ast_make_continue(int);
+struct nl_ast *nl_ast_make_return(struct nl_ast*, int);
 
-struct ast *ast_make_classlit(struct ast*, struct ast*, struct ast*, int);
+struct nl_ast *nl_ast_make_classlit(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
 
-struct ast *ast_make_decl(int, struct ast*, struct ast*, int);
-struct ast *ast_make_function(struct ast*, struct ast*, struct ast*, int);
-struct ast *ast_make_class(struct ast*, struct ast*, struct ast*, struct ast*, int);
-struct ast *ast_make_interface(struct ast*, struct ast*, int);
-struct ast *ast_make_alias(struct ast*, struct ast *, int);
-struct ast *ast_make_using(struct ast*, int);
-struct ast *ast_make_unit(struct ast*, struct ast*, int);
+struct nl_ast *nl_ast_make_decl(int, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_function(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_class(struct nl_ast*, struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_interface(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_alias(struct nl_ast*, struct nl_ast *, int);
+struct nl_ast *nl_ast_make_using(struct nl_ast*, int);
+struct nl_ast *nl_ast_make_unit(struct nl_ast*, struct nl_ast*, int);
 
 #endif /* NOLLI_AST_H */

@@ -1,24 +1,24 @@
-#include "alloc.h"
+#include "nolli.h"
 
-void *nalloc(size_t bytes)
+void *nl_alloc(size_t bytes)
 {
     assert(bytes);
     void* block = calloc(1, bytes);
     if (block == NULL) {
-        NOLLI_DIE("nalloc failed");
+        NOLLI_FATAL("nalloc failed");
     }
 
     return block;
 }
 
-void *nrealloc(void* block, size_t bytes)
+void *nl_realloc(void* block, size_t bytes)
 {
     assert(block);
     assert(bytes);
 
     void* reblock = realloc(block, bytes);
     if (reblock == NULL) {
-        NOLLI_DIE("nrealloc failed");
+        NOLLI_FATAL("nrealloc failed");
     }
 
     return reblock;

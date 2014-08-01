@@ -1,10 +1,9 @@
 #include "lexer.h"
 
+#include <ctype.h>
+
 #define LEX_ERRORF(L, fmt, ...) \
-    do { \
-        NOLLI_ERRORF("(L %d, C %d): " fmt, (L)->line, (L)->col, __VA_ARGS__); \
-        exit(EXIT_FAILURE); \
-    } while (0)
+    NOLLI_FATALF("(L %d, C %d): " fmt, (L)->line, (L)->col, __VA_ARGS__)
 
 #define LEX_ERROR(L, S) LEX_ERRORF(L, "%s", S)
 
@@ -58,7 +57,7 @@ static const char *keywords[] = {
 };
 
 /* returns former length of string in buffer */
-static int rotate_buffers(struct lexer *lex)
+static int rotate_buffers(struct nl_lexer *lex)
 {
     assert(lex);
     assert(lex->curbuff);
@@ -75,7 +74,7 @@ static int rotate_buffers(struct lexer *lex)
     return len;
 }
 
-static int appendc(struct lexer *lex, int c)
+static int appendc(struct nl_lexer *lex, int c)
 {
     assert(lex);
     assert(lex->curbuff);
@@ -87,8 +86,8 @@ static int appendc(struct lexer *lex, int c)
         size_t new_alloc = old_alloc * 2;
 
         /* realloc the buffer */
-        lex->curbuff = nrealloc(lex->curbuff, new_alloc);
-        lex->lastbuff = nrealloc(lex->lastbuff, new_alloc);
+        lex->curbuff = nl_realloc(lex->curbuff, new_alloc);
+        lex->lastbuff = nl_realloc(lex->lastbuff, new_alloc);
         lex->balloc = new_alloc;
 
         /* memory for strings must always be zeroed */
@@ -101,7 +100,7 @@ static int appendc(struct lexer *lex, int c)
 }
 
 /* to be called with decimal point as lex->cur or already in buffer */
-static int lex_real(struct lexer *lex)
+static int lex_real(struct nl_lexer *lex)
 {
     /* allow 'scientific E notation' */
     if (strchr("eE", lex->cur)) {
@@ -129,7 +128,7 @@ static int lex_real(struct lexer *lex)
     return TOK_REAL;
 }
 
-static int lex_integer(struct lexer *lex)
+static int lex_integer(struct nl_lexer *lex)
 {
     do {
         appendc(lex, lex->cur);
@@ -157,7 +156,7 @@ static int lex_integer(struct lexer *lex)
     return TOK_INT;
 }
 
-static void lex_escape(struct lexer *lex)
+static void lex_escape(struct nl_lexer *lex)
 {
     switch (lex->cur) {
         case '"':
@@ -201,7 +200,7 @@ static void lex_escape(struct lexer *lex)
     next(lex);
 }
 
-static int lex_string(struct lexer *lex)
+static int lex_string(struct nl_lexer *lex)
 {
     /* eat the starting string delimiter */
     next(lex);
@@ -228,7 +227,7 @@ static int lex_string(struct lexer *lex)
     return TOK_STRING;
 }
 
-static int lookup_keyword(struct lexer *lex)
+static int lookup_keyword(struct nl_lexer *lex)
 {
     /* TODO: use hash-table or similar O(1) lookup */
     unsigned int kidx = 0;
@@ -240,7 +239,7 @@ static int lookup_keyword(struct lexer *lex)
     return 0;
 }
 
-static int lex_ident(struct lexer *lex)
+static int lex_ident(struct nl_lexer *lex)
 {
     /* the dollar sign is a single-character identifier for 'self' */
     if (lex->cur == '$') {
@@ -270,7 +269,7 @@ static int lex_ident(struct lexer *lex)
     return TOK_IDENT;
 }
 
-static int lex_symbol(struct lexer *lex)
+static int lex_symbol(struct nl_lexer *lex)
 {
     int tok = 0;
     appendc(lex, lex->cur);
@@ -334,7 +333,7 @@ static int lex_symbol(struct lexer *lex)
     return tok;
 }
 
-int gettok(struct lexer *lex)
+int nl_gettok(struct nl_lexer *lex)
 {
     /* NOLLI_DEBUGF("rotating buffer: %s <- %s", lex->lastbuff, lex->curbuff); */
     rotate_buffers(lex);    /* clear the lexer's current string buffer */
@@ -412,24 +411,24 @@ nexttok:
 
     /* return the scanned token */
     lex->lasttok = tok;
-    /* NOLLI_DEBUGF("tok: %s, buf: %s", get_tok_name(tok), lex->curbuff); */
+    /* NOLLI_DEBUGF("tok: %s, buf: %s", nl_get_tok_name(tok), lex->curbuff); */
     return tok;
 }
 
-const char *get_tok_name(int tok)
+const char *nl_get_tok_name(int tok)
 {
     assert(tok >= TOK_EOF);
     return token_names[tok];
 }
 
-void lexer_init(struct lexer *lexer, char *buffer)
+void nl_lexer_init(struct nl_lexer *lexer, char *buffer)
 {
     assert(lexer);
     assert(buffer);
 
     size_t bufsize = 16;
-    lexer->curbuff = nalloc(bufsize);
-    lexer->lastbuff = nalloc(bufsize);
+    lexer->curbuff = nl_alloc(bufsize);
+    lexer->lastbuff = nl_alloc(bufsize);
     lexer->blen = 0;
     lexer->balloc = bufsize;
 
@@ -443,12 +442,12 @@ void lexer_init(struct lexer *lexer, char *buffer)
     next(lexer);
 }
 
-int lexer_scan_all(struct lexer *lex)
+int nl_lexer_scan_all(struct nl_lexer *lex)
 {
     int good = 1;
     while (good) {
-        good = gettok(lex);
-        printf("%s", get_tok_name(good));
+        good = nl_gettok(lex);
+        printf("%s", nl_get_tok_name(good));
         switch (good) {
             case TOK_IDENT:
             case TOK_INT:
