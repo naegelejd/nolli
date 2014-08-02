@@ -1,8 +1,6 @@
 #ifndef NOLLI_LEXER_H
 #define NOLLI_LEXER_H
 
-#include "nolli.h"
-
 enum {
     TOK_NEWLINE = -1,
     TOK_EOF = 0,
@@ -36,8 +34,8 @@ enum {
 };
 
 struct nl_lexer {
-    char *input;
-    char *sptr;
+    const char *input;
+    const char *sptr;
 
     char *curbuff;
     char *lastbuff;
@@ -52,7 +50,7 @@ struct nl_lexer {
 };
 
 
-void nl_lexer_init(struct nl_lexer *, char *);
+void nl_lexer_init(struct nl_lexer *, const char *);
 
 int nl_gettok(struct nl_lexer *lex);
 const char *nl_get_tok_name(int tok);

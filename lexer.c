@@ -1,6 +1,8 @@
+#include "nolli.h"
 #include "lexer.h"
 
 #include <ctype.h>
+#include <stdbool.h>
 
 #define LEX_ERRORF(L, fmt, ...) \
     NOLLI_FATALF("(L %d, C %d): " fmt, (L)->line, (L)->col, __VA_ARGS__)
@@ -421,7 +423,7 @@ const char *nl_get_tok_name(int tok)
     return token_names[tok];
 }
 
-void nl_lexer_init(struct nl_lexer *lexer, char *buffer)
+void nl_lexer_init(struct nl_lexer *lexer, const char *buffer)
 {
     assert(lexer);
     assert(buffer);

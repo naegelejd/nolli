@@ -1,5 +1,14 @@
-#include "parser.h"
+#include "nolli.h"
+#include "lexer.h"
+#include "ast.h"
 #include <stdbool.h>
+
+struct nl_parser {
+    const char *source;
+    struct nl_lexer *lexer;
+    struct stringtable *strtab;
+    int cur;
+};
 
 #define PARSE_DEBUGF(P, fmt, ...) \
     NOLLI_DEBUGF("(L %d, C %d): " fmt, \
@@ -12,6 +21,8 @@
             (P)->lexer->line, (P)->lexer->col, __VA_ARGS__)
 
 #define PARSE_ERROR(P, S) PARSE_ERRORF(P, "%s", S)
+
+static int init(struct nl_parser *parser, const char *buffer, const char *src);
 
 static struct nl_ast *unit(struct nl_parser *parser);
 static struct nl_ast *globals(struct nl_parser *parser);
@@ -60,24 +71,43 @@ static struct nl_ast *functype(struct nl_parser *parser);
                 nl_get_tok_name((P)->cur), nl_get_tok_name(T)), \
             next(P), false))
 
-struct nl_ast *nl_parse_buffer(char *buffer)
+static int init(struct nl_parser *parser, const char *buffer, const char *src)
 {
-    struct nl_parser *parser = nl_alloc(sizeof(*parser));
+    assert(parser);
+
+    parser->source = src;
     parser->strtab = nl_alloc(sizeof(*parser->strtab));
     parser->lexer = nl_alloc(sizeof(*parser->lexer));
     nl_lexer_init(parser->lexer, buffer);
 
     /* DEBUGGING: lexer_scan_all(parser->lexer); */
 
+    /* Start parser */
     next(parser);
 
-    struct nl_ast *root = unit(parser);
-    expect(parser, TOK_EOF);
+    return NL_NO_ERR;
+}
+
+int nl_parse_string(struct nl_context *ctx, const char *s, const char *src)
+{
+    struct nl_parser parser;
+    int err = init(&parser, s, src);
+    if (err) {
+        return err;
+    }
+
+    struct nl_ast *root = unit(&parser);
+    expect(&parser, TOK_EOF);
 
     /* DEBUG: dump all symbols/strings */
     /* stringtable_dump(parser->strtab, stdout); */
 
-    return root;
+    if (root == NULL) {
+        return NL_ERR_PARSE;
+    } else {
+        nl_add_ast(ctx, root);
+        return NL_NO_ERR;
+    }
 }
 
 static char *current_buffer(struct nl_parser *parser)
@@ -102,6 +132,7 @@ static struct nl_ast *unit(struct nl_parser *parser)
     if (!expect(parser, TOK_SEMI)) {
         err = true;
     }
+    PARSE_DEBUG(parser, "Parsed package declaration");
 
     struct nl_ast *defs = globals(parser);
     if (defs == NULL) {

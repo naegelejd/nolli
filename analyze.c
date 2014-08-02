@@ -1,4 +1,7 @@
 #include "nolli.h"
+#include "ast.h"
+/* FIXME: need lexer.h to look up tokens */
+#include "lexer.h"
 
 struct analysis {
     struct symtable *packages;
@@ -15,7 +18,6 @@ static struct symtable *new_scope(struct analysis *analysis)
 typedef struct type* (*analyzer) (struct nl_ast*, struct analysis*);
 
 static struct type *analyze(struct nl_ast *root, struct analysis *analysis);
-
 
 static struct type *analyze_bool_lit(struct nl_ast *node, struct analysis *analysis)
 {
@@ -564,12 +566,19 @@ static struct type *analyze(struct nl_ast *root, struct analysis *analysis)
     return w(root, analysis);
 }
 
-void nl_analyze(struct nl_ast *root)
+int nl_analyze(struct nl_context *ctx)
 {
-    assert(root);
+    assert(ctx);
 
     struct analysis analysis;
     analysis.packages = symtable_create(NULL);
     /* analysis.curtable = analysis.packages; */
-    analyze(root, &analysis);
+
+    struct nl_ast *root = ctx->ast_head;
+    while (root) {
+        analyze(root, &analysis);
+        root = root->next;
+    }
+
+    return NL_NO_ERR;
 }

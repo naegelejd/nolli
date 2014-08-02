@@ -9,9 +9,6 @@
 
 #include "debug.h"
 #include "strtab.h"
-#include "lexer.h"
-#include "parser.h"
-#include "ast.h"
 #include "type.h"
 #include "symtable.h"
 
@@ -31,22 +28,21 @@ enum {
 };
 
 struct nl_context {
-    struct parser *parser;
-
+    struct nl_ast *ast_head;
 };
 
 int nl_init(struct nl_context *context);
 
-struct nl_ast *nl_parse_file(struct nl_context *ctx, const char *filename);
-struct nl_ast *nl_parse_string(struct nl_context *ctx, const char *s);
+int nl_parse_string(struct nl_context *ctx, const char *s, const char *src);
 
-void nl_compile_file(struct nl_context *ctx, const char *filename);
-void nl_compile_string(struct nl_context *ctx, const char *s);
+int nl_compile_file(struct nl_context *ctx, const char *filename);
+int nl_compile_string(struct nl_context *ctx, const char *s, const char *src);
 
-void nl_graph_ast(struct nl_ast*);
+void nl_add_ast(struct nl_context *ctx, struct nl_ast*);
 
-void nl_analyze(struct nl_ast *);
-/* CORRECT: struct nl_ast *nl_analyze(struct nl_context *ctx); */
+int nl_graph_ast(struct nl_context *ctx);
+
+int nl_analyze(struct nl_context *ctx);
 
 void nl_execute(struct nl_context *ctx);
 

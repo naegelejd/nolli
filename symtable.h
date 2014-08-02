@@ -6,7 +6,7 @@
 #define INIT_SYMTABLE_SIZE 8     /**< initial allocated size of a map */
 
 /* TODO?: maybe use a single array of key-val pairs instead of two separate
- * arrays. This should decrease cache misses */
+ * arrays. This could decrease cache misses */
 struct symtable {
     struct symtable *parent;
     char **keys;

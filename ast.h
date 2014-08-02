@@ -1,8 +1,6 @@
 #ifndef NOLLI_AST_H
 #define NOLLI_AST_H
 
-#include "nolli.h"
-
 #include <stdbool.h>
 
 enum {

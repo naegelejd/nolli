@@ -1,4 +1,7 @@
 #include "nolli.h"
+#include "ast.h"
+/* FIXME: needed for get_tok_name: */
+#include "lexer.h"
 
 static int graph(struct nl_ast *root, FILE *, int id);
 
@@ -587,17 +590,34 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
     return g(root, fp, id);
 }
 
-void nl_graph_ast(struct nl_ast *root)
+int nl_graph_ast(struct nl_context *ctx)
 {
-    assert(root);
+    assert(ctx);
 
     FILE *fp = NULL;
 
     fp = fopen("astdump.dot", "w");
+    if (fp == NULL) {
+        NOLLI_ERROR("Failed to open a new graph file");
+        return NL_ERR_IO;
+    }
 
+    struct nl_ast *root = ctx->ast_head;
     fputs("digraph hierarchy {\nnode [color=Green,fontcolor=Blue]", fp);
-    graph(root, fp, 0);
+
+    int id = 0;
+    fprintf(fp, "%d [label=\"All Units\"]\n", 0);
+    while (root) {
+        fprintf(fp, "%d -> %d\n", 0, ++id);
+        id = graph(root, fp, id);
+        root = root->next;
+    }
     fputs("}", fp);
 
-    fclose(fp);
+    if ((fclose(fp)) == EOF) {
+        NOLLI_ERROR("Failed to close graph file");
+        return NL_ERR_IO;
+    }
+
+    return NL_NO_ERR;
 }

@@ -1,5 +1,5 @@
+#include "nolli.h"
 #include "ast.h"
-
 
 /* Convenience function for allocating nl_ast node
  * and setting its type.

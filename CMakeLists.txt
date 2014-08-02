@@ -13,6 +13,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 set(NOLLI_NAME nolli)
 
 set(NOLLI_SOURCES
+    nolli.c
     alloc.c
     strtab.c
     lexer.c
