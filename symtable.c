@@ -1,4 +1,10 @@
 #include "symtable.h"
+#include "alloc.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
 
 /** Returns the next computed index for the two given hashes
  * @param H0 hash 0
@@ -160,7 +166,7 @@ void *check_symbol(struct symtable *symtable, const char *name)
 
 void *add_symbol(struct symtable *symtable, const char *name, void *value)
 {
-    char *name_copy = strndup(name, TYPENAME_MAXLEN);
+    char *name_copy = strndup(name, SYMBOL_MAXLEN);
     void *val = symtable_do(symtable, name_copy, value, SYMTABLE_INSERT);
 
     return val;

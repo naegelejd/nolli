@@ -1,4 +1,7 @@
 #include "strtab.h"
+#include "alloc.h"
+
+#include <string.h>
 
 struct string *stringtable_wrap(struct stringtable *tab, char *str)
 {

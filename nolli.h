@@ -1,20 +1,7 @@
 #ifndef NOLLI_H
 #define NOLLI_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdint.h>
-#include <assert.h>
-
-#include "debug.h"
-#include "strtab.h"
-#include "type.h"
-#include "symtable.h"
-
-#if defined ( WIN32 )
-#include "os.h"
-#endif
+#include <stddef.h>
 
 enum {
     NL_ERR_BEGIN = -1,
@@ -27,9 +14,9 @@ enum {
     NL_ERR_END
 };
 
-struct nl_context {
+typedef struct nl_context {
     struct nl_ast *ast_head;
-};
+} nl_context;
 
 int nl_init(struct nl_context *context);
 
@@ -45,8 +32,5 @@ int nl_graph_ast(struct nl_context *ctx);
 int nl_analyze(struct nl_context *ctx);
 
 void nl_execute(struct nl_context *ctx);
-
-void *nl_alloc(size_t bytes);
-void *nl_realloc(void* block, size_t bytes);
 
 #endif /* NOLLI_H */

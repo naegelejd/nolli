@@ -1,4 +1,6 @@
 #include "nolli.h"
+#include "debug.h"
+
 #include <stdlib.h>
 
 int main(int argc, char **argv)

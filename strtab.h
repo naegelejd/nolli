@@ -1,8 +1,6 @@
 #ifndef NOLLI_STRING_TABLE_H
 #define NOLLI_STRING_TABLE_H
 
-#include "nolli.h"
-
 /**
  * Placeholder string table.
  *
@@ -25,6 +23,7 @@ struct stringtable {
  * or returns the existing wrapper in the table */
 struct string *stringtable_wrap(struct stringtable*, char*);
 
+#include <stdio.h>
 void stringtable_dump(struct stringtable *tab, FILE *out);
 
 #endif /* NOLLI_STRING_TABLE_H */

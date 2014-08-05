@@ -1,6 +1,12 @@
 #include "nolli.h"
+#include "alloc.h"
 #include "ast.h"
+#include "debug.h"
+
 #include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+
 
 int nl_init(struct nl_context *ctx)
 {

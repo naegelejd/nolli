@@ -1,4 +1,9 @@
+#include "alloc.h"
 #include "nolli.h"
+#include "debug.h"
+
+#include <stdlib.h>
+#include <assert.h>
 
 void *nl_alloc(size_t bytes)
 {

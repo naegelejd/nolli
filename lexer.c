@@ -1,8 +1,14 @@
-#include "nolli.h"
 #include "lexer.h"
+#include "alloc.h"
+#include "debug.h"
+#include "nolli.h"
 
-#include <ctype.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <assert.h>
 
 #define LEX_ERRORF(L, fmt, ...) \
     NOLLI_FATALF("(L %d, C %d): " fmt, (L)->line, (L)->col, __VA_ARGS__)

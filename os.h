@@ -1,8 +1,6 @@
 #ifndef NOLLI_OS_H
 #define NOLLI_OS_H
 
-#include "nolli.h"
-
 enum { NOLLI_OS_PATH_MAX_LEN = 16384 };
 
 struct nolli_internal_os_struct

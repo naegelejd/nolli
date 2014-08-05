@@ -1,7 +1,15 @@
 #include "nolli.h"
 #include "ast.h"
+#include "type.h"
+#include "strtab.h"
+#include "symtable.h"
+#include "debug.h"
+
 /* FIXME: need lexer.h to look up tokens */
 #include "lexer.h"
+
+#include <string.h>
+#include <assert.h>
 
 struct analysis {
     struct symtable *packages;

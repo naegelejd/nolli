@@ -1,5 +1,7 @@
-#include "nolli.h"
+#include "alloc.h"
 #include "ast.h"
+
+#include <assert.h>
 
 /* Convenience function for allocating nl_ast node
  * and setting its type.

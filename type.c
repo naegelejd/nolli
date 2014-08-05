@@ -1,4 +1,7 @@
 #include "type.h"
+#include "alloc.h"
+
+#include <stdlib.h>
 
 struct type bool_type = {
     .func = {NULL},

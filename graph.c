@@ -1,7 +1,13 @@
 #include "nolli.h"
 #include "ast.h"
+#include "strtab.h"
+#include "debug.h"
+
 /* FIXME: needed for get_tok_name: */
 #include "lexer.h"
+
+#include <stdio.h>
+#include <assert.h>
 
 static int graph(struct nl_ast *root, FILE *, int id);
 

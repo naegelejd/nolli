@@ -1,8 +1,6 @@
 #ifndef NOLLI_TYPE_H
 #define NOLLI_TYPE_H
 
-#include "nolli.h"
-
 enum {TYPENAME_MAXLEN = 32};
 
 enum {

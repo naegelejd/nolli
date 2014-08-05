@@ -1,7 +1,15 @@
-#include "nolli.h"
 #include "lexer.h"
+#include "alloc.h"
 #include "ast.h"
+#include "strtab.h"
+#include "debug.h"
+#include "nolli.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
+#include <assert.h>
 
 struct nl_parser {
     const char *source;

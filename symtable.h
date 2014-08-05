@@ -1,9 +1,8 @@
 #ifndef NOLLI_SYMTABLE_H
 #define NOLLI_SYMTABLE_H
 
-#include "nolli.h"
-
 #define INIT_SYMTABLE_SIZE 8     /**< initial allocated size of a map */
+#define SYMBOL_MAXLEN 1024
 
 /* TODO?: maybe use a single array of key-val pairs instead of two separate
  * arrays. This could decrease cache misses */

@@ -36,6 +36,7 @@ if (NOT WIN32)
     target_link_libraries(nolli m)
 endif (NOT WIN32)
 install(TARGETS nolli DESTINATION lib)
+install(FILES nolli.h DESTINATION include)
 
 add_executable(nolli-exe main.c)
 set_target_properties(nolli-exe PROPERTIES OUTPUT_NAME nolli)

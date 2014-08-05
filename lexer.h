@@ -1,6 +1,8 @@
 #ifndef NOLLI_LEXER_H
 #define NOLLI_LEXER_H
 
+#include <stddef.h>
+
 enum {
     TOK_NEWLINE = -1,
     TOK_EOF = 0,
@@ -48,7 +50,6 @@ struct nl_lexer {
     int col;
     int cur;
 };
-
 
 void nl_lexer_init(struct nl_lexer *, const char *);
 
