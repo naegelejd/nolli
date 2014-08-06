@@ -308,7 +308,7 @@ static struct nl_ast *classdef(struct nl_parser *parser)
                 break;
             }
 
-            struct nl_ast *method = nl_ast_make_function(tp, name, blk, lineno(parser));
+            struct nl_ast *method = nl_ast_make_function(name, tp, blk, lineno(parser));
             PARSE_DEBUG(parser, "Parsed class method");
             methods = nl_ast_list_append(methods, method);
         } else {
@@ -437,9 +437,7 @@ static struct nl_ast *methdecl(struct nl_parser *parser)
 static struct nl_ast *statement(struct nl_parser *parser)
 {
     struct nl_ast *stmt = NULL;
-    if (check(parser, TOK_ALIAS)) {
-        stmt = alias(parser);
-    } else if (check(parser, TOK_VAR) || check(parser, TOK_CONST)) {
+    if (check(parser, TOK_VAR) || check(parser, TOK_CONST)) {
         stmt = declaration(parser);
     } else if (check(parser, TOK_WHILE)) {
         stmt = whileloop(parser);
@@ -919,6 +917,7 @@ static struct nl_ast *ident(struct nl_parser *parser)
     } else {
         struct string *s = stringtable_wrap(parser->strtab,
                 current_buffer(parser));
+        assert(s);
         PARSE_DEBUGF(parser, "Parsed identifier: %s", s->str);
         id = nl_ast_make_ident(s, lineno(parser));
     }
@@ -1241,7 +1240,7 @@ static struct nl_ast *block(struct nl_parser *parser)
         if (stmt == NULL) {
             err = true;
             while (!check(parser, TOK_SEMI) && !check(parser, TOK_EOF)) {
-                printf("synchronizing\n");
+                PARSE_DEBUG(parser, "synchronizing");
                 next(parser);
             }
             if (check(parser, TOK_EOF)) {

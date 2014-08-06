@@ -34,6 +34,10 @@ var int a = func int () { return 42; }()
 
 var fn f = func int () { return 42; }
 
+alias int id
+alias map<str,real> str_real_map
+alias func int (str) main_t
+
 func int (list<str> args) main {
     var bool b, f = false
     const char c, d = 'x'
@@ -72,9 +76,6 @@ func int (list<str> args) main {
     say := func () { print("temp"); }
     say()
 
-    alias int id
-    alias map<str,real> str_real_map
-    alias func int (str) main_t
     var list<main_t> mains = [main, main, main]
     for m in mains {
         main("hello world")
