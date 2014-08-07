@@ -51,14 +51,10 @@ void nl_add_ast(struct nl_context *ctx, struct nl_ast *ast)
     assert(ctx);
     assert(ast);
 
-    if (ctx->ast_head == NULL) {
-        ctx->ast_head = ast;
+    if (ctx->ast_list == NULL) {
+        ctx->ast_list = nl_ast_make_list(NL_AST_LIST_UNITS, 0);
     } else {
-        struct nl_ast **cur = &ctx->ast_head;
-        while (*cur) {
-            cur = &(*cur)->next;
-        }
-        *cur = ast;
+        ctx->ast_list = nl_ast_list_append(ctx->ast_list, ast);
     }
 }
 

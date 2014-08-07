@@ -187,6 +187,7 @@ struct nl_ast *nl_ast_list_append(struct nl_ast *node, struct nl_ast *elem)
         node->list.tail = elem;
     } else {
         assert(node->tag > NL_AST_LIST_SENTINEL);
+        assert(node->tag < NL_AST_LAST);
         node->list.tail->next = elem;
         node->list.tail = elem;
     }
@@ -318,13 +319,13 @@ struct nl_ast *nl_ast_make_function(struct nl_ast *name, struct nl_ast *type,
     return node;
 }
 
-struct nl_ast *nl_ast_make_classlit(struct nl_ast *name, struct nl_ast *tmpl, struct nl_ast *items, int lineno)
+struct nl_ast *nl_ast_make_classlit(struct nl_ast *tp, struct nl_ast *tmpl, struct nl_ast *items, int lineno)
 {
-    assert(name);
+    assert(tp);
     assert(items);
 
     struct nl_ast *node = make_node(NL_AST_CLASSLIT, lineno);
-    node->classlit.name = name;
+    node->classlit.type = tp;
     node->classlit.tmpl = tmpl;
     node->classlit.items = items;
     return node;

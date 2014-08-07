@@ -65,6 +65,7 @@ enum {
     NL_AST_LIST_CLASS_INITS,
     NL_AST_LIST_PARAMS,
     NL_AST_LIST_ARGS,
+    NL_AST_LIST_UNITS,
 
     NL_AST_LAST
 };
@@ -87,7 +88,7 @@ struct nl_ast_func_type {
 };
 
 struct nl_ast_classlit {
-    struct nl_ast *name, *tmpl, *items;
+    struct nl_ast *type, *tmpl, *items;
 };
 
 struct nl_ast_function {
@@ -221,7 +222,7 @@ struct nl_ast {
         struct nl_ast_unit unit;
     };
     struct nl_ast* next;
-    struct type* type;
+    struct nl_type* type;
     int tag;
     int lineno;
 };

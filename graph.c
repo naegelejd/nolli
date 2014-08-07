@@ -321,7 +321,7 @@ static int graph_classlit(struct nl_ast *node, FILE *fp, int id)
     fprintf(fp, "%d [label=\"struclit\"]\n", rID);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->classlit.name, fp, id);
+    id = graph(node->classlit.type, fp, id);
 
     if (node->classlit.tmpl) {
         fprintf(fp, "%d -> %d\n", rID, ++id);
@@ -516,6 +516,10 @@ static int graph_args(struct nl_ast *node, FILE *fp, int id)
     return graph_list(node, fp, id, "args");
 }
 
+static int graph_units(struct nl_ast *node, FILE *fp, int id)
+{
+    return graph_list(node, fp, id, "units");
+}
 
 typedef int (*grapher) (struct nl_ast*, FILE *, int id);
 
@@ -584,6 +588,7 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
         graph_class_inits,
         graph_params,
         graph_args,
+        graph_units,
 
         NULL, /* sentinel */
     };
@@ -608,16 +613,8 @@ int nl_graph_ast(struct nl_context *ctx)
         return NL_ERR_IO;
     }
 
-    struct nl_ast *root = ctx->ast_head;
     fputs("digraph hierarchy {\nnode [color=Green,fontcolor=Blue]", fp);
-
-    int id = 0;
-    fprintf(fp, "%d [label=\"All Units\"]\n", 0);
-    while (root) {
-        fprintf(fp, "%d -> %d\n", 0, ++id);
-        id = graph(root, fp, id);
-        root = root->next;
-    }
+    graph(ctx->ast_list, fp, 0);
     fputs("}", fp);
 
     if ((fclose(fp)) == EOF) {

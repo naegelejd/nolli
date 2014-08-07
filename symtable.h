@@ -6,8 +6,8 @@
 
 /* TODO?: maybe use a single array of key-val pairs instead of two separate
  * arrays. This could decrease cache misses */
-struct symtable {
-    struct symtable *parent;
+struct nl_symtable {
+    struct nl_symtable *parent;
     char **keys;
     void **vals;
     unsigned int size_idx;      /**< identifier for current size of table */
@@ -16,11 +16,11 @@ struct symtable {
     unsigned int size;          /**< current count of allocated pairs*/
 };
 
-enum {SYMTABLE_SEARCH = 0, SYMTABLE_INSERT = 1};
+enum {NL_SYMTABLE_SEARCH = 0, NL_SYMTABLE_INSERT = 1};
 
-void *check_symbol(struct symtable *, const char *);
-void *add_symbol(struct symtable *, const char *, void *);
-struct symtable* symtable_create(struct symtable *parent);
-void symtable_destroy(struct symtable *st);
+void *nl_check_symbol(struct nl_symtable *, const char *);
+void *nl_add_symbol(struct nl_symtable *, const char *, void *);
+struct nl_symtable* nl_symtable_create(struct nl_symtable *parent);
+void nl_symtable_destroy(struct nl_symtable *st);
 
 #endif /* NOLLI_SYMTABLE_H */

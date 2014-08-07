@@ -15,7 +15,7 @@ enum {
 };
 
 typedef struct nl_context {
-    struct nl_ast *ast_head;
+    struct nl_ast *ast_list;
 } nl_context;
 
 int nl_init(struct nl_context *context);

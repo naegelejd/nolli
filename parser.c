@@ -1134,7 +1134,10 @@ static struct nl_ast *classlit(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *name = ident(parser);
+    /* Parse the type of the class literal...
+     * Could be in another package... could be templated...
+     * TODO: verify elsewhere that a functype is NOT parsed here */
+    struct nl_ast *clss = type(parser);
 
     struct nl_ast *tmpl = NULL;
     if (check(parser, TOK_LT)) {
@@ -1187,7 +1190,7 @@ static struct nl_ast *classlit(struct nl_parser *parser)
     if (err) {
         clit = NULL;     /* TODO: destroy keyval_list */
     } else {
-        clit = nl_ast_make_classlit(name, tmpl, init_list, lineno(parser));
+        clit = nl_ast_make_classlit(clss, tmpl, init_list, lineno(parser));
     }
     return clit;
 }

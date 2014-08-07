@@ -2,12 +2,11 @@
 
 ### Unit (A single file)
 
-- Make or find package table for specified package name.
+- Make or find package symbol table for the package name
+  specified in the `package` declaration.
 
-### Imports
+### Usings
 
-- Find specified packages (files), parse them, obtain their AST.
-- Build or add to existing package table for each AST
 
 ### Classes
 

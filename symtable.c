@@ -16,19 +16,19 @@
 /* #define GET_INDEX(H0, H1, I, N)   ( ( (H0) + ((I) * (I)) * (H1) ) % (N) ) */
 
 
-static struct symtable *symtable_grow(struct symtable*);
-static struct symtable *symtable_shrink(struct symtable*);
-static struct symtable *symtable_resize(struct symtable*, unsigned int);
+static struct nl_symtable *nl_symtable_grow(struct nl_symtable*);
+static struct nl_symtable *nl_symtable_shrink(struct nl_symtable*);
+static struct nl_symtable *nl_symtable_resize(struct nl_symtable*, unsigned int);
 
-static void *symtable_do(struct symtable *table,
+static void *nl_symtable_do(struct nl_symtable *table,
         const char *key, void *val, int what);
 
 static unsigned int string_hash0(const char*);
 
 /** total number of possible hash table sizes */
-const unsigned int MAX_TABLE_SIZE_OPTIONS = 28;
+const unsigned int NL_MAX_TABLE_SIZE_OPTIONS = 28;
 
-const unsigned int SYMTABLE_MAX_KEY_LEN = 512;
+const unsigned int NL_SYMTABLE_MAX_KEY_LEN = 512;
 
 /**
  * Array of prime number hash table sizes.
@@ -36,7 +36,7 @@ const unsigned int SYMTABLE_MAX_KEY_LEN = 512;
  * Numbers courtesy of:
  * http://planetmath.org/GoodHashTablePrimes.html
  */
-static unsigned int SYMTABLE_SIZES[] = {
+static unsigned int nl_symtable_SIZES[] = {
     7, 17, 43, 97, 193, 389, 769, 1543, 3079, 6151,
     12289, 24593, 49157, 98317, 196613, 393241, 786433,
     1572869, 3145739, 6291469, 12582917, 25165843,
@@ -44,21 +44,21 @@ static unsigned int SYMTABLE_SIZES[] = {
     805306457, 1610612741, 0
 };
 
-static struct symtable *symtable_grow(struct symtable *st)
+static struct nl_symtable *nl_symtable_grow(struct nl_symtable *st)
 {
-    return symtable_resize(st, st->size_idx + 1);
+    return nl_symtable_resize(st, st->size_idx + 1);
 }
 
-static struct symtable *symtable_shrink(struct symtable *st)
+static struct nl_symtable *nl_symtable_shrink(struct nl_symtable *st)
 {
-    return symtable_resize(st, st->size_idx - 1);
+    return nl_symtable_resize(st, st->size_idx - 1);
 }
 
-static struct symtable *symtable_resize(struct symtable *st, unsigned int new_size_idx)
+static struct nl_symtable *nl_symtable_resize(struct nl_symtable *st, unsigned int new_size_idx)
 {
     assert(st);
 
-    if (new_size_idx <= 0 || new_size_idx >= MAX_TABLE_SIZE_OPTIONS) {
+    if (new_size_idx <= 0 || new_size_idx >= NL_MAX_TABLE_SIZE_OPTIONS) {
         return st;
     }
 
@@ -67,7 +67,7 @@ static struct symtable *symtable_resize(struct symtable *st, unsigned int new_si
     void** old_vals = st->vals;
 
     st->size_idx = new_size_idx;
-    st->size = SYMTABLE_SIZES[new_size_idx];
+    st->size = nl_symtable_SIZES[new_size_idx];
     st->count = 0;
     st->collisions = 0;
 
@@ -77,7 +77,7 @@ static struct symtable *symtable_resize(struct symtable *st, unsigned int new_si
     unsigned int i;
     for (i = 0; i < old_size; i++) {
         if (old_keys[i] != NULL) {
-            symtable_do(st, old_keys[i], old_vals[i], SYMTABLE_INSERT);
+            nl_symtable_do(st, old_keys[i], old_vals[i], NL_SYMTABLE_INSERT);
         }
     }
 
@@ -87,15 +87,15 @@ static struct symtable *symtable_resize(struct symtable *st, unsigned int new_si
     return st;
 }
 
-/** Creates and initializes a new struct symtable
+/** Creates and initializes a new struct nl_symtable
  *
- * @returns new struct symtable
+ * @returns new struct nl_symtable
  */
-struct symtable *symtable_create(struct symtable *parent)
+struct nl_symtable *nl_symtable_create(struct nl_symtable *parent)
 {
-    struct symtable *st = nl_alloc(sizeof(*st));
+    struct nl_symtable *st = nl_alloc(sizeof(*st));
     st->size_idx = 0;
-    st->size = SYMTABLE_SIZES[st->size_idx];
+    st->size = nl_symtable_SIZES[st->size_idx];
 
     st->parent = parent;
     st->keys = nl_alloc(st->size * sizeof(*st->keys));
@@ -123,12 +123,12 @@ struct symtable *symtable_create(struct symtable *parent)
     else            loop
     ...             not found, return 0
 */
-static void *symtable_do(struct symtable *table, const char *key, void *val, int what)
+static void *nl_symtable_do(struct nl_symtable *table, const char *key, void *val, int what)
 {
     if (table->count > (table->size * 0.60)) {
-        symtable_grow(table);
+        nl_symtable_grow(table);
     } else if (table->count < (table->size * 0.20)) {
-        symtable_shrink(table);
+        nl_symtable_shrink(table);
     }
 
     unsigned int hash0 = string_hash0(key);
@@ -139,7 +139,7 @@ static void *symtable_do(struct symtable *table, const char *key, void *val, int
         const char *curkey = table->keys[idx];
 
         if (curkey == NULL) {
-            if (what == SYMTABLE_INSERT) {
+            if (what == NL_SYMTABLE_INSERT) {
                 table->keys[idx] = (char *)key;
                 table->vals[idx] = val;
                 table->count++;
@@ -151,7 +151,7 @@ static void *symtable_do(struct symtable *table, const char *key, void *val, int
             } else {
                 return NULL;
             }
-        } else if (strncmp(curkey, key, SYMTABLE_MAX_KEY_LEN) == 0) {
+        } else if (strncmp(curkey, key, NL_SYMTABLE_MAX_KEY_LEN) == 0) {
             return table->vals[idx];
         }
     }
@@ -159,27 +159,27 @@ static void *symtable_do(struct symtable *table, const char *key, void *val, int
     return NULL;
 }
 
-void *check_symbol(struct symtable *symtable, const char *name)
+void *nl_check_symbol(struct nl_symtable *nl_symtable, const char *name)
 {
-    return symtable_do(symtable, name, NULL, SYMTABLE_SEARCH);
+    return nl_symtable_do(nl_symtable, name, NULL, NL_SYMTABLE_SEARCH);
 }
 
-void *add_symbol(struct symtable *symtable, const char *name, void *value)
+void *nl_add_symbol(struct nl_symtable *nl_symtable, const char *name, void *value)
 {
     char *name_copy = strndup(name, SYMBOL_MAXLEN);
-    void *val = symtable_do(symtable, name_copy, value, SYMTABLE_INSERT);
+    void *val = nl_symtable_do(nl_symtable, name_copy, value, NL_SYMTABLE_INSERT);
 
     return val;
 }
 
 /**
- * Destroys a struct symtable
+ * Destroys a struct nl_symtable
  *
  * frees keys and values arrays
  *
- * @param st struct symtable
+ * @param st struct nl_symtable
  */
-void symtable_destroy(struct symtable *st)
+void nl_symtable_destroy(struct nl_symtable *st)
 {
     free(st->keys);
     free(st->vals);
