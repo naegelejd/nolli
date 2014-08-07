@@ -273,4 +273,6 @@ struct nl_ast *nl_ast_make_alias(struct nl_ast*, struct nl_ast *, int);
 struct nl_ast *nl_ast_make_using(struct nl_ast*, int);
 struct nl_ast *nl_ast_make_unit(struct nl_ast*, struct nl_ast*, int);
 
+char *nl_ast_name(const struct nl_ast* node);
+
 #endif /* NOLLI_AST_H */

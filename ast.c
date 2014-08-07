@@ -362,3 +362,76 @@ struct nl_ast *nl_ast_make_unit(struct nl_ast *package, struct nl_ast *globals, 
     node->unit.globals = globals;
     return node;
 }
+
+char *nl_ast_name(const struct nl_ast* node)
+{
+    static char *ast_names[] = {
+        "first",
+
+        "bool_lit",
+        "char_lit",
+        "int_num",
+        "real_num",
+        "str_lit",
+
+        "ident",
+
+        "tmpl_type",
+        "qual_type",
+        "func_type",
+
+        "decl",
+        "init",
+
+        "unexpr",
+        "binexpr",
+
+        "keyval",
+        "lookup",
+        "selector",
+        "packageref",
+
+        "bind",
+        "assign",
+        "ifelse",
+        "while",
+        "for",
+        "call",
+        "function",
+        "classlit",
+
+        "return",
+        "break",
+        "continue",
+
+        "class",
+        "interface",
+        "alias",
+        "using",
+        "unit",
+
+        "list_sentinel",
+
+        "list_listlit",
+        "list_maplit",
+        "list_globals",
+        "list_usings",
+        "list_members",
+        "list_statements",
+        "list_idents",
+        "list_types",
+        "list_methods",
+        "list_method_decls",
+        "list_decls",
+        "list_class_inits",
+        "list_params",
+        "list_args",
+        "list_units",
+
+        "last"
+    };
+
+    assert(sizeof(ast_names) / sizeof(*ast_names) == NL_AST_LAST + 1);
+
+    return ast_names[node->tag];
+}

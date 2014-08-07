@@ -36,8 +36,6 @@ int analysis_init(struct analysis *analysis)
     return NL_NO_ERR;
 }
 
-static char *ast_name(struct nl_ast* node);
-
 typedef struct nl_type* (*analyzer) (struct nl_ast*, struct analysis*);
 typedef void (*collector) (struct nl_ast*, struct analysis*);
 
@@ -694,78 +692,6 @@ static struct nl_type* analyze_units(struct nl_ast *node, struct analysis *analy
     return NULL;
 }
 
-static char *ast_name(struct nl_ast* node)
-{
-    static char *names[] = {
-        "FIRST",
-
-        "BOOL_LIT",
-        "CHAR_LIT",
-        "INT_NUM",
-        "REAL_NUM",
-        "STR_LIT",
-
-        "IDENT",
-
-        "TMPL_TYPE",
-        "QUAL_TYPE",
-        "FUNC_TYPE",
-
-        "DECL",
-        "INIT",
-
-        "UNEXPR",
-        "BINEXPR",
-
-        "KEYVAL",
-        "LOOKUP",
-        "SELECTOR",
-        "PACKAGEREF",
-
-        "BIND",
-        "ASSIGN",
-        "IFELSE",
-        "WHILE",
-        "FOR",
-        "CALL",
-        "FUNCTION",
-        "CLASSLIT",
-
-        "RETURN",
-        "BREAK",
-        "CONTINUE",
-
-        "CLASS",
-        "INTERFACE",
-        "ALIAS",
-        "USING",
-        "UNIT",
-
-        "LIST_SENTINEL",
-
-        "LIST_LISTLIT",
-        "LIST_MAPLIT",
-        "LIST_GLOBALS",
-        "LIST_USINGS",
-        "LIST_MEMBERS",
-        "LIST_STATEMENTS",
-        "LIST_IDENTS",
-        "LIST_METHODS",
-        "LIST_METHOD_DECLS",
-        "LIST_DECLS",
-        "LIST_CLASS_INITS",
-        "LIST_PARAMS",
-        "LIST_ARGS",
-        "LIST_UNITS",
-
-        "LAST"
-    };
-
-    assert(sizeof(names) / sizeof(*names) == NL_AST_LAST + 1);
-
-    return names[node->tag];
-}
-
 static struct nl_type *analyze(struct nl_ast *root, struct analysis *analysis)
 {
     static analyzer analyzers[] = {
@@ -837,7 +763,7 @@ static struct nl_type *analyze(struct nl_ast *root, struct analysis *analysis)
     assert(sizeof(analyzers) / sizeof(*analyzers) == NL_AST_LAST + 1);
 
     assert(root);
-    /* printf("%s\n", ast_name(root)); */
+    /* printf("%s\n", nl_ast_name(root)); */
 
     analyzer a = analyzers[root->tag];
     assert(a);
@@ -915,7 +841,7 @@ static void collect_types(struct nl_ast *root, struct analysis *analysis)
     assert(sizeof(collectors) / sizeof(*collectors) == NL_AST_LAST + 1);
 
     assert(root);
-    /* printf("%s\n", ast_name(root)); */
+    /* printf("%s\n", nl_ast_name(root)); */
 
     collector c = collectors[root->tag];
     if (c != NULL) {

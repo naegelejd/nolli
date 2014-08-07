@@ -53,9 +53,9 @@ void nl_add_ast(struct nl_context *ctx, struct nl_ast *ast)
 
     if (ctx->ast_list == NULL) {
         ctx->ast_list = nl_ast_make_list(NL_AST_LIST_UNITS, 0);
-    } else {
-        ctx->ast_list = nl_ast_list_append(ctx->ast_list, ast);
     }
+
+    ctx->ast_list = nl_ast_list_append(ctx->ast_list, ast);
 }
 
 int nl_compile_file(struct nl_context *ctx, const char *filename)
