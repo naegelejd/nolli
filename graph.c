@@ -445,10 +445,10 @@ static int graph_unit(struct nl_ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_list(struct nl_ast *node, FILE *fp, int id, const char *name)
+static int graph_list(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
-    fprintf(fp, "%d [label=\"%s\"]\n", rID, name);
+    fprintf(fp, "%d [label=\"%s\"]\n", rID, nl_ast_name(node));
 
     struct nl_ast *elem = node->list.head;
     while (elem) {
@@ -458,86 +458,6 @@ static int graph_list(struct nl_ast *node, FILE *fp, int id, const char *name)
     }
 
     return id;
-}
-
-static int graph_listlit(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_maplit(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_globals(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_usings(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_members(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_statements(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_idents(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_types(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_methods(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_method_decls(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_decls(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_class_inits(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_params(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_args(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_packages(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
-}
-
-static int graph_units(struct nl_ast *node, FILE *fp, int id)
-{
-    return graph_list(node, fp, id, nl_ast_name(node));
 }
 
 typedef int (*grapher) (struct nl_ast*, FILE *, int id);
@@ -594,22 +514,22 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
 
         NULL,   /* sentinel separator */
 
-        graph_listlit,
-        graph_maplit,
-        graph_globals,
-        graph_usings,
-        graph_members,
-        graph_statements,
-        graph_idents,
-        graph_types,
-        graph_methods,
-        graph_method_decls,
-        graph_decls,
-        graph_class_inits,
-        graph_params,
-        graph_args,
-        graph_packages,
-        graph_units,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
+        graph_list,
 
         NULL, /* sentinel */
     };
