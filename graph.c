@@ -417,13 +417,27 @@ static int graph_using(struct nl_ast *node, FILE *fp, int id)
     return id;
 }
 
+static int graph_package(struct nl_ast *node, FILE *fp, int id)
+{
+    int rID = id;
+    fprintf(fp, "%d [label=\"%s\"]\n", rID, nl_ast_name(node));
+
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->package.name, fp, id);
+
+    fprintf(fp, "%d -> %d\n", rID, ++id);
+    id = graph(node->package.globals, fp, id);
+
+    return id;
+}
+
 static int graph_unit(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"%s\"]\n", rID, nl_ast_name(node));
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->unit.package, fp, id);
+    id = graph(node->unit.packages, fp, id);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->unit.globals, fp, id);
@@ -516,6 +530,11 @@ static int graph_args(struct nl_ast *node, FILE *fp, int id)
     return graph_list(node, fp, id, nl_ast_name(node));
 }
 
+static int graph_packages(struct nl_ast *node, FILE *fp, int id)
+{
+    return graph_list(node, fp, id, nl_ast_name(node));
+}
+
 static int graph_units(struct nl_ast *node, FILE *fp, int id)
 {
     return graph_list(node, fp, id, nl_ast_name(node));
@@ -570,6 +589,7 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
         graph_interface,
         graph_alias,
         graph_using,
+        graph_package,
         graph_unit,
 
         NULL,   /* sentinel separator */
@@ -588,6 +608,7 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
         graph_class_inits,
         graph_params,
         graph_args,
+        graph_packages,
         graph_units,
 
         NULL, /* sentinel */

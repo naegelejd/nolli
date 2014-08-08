@@ -1,4 +1,4 @@
-package math
+package math {
 
 const real pi = 3.141592653589793
 const real e = 2.718281828459045
@@ -27,4 +27,6 @@ func real (real deg) radians {
 
 func real (real rad) degrees {
     return rad * 180 / pi
+}
+
 }

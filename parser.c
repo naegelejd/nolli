@@ -33,7 +33,7 @@ struct nl_parser {
 static int init(struct nl_parser *parser, const char *buffer, const char *src);
 
 static struct nl_ast *unit(struct nl_parser *parser);
-static struct nl_ast *globals(struct nl_parser *parser);
+static struct nl_ast *package(struct nl_parser *parser);
 static struct nl_ast *global(struct nl_parser *parser);
 static struct nl_ast *ident(struct nl_parser *parser);
 static struct nl_ast *using(struct nl_parser *parser);
@@ -132,43 +132,64 @@ static struct nl_ast *unit(struct nl_parser *parser)
 {
     bool err = false;
 
-    /* parse package declaration */
-    if (!expect(parser, TOK_PACKAGE)) {
-        err = true;
-    }
-    struct nl_ast *pkg = ident(parser);
-    if (!expect(parser, TOK_SEMI)) {
-        err = true;
-    }
-    PARSE_DEBUG(parser, "Parsed package declaration");
+    struct nl_ast *globals = nl_ast_make_list(NL_AST_LIST_GLOBALS, lineno(parser));
+    struct nl_ast *packages = nl_ast_make_list(NL_AST_LIST_PACKAGES, lineno(parser));
+    struct nl_ast *def = NULL;
+    while (!check(parser, TOK_EOF)) {
+        if (check(parser, TOK_PACKAGE)) {
+            def = package(parser);
+        } else {
+            def = global(parser);
+        }
 
-    struct nl_ast *defs = globals(parser);
-    if (defs == NULL) {
-        err = true;
+        if (def == NULL) {
+            err = true;
+            break;
+        }
+        if (!expect(parser, TOK_SEMI)) {
+            err = true;
+            break;
+        }
+        if (def->tag == NL_AST_PACKAGE) {
+            packages = nl_ast_list_append(packages, def);
+        } else {
+            globals = nl_ast_list_append(globals, def);
+        }
     }
 
     struct nl_ast *prog = NULL;
     if (err) {
-        prog = NULL;    /* TODO: destroy pkg, defs */
+        prog = NULL;    /* TODO: destroy packages, globals */
     } else {
-        prog = nl_ast_make_unit(pkg, defs, lineno(parser));
+        prog = nl_ast_make_unit(packages, globals, lineno(parser));
     }
+
     return prog;
 }
 
-static struct nl_ast *globals(struct nl_parser *parser)
+static struct nl_ast *package(struct nl_parser *parser)
 {
     bool err = false;
 
+    if (!expect(parser, TOK_PACKAGE)) {
+        err = true;
+    }
+
+    struct nl_ast *name = ident(parser);
+    if (!expect(parser, TOK_LCURLY)) {
+        err = true;
+    }
+    PARSE_DEBUG(parser, "Parsed package declaration");
+
+    /* Parse global definitions inside of package */
     struct nl_ast *defs = nl_ast_make_list(NL_AST_LIST_GLOBALS, lineno(parser));
-    /* parse statements until we see a '}' token */
-    while (!check(parser, TOK_EOF)) {
+    /* parse statements until we see a '}' token or EOF */
+    while (!check(parser, TOK_RCURLY)) {
         struct nl_ast *def = global(parser);
         if (def == NULL) {
             err = true;
             break;
         }
-
         if (!expect(parser, TOK_SEMI)) {
             err = true;
             break;
@@ -176,11 +197,17 @@ static struct nl_ast *globals(struct nl_parser *parser)
         defs = nl_ast_list_append(defs, def);
     }
 
-    if (err) {
-        /* TODO: destroy defs */
-        defs = NULL;
+    if (!expect(parser, TOK_RCURLY)) {
+        err = true;
     }
-    return defs;
+
+    struct nl_ast *pkg = NULL;
+    if (err) {
+        pkg = NULL;     /* TODO: destroy name, globals */
+    } else {
+        pkg = nl_ast_make_package(name, defs, lineno(parser));
+    }
+    return pkg;
 }
 
 static struct nl_ast *global(struct nl_parser *parser)

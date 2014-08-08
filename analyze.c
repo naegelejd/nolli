@@ -135,6 +135,11 @@ static void collect_types_using(struct nl_ast *node, struct analysis *analysis)
 {
 }
 
+static void collect_types_package(struct nl_ast *node, struct analysis *analysis)
+{
+    collect_types(node->package.globals, analysis);
+}
+
 static void collect_types_unit(struct nl_ast *node, struct analysis *analysis)
 {
     collect_types(node->unit.globals, analysis);
@@ -198,6 +203,10 @@ static void collect_types_params(struct nl_ast *node, struct analysis *analysis)
 }
 
 static void collect_types_args(struct nl_ast *node, struct analysis *analysis)
+{
+}
+
+static void collect_types_packages(struct nl_ast *node, struct analysis *analysis)
 {
 }
 
@@ -524,19 +533,30 @@ static struct nl_type *analyze_using(struct nl_ast *node, struct analysis *analy
     return NULL;    /* FIXME */
 }
 
+static struct nl_type *analyze_package(struct nl_ast *node, struct analysis *analysis)
+{
+    struct nl_ast *name = node->package.name;
+
+    if (name != NULL) {
+        assert(name->tag == NL_AST_IDENT);
+        analysis->pkgname = name->s;
+
+        struct nl_symtable *local_symbols = nl_check_symbol(analysis->all_symbols,
+                name->s->str);
+        if (local_symbols == NULL) {
+            local_symbols = nl_symtable_create(NULL);
+            nl_add_symbol(analysis->all_symbols, name->s->str, local_symbols);
+        }
+        analysis->local_symbols = local_symbols;
+    }
+
+    analyze(node->package.globals, analysis);
+
+    return NULL;    /* FIXME */
+}
+
 static struct nl_type *analyze_unit(struct nl_ast *node, struct analysis *analysis)
 {
-    struct nl_ast *pkg = node->unit.package;
-    assert(pkg->tag == NL_AST_IDENT);
-    analysis->pkgname = pkg->s;
-
-    struct nl_symtable *local_symbols = nl_check_symbol(analysis->all_symbols, pkg->s->str);
-    if (local_symbols == NULL) {
-        local_symbols = nl_symtable_create(NULL);
-        nl_add_symbol(analysis->all_symbols, pkg->s->str, local_symbols);
-    }
-    analysis->local_symbols = local_symbols;
-
     analyze(node->unit.globals, analysis);
 
     return NULL;    /* FIXME */
@@ -635,6 +655,11 @@ static struct nl_type* analyze_params(struct nl_ast *node, struct analysis *anal
 static struct nl_type* analyze_args(struct nl_ast *node, struct analysis *analysis)
 {
     return analyze_list(node, analysis);
+}
+
+static struct nl_type* analyze_packages(struct nl_ast *node, struct analysis *analysis)
+{
+    return NULL;    /* FIXME */
 }
 
 static struct nl_type* analyze_units(struct nl_ast *node, struct analysis *analysis)
@@ -736,6 +761,7 @@ static struct nl_type *analyze(struct nl_ast *root, struct analysis *analysis)
         analyze_interface,
         analyze_alias,
         analyze_using,
+        analyze_package,
         analyze_unit,
 
         NULL,
@@ -754,6 +780,7 @@ static struct nl_type *analyze(struct nl_ast *root, struct analysis *analysis)
         analyze_class_inits,
         analyze_params,
         analyze_args,
+        analyze_packages,
         analyze_units,
 
         NULL
@@ -814,6 +841,7 @@ static void collect_types(struct nl_ast *root, struct analysis *analysis)
         collect_types_interface,
         collect_types_alias,
         collect_types_using,
+        collect_types_package,
         collect_types_unit,
 
         NULL,
@@ -832,6 +860,7 @@ static void collect_types(struct nl_ast *root, struct analysis *analysis)
         collect_types_class_inits,
         collect_types_params,
         collect_types_args,
+        collect_types_packages,
         collect_types_units,
 
         NULL

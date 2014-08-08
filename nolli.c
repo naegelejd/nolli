@@ -58,6 +58,22 @@ void nl_add_ast(struct nl_context *ctx, struct nl_ast *ast)
     ctx->ast_list = nl_ast_list_append(ctx->ast_list, ast);
 }
 
+int nl_transform_ast(struct nl_context *ctx)
+{
+    /* for each unit AST U:
+     *  for each global AST G:
+     *      if G is a package:
+     *          make or get package AST P
+     *          for each global g in package:
+     *              add g to P
+     *      if G is a global:
+     *          make or get unnamed package AST P
+     *          add G to P
+     */
+
+    return NL_NO_ERR;
+}
+
 int nl_compile_file(struct nl_context *ctx, const char *filename)
 {
     char *buff = nl_read_file(ctx, filename);

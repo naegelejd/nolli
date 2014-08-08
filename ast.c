@@ -352,13 +352,24 @@ struct nl_ast *nl_ast_make_package_ref(struct nl_ast *package, struct nl_ast *ex
     return node;
 }
 
-struct nl_ast *nl_ast_make_unit(struct nl_ast *package, struct nl_ast *globals, int lineno)
+struct nl_ast *nl_ast_make_package(struct nl_ast *name, struct nl_ast *globals, int lineno)
 {
-    assert(package);
+    assert(name);
+    assert(globals);
+
+    struct nl_ast *node = make_node(NL_AST_PACKAGE, lineno);
+    node->package.name = name;
+    node->package.globals = globals;
+    return node;
+}
+
+struct nl_ast *nl_ast_make_unit(struct nl_ast *packages, struct nl_ast *globals, int lineno)
+{
+    assert(packages);
     assert(globals);
 
     struct nl_ast *node = make_node(NL_AST_UNIT, lineno);
-    node->unit.package = package;
+    node->unit.packages = packages;
     node->unit.globals = globals;
     return node;
 }
@@ -408,6 +419,7 @@ char *nl_ast_name(const struct nl_ast* node)
         "interface",
         "alias",
         "using",
+        "package",
         "unit",
 
         "list_sentinel",
@@ -426,6 +438,7 @@ char *nl_ast_name(const struct nl_ast* node)
         "list_class_inits",
         "list_params",
         "list_args",
+        "list_packages",
         "list_units",
 
         "last"

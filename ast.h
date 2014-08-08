@@ -46,6 +46,7 @@ enum {
     NL_AST_INTERFACE,
     NL_AST_ALIAS,
     NL_AST_USING,
+    NL_AST_PACKAGE,
     NL_AST_UNIT,
 
     NL_AST_LIST_SENTINEL,  /* never used */
@@ -65,6 +66,7 @@ enum {
     NL_AST_LIST_CLASS_INITS,
     NL_AST_LIST_PARAMS,
     NL_AST_LIST_ARGS,
+    NL_AST_LIST_PACKAGES,
     NL_AST_LIST_UNITS,
 
     NL_AST_LAST
@@ -182,8 +184,12 @@ struct nl_ast_using {
     struct nl_ast *names;
 };
 
+struct nl_ast_package {
+    struct nl_ast *name, *globals;
+};
+
 struct nl_ast_unit {
-    struct nl_ast *package, *globals;
+    struct nl_ast *packages, *globals;
 };
 
 struct nl_ast {
@@ -219,6 +225,7 @@ struct nl_ast {
         struct nl_ast_alias alias;
         struct nl_ast_decl decl;
         struct nl_ast_using usings;
+        struct nl_ast_package package;
         struct nl_ast_unit unit;
     };
     struct nl_ast* next;
@@ -271,6 +278,7 @@ struct nl_ast *nl_ast_make_class(struct nl_ast*, struct nl_ast*, struct nl_ast*,
 struct nl_ast *nl_ast_make_interface(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_alias(struct nl_ast*, struct nl_ast *, int);
 struct nl_ast *nl_ast_make_using(struct nl_ast*, int);
+struct nl_ast *nl_ast_make_package(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_unit(struct nl_ast*, struct nl_ast*, int);
 
 char *nl_ast_name(const struct nl_ast* node);
