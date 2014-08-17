@@ -1,5 +1,4 @@
 #include "lexer.h"
-#include "alloc.h"
 #include "debug.h"
 #include "nolli.h"
 
@@ -11,7 +10,8 @@
 #include <assert.h>
 
 #define LEX_ERRORF(L, fmt, ...) \
-    NOLLI_FATALF("(L %d, C %d): " fmt, (L)->line, (L)->col, __VA_ARGS__)
+        NL_FATALF((L)->ctx, NL_ERR_LEX, "(L %d, C %d): " fmt, \
+            (L)->line, (L)->col, __VA_ARGS__)
 
 #define LEX_ERROR(L, S) LEX_ERRORF(L, "%s", S)
 
@@ -94,8 +94,8 @@ static int appendc(struct nl_lexer *lex, int c)
         size_t new_alloc = old_alloc * 2;
 
         /* realloc the buffer */
-        lex->curbuff = nl_realloc(lex->curbuff, new_alloc);
-        lex->lastbuff = nl_realloc(lex->lastbuff, new_alloc);
+        lex->curbuff = nl_realloc(lex->ctx, lex->curbuff, new_alloc);
+        lex->lastbuff = nl_realloc(lex->ctx, lex->lastbuff, new_alloc);
         lex->balloc = new_alloc;
 
         /* memory for strings must always be zeroed */
@@ -343,7 +343,6 @@ static int lex_symbol(struct nl_lexer *lex)
 
 int nl_gettok(struct nl_lexer *lex)
 {
-    /* NOLLI_DEBUGF("rotating buffer: %s <- %s", lex->lastbuff, lex->curbuff); */
     rotate_buffers(lex);    /* clear the lexer's current string buffer */
     int tok = TOK_EOF;
 nexttok:
@@ -419,7 +418,6 @@ nexttok:
 
     /* return the scanned token */
     lex->lasttok = tok;
-    /* NOLLI_DEBUGF("tok: %s, buf: %s", nl_get_tok_name(tok), lex->curbuff); */
     return tok;
 }
 
@@ -429,14 +427,19 @@ const char *nl_get_tok_name(int tok)
     return token_names[tok];
 }
 
-void nl_lexer_init(struct nl_lexer *lexer, const char *buffer)
+void nl_lexer_init(struct nl_lexer *lexer, struct nl_context *ctx, const char *buffer)
 {
-    assert(lexer);
-    assert(buffer);
+    assert(lexer != NULL);
+    assert(ctx != NULL);
+    assert(buffer != NULL);
+
+    memset(lexer, 0, sizeof(*lexer));
+
+    lexer->ctx = ctx;
 
     size_t bufsize = 16;
-    lexer->curbuff = nl_alloc(bufsize);
-    lexer->lastbuff = nl_alloc(bufsize);
+    lexer->curbuff = nl_alloc(lexer->ctx, bufsize);
+    lexer->lastbuff = nl_alloc(lexer->ctx, bufsize);
     lexer->blen = 0;
     lexer->balloc = bufsize;
 

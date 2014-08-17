@@ -1,5 +1,5 @@
-#include "alloc.h"
 #include "ast.h"
+#include "nolli.h"
 
 #include <assert.h>
 
@@ -8,7 +8,7 @@
  */
 static void *make_node(int tag, int lineno)
 {
-    struct nl_ast *node = nl_alloc(sizeof(*node));
+    struct nl_ast *node = nl_alloc(NULL, sizeof(*node));
     node->tag = tag;
     node->lineno = lineno;
     return node;
@@ -42,7 +42,7 @@ struct nl_ast *nl_ast_make_real_num(double d, int lineno)
     return node;
 }
 
-struct nl_ast *nl_ast_make_str_lit(struct string *s, int lineno)
+struct nl_ast *nl_ast_make_str_lit(struct nl_string *s, int lineno)
 {
     assert(s);
     struct nl_ast *node = make_node(NL_AST_STR_LIT, lineno);
@@ -50,7 +50,7 @@ struct nl_ast *nl_ast_make_str_lit(struct string *s, int lineno)
     return node;
 }
 
-struct nl_ast *nl_ast_make_ident(struct string *s, int lineno)
+struct nl_ast *nl_ast_make_ident(struct nl_string *s, int lineno)
 {
     assert(s);
     struct nl_ast *node = make_node(NL_AST_IDENT, lineno);

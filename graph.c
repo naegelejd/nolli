@@ -550,7 +550,7 @@ int nl_graph_ast(struct nl_context *ctx)
 
     fp = fopen("astdump.dot", "w");
     if (fp == NULL) {
-        NOLLI_ERROR("Failed to open a new graph file");
+        NL_ERROR(ctx, NL_ERR_GRAPH, "Failed to open a new graph file");
         return NL_ERR_IO;
     }
 
@@ -559,7 +559,7 @@ int nl_graph_ast(struct nl_context *ctx)
     fputs("}\n", fp);
 
     if ((fclose(fp)) == EOF) {
-        NOLLI_ERROR("Failed to close graph file");
+        NL_ERROR(ctx, NL_ERR_GRAPH, "Failed to close graph file");
         return NL_ERR_IO;
     }
 

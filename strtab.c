@@ -1,27 +1,40 @@
 #include "strtab.h"
-#include "alloc.h"
+#include "nolli.h"
+#include "debug.h"
 
 #include <string.h>
 
-struct string *stringtable_wrap(struct stringtable *tab, char *str)
+#include <stdio.h>
+#include <assert.h>
+
+struct nl_string *nl_strtab_wrap(struct nl_strtab *tab, char *s)
 {
-    struct string **ptr = &tab->head;
-    struct string *cur = NULL;
-    while ((cur = *ptr) != NULL) {
-        if (strcmp(str, cur->str) == 0) {
-            return cur;
+    assert(tab != NULL);
+    assert(s != NULL);
+
+    struct nl_string **ptr = &tab->head;
+    while (*ptr != NULL) {
+        assert((*ptr)->str != NULL);
+        if (strcmp(s, (*ptr)->str) == 0) {
+            return *ptr;
         }
-        ptr = &cur->next;
+        ptr = &(*ptr)->next;
     }
 
-    *ptr = nl_alloc(sizeof(*ptr));
-    (*ptr)->str = strdup(str);
+    *ptr = nl_alloc(NULL, sizeof(**ptr));
+
+    (*ptr)->str = strdup(s);
+    if ((*ptr)->str == NULL) {
+        fprintf(stderr, "failed to wrap string"); /* FIXME */
+        return NULL;
+    }
+
     return *ptr;
 }
 
-void stringtable_dump(struct stringtable *tab, FILE *out)
+void nl_strtab_dump(struct nl_strtab *tab, FILE *out)
 {
-    struct string *cur = tab->head;
+    struct nl_string *cur = tab->head;
     while (cur != NULL) {
         fprintf(out, "%s\n", cur->str);
         cur = cur->next;

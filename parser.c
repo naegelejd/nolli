@@ -1,5 +1,4 @@
 #include "lexer.h"
-#include "alloc.h"
 #include "ast.h"
 #include "strtab.h"
 #include "debug.h"
@@ -12,25 +11,27 @@
 #include <assert.h>
 
 struct nl_parser {
+    struct nl_context *ctx;
     const char *source;
     struct nl_lexer *lexer;
-    struct stringtable *strtab;
+    struct nl_strtab *strtab;
     int cur;
 };
 
 #define PARSE_DEBUGF(P, fmt, ...) \
-    NOLLI_DEBUGF("(L %d, C %d): " fmt, \
+    NL_DEBUGF((P)->ctx, "(L %d, C %d): " fmt, \
             (P)->lexer->line, (P)->lexer->col, __VA_ARGS__)
 
 #define PARSE_DEBUG(P, S) PARSE_DEBUGF(P, "%s", S)
 
 #define PARSE_ERRORF(P, fmt, ...) \
-    NOLLI_ERRORF("(L %d, C %d): " fmt, \
+    NL_ERRORF((P)->ctx, NL_ERR_PARSE, "(L %d, C %d): " fmt, \
             (P)->lexer->line, (P)->lexer->col, __VA_ARGS__)
 
 #define PARSE_ERROR(P, S) PARSE_ERRORF(P, "%s", S)
 
-static int init(struct nl_parser *parser, const char *buffer, const char *src);
+static int init(struct nl_parser *parser, struct nl_context *ctx,
+        const char *buffer, const char *src);
 
 static struct nl_ast *unit(struct nl_parser *parser);
 static struct nl_ast *package(struct nl_parser *parser);
@@ -79,14 +80,18 @@ static struct nl_ast *functype(struct nl_parser *parser);
                 nl_get_tok_name((P)->cur), nl_get_tok_name(T)), \
             next(P), false))
 
-static int init(struct nl_parser *parser, const char *buffer, const char *src)
+static int init(struct nl_parser *parser, struct nl_context *ctx,
+        const char *buffer, const char *src)
 {
     assert(parser);
 
+    memset(parser, 0, sizeof(*parser));
+
+    parser->ctx = ctx;
     parser->source = src;
-    parser->strtab = nl_alloc(sizeof(*parser->strtab));
-    parser->lexer = nl_alloc(sizeof(*parser->lexer));
-    nl_lexer_init(parser->lexer, buffer);
+    parser->strtab = nl_alloc(ctx, sizeof(*parser->strtab));
+    parser->lexer = nl_alloc(ctx, sizeof(*parser->lexer));
+    nl_lexer_init(parser->lexer, ctx, buffer);
 
     /* DEBUGGING: lexer_scan_all(parser->lexer); */
 
@@ -99,7 +104,7 @@ static int init(struct nl_parser *parser, const char *buffer, const char *src)
 int nl_parse_string(struct nl_context *ctx, const char *s, const char *src)
 {
     struct nl_parser parser;
-    int err = init(&parser, s, src);
+    int err = init(&parser, ctx, s, src);
     if (err) {
         return err;
     }
@@ -108,7 +113,7 @@ int nl_parse_string(struct nl_context *ctx, const char *s, const char *src)
     expect(&parser, TOK_EOF);
 
     /* DEBUG: dump all symbols/strings */
-    /* stringtable_dump(parser->strtab, stdout); */
+    /* nl_strtab_dump(parser->strtab, stdout); */
 
     if (root == NULL) {
         return NL_ERR_PARSE;
@@ -773,15 +778,28 @@ struct shunter {
     int op_size;
 };
 
-static void shunter_init(struct shunter *shunter)
+static int shunter_init(struct shunter *shunter)
 {
     shunter->op_top = 0;
     shunter->op_size = 8;
-    shunter->op_stk = nl_alloc(shunter->op_size * sizeof(*shunter->op_stk));
+    shunter->op_stk = nl_alloc(NULL, shunter->op_size * sizeof(*shunter->op_stk));
+    if (shunter->op_stk == NULL) {
+        return NL_ERR_MEM;
+    }
     shunter->term_top = 0;
     shunter->term_size = 8;
-    shunter->term_stk = nl_alloc(shunter->term_size * sizeof(*shunter->term_stk));
+    shunter->term_stk = nl_alloc(NULL, shunter->term_size * sizeof(*shunter->term_stk));
+    if (shunter->term_stk == NULL) {
+        free(shunter->op_stk);
+        return NL_ERR_MEM;
+    }
+    return NL_NO_ERR;
+}
 
+static void shunter_deinit(struct shunter *shunter)
+{
+    free(shunter->op_stk);
+    free(shunter->term_stk);
 }
 
 static struct nl_ast *shunter_term_push(struct shunter *shunter, struct nl_ast *term)
@@ -789,7 +807,7 @@ static struct nl_ast *shunter_term_push(struct shunter *shunter, struct nl_ast *
     shunter->term_stk[shunter->term_top++] = term;
     if (shunter->term_top >= shunter->term_size) {
         shunter->term_size *= 2;
-        shunter->term_stk = nl_realloc(shunter->term_stk,
+        shunter->term_stk = nl_realloc(NULL, shunter->term_stk,
                 shunter->term_size * sizeof(*shunter->term_stk));
     }
     return term;
@@ -805,10 +823,13 @@ static int shunter_op_push(struct shunter *shunter, int op)
     shunter->op_stk[shunter->op_top++] = op;
     if (shunter->op_top >= shunter->op_size) {
         shunter->op_size *= 2;
-        shunter->op_stk = nl_realloc(shunter->op_stk,
+        shunter->op_stk = nl_realloc(NULL, shunter->op_stk,
                 shunter->op_size * sizeof(*shunter->op_stk));
+        if (shunter->op_stk == NULL) {
+            return NL_ERR_MEM;
+        }
     }
-    return op;
+    return NL_NO_ERR;
 }
 
 static int shunter_op_pop(struct shunter *shunter)
@@ -837,6 +858,10 @@ static struct nl_ast *expression(struct nl_parser *parser)
     }
 
     struct shunter shunter;
+    /* if (!shunter_init(&shunter)) { */
+    /*     err = true; */
+    /*     /1* FIXME: clean-up and return *1/ */
+    /* } */
     shunter_init(&shunter);
 
     while (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
@@ -869,6 +894,10 @@ static struct nl_ast *expression(struct nl_parser *parser)
                 break;
             }
         }
+        /* if (!shunter_op_push(&shunter, op)) { */
+        /*     err = true; */
+        /*     break; */
+        /* } */
         shunter_op_push(&shunter, op);
 
         cur = unary_expr(parser);
@@ -883,6 +912,8 @@ static struct nl_ast *expression(struct nl_parser *parser)
         struct nl_ast *lhs = shunter_term_pop(&shunter);
         cur = nl_ast_make_binexpr(lhs, op, cur, lineno(parser));
     }
+
+    shunter_deinit(&shunter);
 
     if (err) {
         cur = NULL;     /* TODO: destroy cur */
@@ -942,7 +973,7 @@ static struct nl_ast *ident(struct nl_parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         PARSE_ERROR(parser, "Invalid identifier");
     } else {
-        struct string *s = stringtable_wrap(parser->strtab,
+        struct nl_string *s = nl_strtab_wrap(parser->strtab,
                 current_buffer(parser));
         assert(s);
         PARSE_DEBUGF(parser, "Parsed identifier: %s", s->str);
@@ -1030,7 +1061,7 @@ static struct nl_ast *operand(struct nl_parser *parser)
     } else if (check(parser, TOK_REAL)) {
         op = reallit(parser);
     } else if (accept(parser, TOK_STRING)) {
-        struct string *s = stringtable_wrap(parser->strtab,
+        struct nl_string *s = nl_strtab_wrap(parser->strtab,
                 current_buffer(parser));
         PARSE_DEBUGF(parser, "Parsed string literal: %s", s->str);
         op = nl_ast_make_str_lit(s, lineno(parser));

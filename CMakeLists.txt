@@ -14,7 +14,6 @@ set(NOLLI_NAME nolli)
 
 set(NOLLI_SOURCES
     nolli.c
-    alloc.c
     strtab.c
     lexer.c
     parser.c
@@ -29,7 +28,7 @@ if (NOT WIN32)
     list (APPEND NOLLI_SOURCES os.c)
 endif (NOT WIN32)
 
-add_library(nolli ${NOLLI_SOURCES})
+add_library(nolli SHARED ${NOLLI_SOURCES})
 
 # link only against math library
 if (NOT WIN32)

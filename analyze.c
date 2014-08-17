@@ -21,14 +21,21 @@
  *      symbol table for current scope
  */
 struct analysis {
+    struct nl_context *ctx;
     struct nl_symtable *all_symbols;
-    struct string *pkgname;
+    struct nl_string *pkgname;
     /* Convenience pointers to all_symbols[pkgname] */
     struct nl_symtable *local_symbols;
 };
 
-int analysis_init(struct analysis *analysis)
+static int analysis_init(struct analysis *analysis, struct nl_context *ctx)
 {
+    assert(analysis != NULL);
+    assert(ctx != NULL);
+
+    memset(analysis, 0, sizeof(*analysis));
+
+    analysis->ctx = ctx;
     analysis->all_symbols = nl_symtable_create(NULL);
     analysis->pkgname = NULL;
     analysis->local_symbols = NULL;
@@ -323,7 +330,8 @@ static struct nl_type *analyze_binexpr(struct nl_ast *node, struct analysis *ana
     struct nl_type *rhs = analyze(node->binexpr.lhs, analysis);
     struct nl_type *lhs = analyze(node->binexpr.rhs, analysis);
     if (lhs != rhs) {
-        NOLLI_ERRORF("Type mismatch in binary expression on line %d", node->lineno);
+        NL_ERRORF(analysis->ctx, NL_ERR_ANALYZE,
+                "Type mismatch in binary expression on line %d", node->lineno);
     }
 
     if (node->binexpr.op == TOK_EQ || node->binexpr.op == TOK_NEQ ||
@@ -393,7 +401,8 @@ static struct nl_type *analyze_ifelse(struct nl_ast *node, struct analysis *anal
     struct nl_ast *cond = node->ifelse.cond;
     analyze(cond, analysis);
     if (cond->type != &nl_bool_type) {
-        NOLLI_ERRORF("Conditional expression must be boolean on line %d", cond->lineno);
+        NL_ERRORF(analysis->ctx, NL_ERR_ANALYZE,
+                "Conditional expression must be boolean on line %d", cond->lineno);
     }
 
     analyze(node->ifelse.if_body, analysis);
@@ -883,7 +892,7 @@ int nl_analyze(struct nl_context *ctx)
     assert(ctx);
 
     struct analysis analysis;
-    int err = analysis_init(&analysis);
+    int err = analysis_init(&analysis, ctx);
     if (err) {
         return err;
     }

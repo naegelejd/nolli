@@ -1,55 +1,58 @@
 #ifndef NOLLI_DEBUG_H
 #define NOLLI_DEBUG_H
 
-#include <stdio.h>
+#define NL_ANSI_RED        "\x1b[31m"
+#define NL_ANSI_GREEN      "\x1b[32m"
+#define NL_ANSI_YELLOW     "\x1b[33m"
+#define NL_ANSI_BLUE       "\x1b[34m"
+#define NL_ANSI_MAGENTA    "\x1b[35m"
+#define NL_ANSI_CYAN       "\x1b[36m"
+#define NL_ANSI_BOLD       "\x1b[1m"
+#define NL_ANSI_RESET      "\x1b[0m"
 
-#define ANSI_RED        "\x1b[31m"
-#define ANSI_GREEN      "\x1b[32m"
-#define ANSI_YELLOW     "\x1b[33m"
-#define ANSI_BLUE       "\x1b[34m"
-#define ANSI_MAGENTA    "\x1b[35m"
-#define ANSI_CYAN       "\x1b[36m"
-#define ANSI_BOLD       "\x1b[1m"
-#define ANSI_RESET      "\x1b[0m"
-
-#define BLUE_DEBUG      ANSI_BOLD ANSI_BLUE "Debug" ANSI_RESET ": "
-#define RED_ERROR       ANSI_BOLD ANSI_RED "Error" ANSI_RESET ": "
-#define RED_FATAL       ANSI_BOLD ANSI_RED "Fatal" ANSI_RESET ": "
+#define NL_BLUE_DEBUG      NL_ANSI_BOLD NL_ANSI_BLUE "Debug" NL_ANSI_RESET ": "
+#define NL_RED_ERROR       NL_ANSI_BOLD NL_ANSI_RED "Error" NL_ANSI_RESET ": "
+#define NL_RED_FATAL       NL_ANSI_BOLD NL_ANSI_RED "Fatal" NL_ANSI_RESET ": "
 
 #ifdef DEBUG
 
-#define NOLLI_DEBUGF(fmt, ...) \
-        fprintf(stdout, BLUE_DEBUG "[%s:%d]: " fmt "\n", \
+#define NL_DEBUGF(ctx, fmt, ...) \
+        ctx->debug_handler(ctx->user_data, \
+                NL_BLUE_DEBUG "[%s:%d]: " fmt "\n", \
                 __func__, __LINE__, __VA_ARGS__)
 
-#define NOLLI_ERRORF(fmt, ...) \
-        fprintf(stderr, RED_ERROR "[%s:%d]: " fmt "\n", \
+#define NL_ERRORF(ctx, e, fmt, ...) \
+        ctx->error_handler(ctx->user_data, e, \
+                NL_RED_ERROR "[%s:%d]: " fmt "\n", \
                 __func__, __LINE__, __VA_ARGS__)
 
-#define NOLLI_FATALF(fmt, ...) \
+#define NL_FATALF(ctx, e, fmt, ...) \
     do { \
-        fprintf(stderr, RED_FATAL "[%s:%d:%s]: " fmt "\n", \
+        ctx->error_handler(ctx->user_data, e, \
+                NL_RED_FATAL "[%s:%d:%s]: " fmt "\n", \
                 __FILE__, __LINE__, __func__, __VA_ARGS__); \
-        exit(NL_ERR_FATAL); \
+        exit(e); \
     } while (0)
 
 #else   /* DEBUG */
 
-#define NOLLI_DEBUGF(fmt, ...)
+#define NL_DEBUGF(ctx, fmt, ...)
 
-#define NOLLI_ERRORF(fmt, ...) \
-        fprintf(stderr, RED_ERROR fmt "\n", __VA_ARGS__)
+#define NL_ERRORF(ctx, e, fmt, ...) \
+        ctx->error_handler(ctx->user_data, e, \
+        NL_RED_ERROR fmt "\n", __VA_ARGS__)
 
-#define NOLLI_FATALF(fmt, ...) \
+#define NL_FATALF(ctx, e, fmt, ...) \
     do { \
-        fprintf(stderr, RED_FATAL fmt "\n", __VA_ARGS__); \
-        exit(NL_ERR_FATAL); \
+        ctx->error_handler(ctx->user_data, e, \
+        NL_RED_FATAL fmt "\n", __VA_ARGS__); \
+        exit(e); \
     } while (0)
 
 #endif  /* DEBUG */
 
-#define NOLLI_DEBUG(S) NOLLI_DEBUGF("%s", S)
-#define NOLLI_ERROR(S) NOLLI_ERRORF("%s", S)
-#define NOLLI_FATAL(S) NOLLI_FATALF("%s", S)
+#define NL_DEBUG(ctx, S)    NL_DEBUGF(ctx, e, "%s", S)
+#define NL_ERROR(ctx, e, S) NL_ERRORF(ctx, e, "%s", S)
+#define NL_FATAL(ctx, e, S) NL_FATALF(ctx, e, "%s", S)
 
 #endif /* NOLLI_DEBUG_H */

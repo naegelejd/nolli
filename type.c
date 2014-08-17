@@ -1,5 +1,5 @@
 #include "type.h"
-#include "alloc.h"
+#include "nolli.h"
 
 #include <stdlib.h>
 
@@ -45,7 +45,7 @@ struct nl_type nl_str_type = {
 
 struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param_types_head)
 {
-    struct nl_type* func = nl_alloc(sizeof(*func));
+    struct nl_type* func = nl_alloc(NULL, sizeof(*func));
     func->tag = NL_TYPE_FUNC;
 
     func->func.ret_type = ret_type;
@@ -57,7 +57,7 @@ struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param
 struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
         struct nl_symtable *members, struct nl_symtable *methods)
 {
-    struct nl_type* user_type = nl_alloc(sizeof(*user_type));
+    struct nl_type* user_type = nl_alloc(NULL, sizeof(*user_type));
     user_type->tag = NL_TYPE_CLASS;
     user_type->repr = name;
 
@@ -70,7 +70,7 @@ struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
 
 struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *methods)
 {
-    struct nl_type* user_type = nl_alloc(sizeof(*user_type));
+    struct nl_type* user_type = nl_alloc(NULL, sizeof(*user_type));
     user_type->tag = NL_TYPE_INTERFACE;
     user_type->repr = name;
 

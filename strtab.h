@@ -1,5 +1,5 @@
-#ifndef NOLLI_STRING_TABLE_H
-#define NOLLI_STRING_TABLE_H
+#ifndef NOLLI_STRTAB_H
+#define NOLLI_STRTAB_H
 
 /**
  * Placeholder string table.
@@ -8,22 +8,22 @@
  * A tree or hashtable would obviously be more ideal.
  */
 
-struct string {
+struct nl_string {
     char const * str;
-    struct string *next;
+    struct nl_string *next;
 };
 
-struct stringtable {
-    struct string *head;
+struct nl_strtab {
+    struct nl_string *head;
     /* struct string *tail; */
 };
 
 /**
  * Creates and stores and returns a string wrapper of the `char*`
  * or returns the existing wrapper in the table */
-struct string *stringtable_wrap(struct stringtable*, char*);
+struct nl_string *nl_strtab_wrap(struct nl_strtab*, char*);
 
 #include <stdio.h>
-void stringtable_dump(struct stringtable *tab, FILE *out);
+void nl_strtab_dump(struct nl_strtab *tab, FILE *out);
 
-#endif /* NOLLI_STRING_TABLE_H */
+#endif /* NOLLI_STRTAB_H */

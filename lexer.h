@@ -35,7 +35,11 @@ enum {
     TOK_WHILE, TOK_FOR, TOK_IN
 };
 
+struct nl_context;
+
 struct nl_lexer {
+    struct nl_context *ctx;
+
     const char *input;
     const char *sptr;
 
@@ -51,7 +55,7 @@ struct nl_lexer {
     int cur;
 };
 
-void nl_lexer_init(struct nl_lexer *, const char *);
+void nl_lexer_init(struct nl_lexer *, struct nl_context *ctx, const char *);
 
 int nl_gettok(struct nl_lexer *lex);
 const char *nl_get_tok_name(int tok);

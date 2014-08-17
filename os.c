@@ -1,5 +1,4 @@
 #include "os.h"
-#include "alloc.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -39,8 +38,10 @@ static char *nl_join(char *fst, char *snd)
 {
     size_t len_fst = strnlen(fst, NOLLI_OS_PATH_MAX_LEN);
     size_t len_snd = strnlen(fst, NOLLI_OS_PATH_MAX_LEN);
-    char *path = nl_alloc(len_fst + len_snd + 2);
-    path = strcat(strcat(strcat(path, fst), "/"), snd);
+    char *path = malloc(len_fst + len_snd + 2);
+    if (path != NULL) {
+        path = strcat(strcat(strcat(path, fst), "/"), snd);
+    }
     return path;
 }
 
@@ -63,16 +64,18 @@ static char *nl_expanduser(char *orig)
         }
     }
 
-    char *path = nl_alloc(len_path + 1);
-    ptr = path;
-    while ((c = *orig++)) {
-        if (c == '~') {
-            int i = 0;
-            for (i = 0; i < len_home; i++) {
-                *ptr++ = home[i];
+    char *path = malloc(len_path + 1);
+    if (path != NULL) {
+        ptr = path;
+        while ((c = *orig++)) {
+            if (c == '~') {
+                int i = 0;
+                for (i = 0; i < len_home; i++) {
+                    *ptr++ = home[i];
+                }
+            } else {
+                *ptr++ = c;
             }
-        } else {
-            *ptr++ = c;
         }
     }
 

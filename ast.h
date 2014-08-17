@@ -198,7 +198,7 @@ struct nl_ast {
         char c;
         long l;
         double d;
-        struct string *s;
+        struct nl_string *s;
 
         struct nl_ast_tmpl_type tmpl_type;
         struct nl_ast_qual_type qual_type;
@@ -238,9 +238,9 @@ struct nl_ast *nl_ast_make_bool_lit(bool b, int);
 struct nl_ast *nl_ast_make_char_lit(char c, int);
 struct nl_ast *nl_ast_make_int_num(long l, int);
 struct nl_ast *nl_ast_make_real_num(double d, int);
-struct nl_ast *nl_ast_make_str_lit(struct string *s, int);
+struct nl_ast *nl_ast_make_str_lit(struct nl_string *s, int);
 
-struct nl_ast *nl_ast_make_ident(struct string *s, int);
+struct nl_ast *nl_ast_make_ident(struct nl_string *s, int);
 
 struct nl_ast *nl_ast_make_tmpl_type(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_qual_type(struct nl_ast*, struct nl_ast*, int);

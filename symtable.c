@@ -1,5 +1,5 @@
 #include "symtable.h"
-#include "alloc.h"
+#include "nolli.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -71,8 +71,8 @@ static struct nl_symtable *nl_symtable_resize(struct nl_symtable *st, unsigned i
     st->count = 0;
     st->collisions = 0;
 
-    st->keys = nl_alloc(st->size * sizeof(*st->keys));
-    st->vals = nl_alloc(st->size * sizeof(*st->vals));
+    st->keys = nl_alloc(NULL, st->size * sizeof(*st->keys));
+    st->vals = nl_alloc(NULL, st->size * sizeof(*st->vals));
 
     unsigned int i;
     for (i = 0; i < old_size; i++) {
@@ -93,13 +93,13 @@ static struct nl_symtable *nl_symtable_resize(struct nl_symtable *st, unsigned i
  */
 struct nl_symtable *nl_symtable_create(struct nl_symtable *parent)
 {
-    struct nl_symtable *st = nl_alloc(sizeof(*st));
+    struct nl_symtable *st = nl_alloc(NULL, sizeof(*st));
     st->size_idx = 0;
     st->size = nl_symtable_SIZES[st->size_idx];
 
     st->parent = parent;
-    st->keys = nl_alloc(st->size * sizeof(*st->keys));
-    st->vals = nl_alloc(st->size * sizeof(*st->vals));
+    st->keys = nl_alloc(NULL, st->size * sizeof(*st->keys));
+    st->vals = nl_alloc(NULL, st->size * sizeof(*st->vals));
 
     return st;
 }
