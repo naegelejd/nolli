@@ -73,6 +73,7 @@ struct nl_ast *nl_ast_make_alias(struct nl_ast *type, struct nl_ast *name, int l
     struct nl_ast *node = make_node(NL_AST_ALIAS, lineno);
     node->alias.type = type;
     node->alias.name = name;
+
     return node;
 }
 

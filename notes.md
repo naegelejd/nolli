@@ -51,11 +51,14 @@ The type-checked AST is then traversed to generate... TBD (intermediate represen
 
 ## TODO
 
+- [improvement] simplify symbol table by using `nl_string` and comparing pointers
+- [improvement] use hash table in `nl_strtab` instead of `nl_symtab`
 - [bug] return NULL in every parser function when an error occurs
 - [bug] free `struct ast`s when errors occur during parsing
 - [bug] fix broken real number parsing (exponent/mantissa/etc...)
-- handle error messages in a fashion suitable for a library
 - type check
+- remove different AST list types. make one AST list type
+- make AST node creation functions static in parser.c?
 - 'libify' - make sure nolli is always embeddable, re-entrant, linkable
 - intermediate representation
 - garbage collector
@@ -64,6 +67,7 @@ The type-checked AST is then traversed to generate... TBD (intermediate represen
 
 ## Complete
 
+- handle error messages in a fashion suitable for a library
 - the parser need to respect operator associativity (POW symbol is right-associative)
 - the parser needs to respect operator precedence. I plan to use the
   Shunting Yard algorithm to parse expressions.
