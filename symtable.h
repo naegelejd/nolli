@@ -18,9 +18,10 @@ struct nl_symtable {
 
 enum {NL_SYMTABLE_SEARCH = 0, NL_SYMTABLE_INSERT = 1};
 
-void *nl_check_symbol(struct nl_symtable *, const char *);
-void *nl_add_symbol(struct nl_symtable *, const char *, void *);
 struct nl_symtable* nl_symtable_create(struct nl_symtable *parent);
 void nl_symtable_destroy(struct nl_symtable *st);
+void *nl_symtable_check(struct nl_symtable *, const char *);
+void *nl_symtable_add(struct nl_symtable *, const char *, void *);
+void nl_symtable_dump(struct nl_symtable *tab);
 
 #endif /* NOLLI_SYMTABLE_H */

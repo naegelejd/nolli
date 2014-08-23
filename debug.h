@@ -51,7 +51,7 @@
 
 #endif  /* DEBUG */
 
-#define NL_DEBUG(ctx, S)    NL_DEBUGF(ctx, e, "%s", S)
+#define NL_DEBUG(ctx, S)    NL_DEBUGF(ctx, "%s", S)
 #define NL_ERROR(ctx, e, S) NL_ERRORF(ctx, e, "%s", S)
 #define NL_FATAL(ctx, e, S) NL_FATALF(ctx, e, "%s", S)
 

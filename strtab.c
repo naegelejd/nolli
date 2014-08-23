@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-struct nl_string *nl_strtab_wrap(struct nl_strtab *tab, char *s)
+struct nl_string *nl_strtab_wrap(struct nl_strtab *tab, const char *s)
 {
     assert(tab != NULL);
     assert(s != NULL);

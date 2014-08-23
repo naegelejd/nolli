@@ -14,7 +14,6 @@ struct nl_parser {
     struct nl_context *ctx;
     const char *source;
     struct nl_lexer *lexer;
-    struct nl_strtab *strtab;
     int cur;
 };
 
@@ -89,7 +88,7 @@ static int init(struct nl_parser *parser, struct nl_context *ctx,
 
     parser->ctx = ctx;
     parser->source = src;
-    parser->strtab = nl_alloc(ctx, sizeof(*parser->strtab));
+    parser->ctx->strtab = nl_alloc(ctx, sizeof(*parser->ctx->strtab));
     parser->lexer = nl_alloc(ctx, sizeof(*parser->lexer));
     nl_lexer_init(parser->lexer, ctx, buffer);
 
@@ -113,7 +112,7 @@ int nl_parse_string(struct nl_context *ctx, const char *s, const char *src)
     expect(&parser, TOK_EOF);
 
     /* DEBUG: dump all symbols/strings */
-    /* nl_strtab_dump(parser->strtab, stdout); */
+    /* nl_strtab_dump(parser->ctx->strtab, stdout); */
 
     if (root == NULL) {
         return NL_ERR_PARSE;
@@ -162,11 +161,16 @@ static struct nl_ast *unit(struct nl_parser *parser)
         }
     }
 
+    struct nl_string *gname = nl_strtab_wrap(parser->ctx->strtab, NL_GLOBAL_PACKAGE_NAME);
+    struct nl_ast *id = nl_ast_make_ident(gname, 0);
+    struct nl_ast *gpkg = nl_ast_make_package(id, globals, 0);
+    nl_ast_list_append(packages, gpkg);
+
     struct nl_ast *prog = NULL;
     if (err) {
         prog = NULL;    /* TODO: destroy packages, globals */
     } else {
-        prog = nl_ast_make_unit(packages, globals, lineno(parser));
+        prog = nl_ast_make_unit(packages, lineno(parser));
     }
 
     return prog;
@@ -973,7 +977,7 @@ static struct nl_ast *ident(struct nl_parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         PARSE_ERROR(parser, "Invalid identifier");
     } else {
-        struct nl_string *s = nl_strtab_wrap(parser->strtab,
+        struct nl_string *s = nl_strtab_wrap(parser->ctx->strtab,
                 current_buffer(parser));
         assert(s);
         PARSE_DEBUGF(parser, "Parsed identifier: %s", s->str);
@@ -1061,7 +1065,7 @@ static struct nl_ast *operand(struct nl_parser *parser)
     } else if (check(parser, TOK_REAL)) {
         op = reallit(parser);
     } else if (accept(parser, TOK_STRING)) {
-        struct nl_string *s = nl_strtab_wrap(parser->strtab,
+        struct nl_string *s = nl_strtab_wrap(parser->ctx->strtab,
                 current_buffer(parser));
         PARSE_DEBUGF(parser, "Parsed string literal: %s", s->str);
         op = nl_ast_make_str_lit(s, lineno(parser));

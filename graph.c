@@ -439,9 +439,6 @@ static int graph_unit(struct nl_ast *node, FILE *fp, int id)
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->unit.packages, fp, id);
 
-    fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->unit.globals, fp, id);
-
     return id;
 }
 

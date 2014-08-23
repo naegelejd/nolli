@@ -189,7 +189,7 @@ struct nl_ast_package {
 };
 
 struct nl_ast_unit {
-    struct nl_ast *packages, *globals;
+    struct nl_ast *packages;
 };
 
 struct nl_ast {
@@ -279,7 +279,7 @@ struct nl_ast *nl_ast_make_interface(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_alias(struct nl_ast*, struct nl_ast *, int);
 struct nl_ast *nl_ast_make_using(struct nl_ast*, int);
 struct nl_ast *nl_ast_make_package(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_unit(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_unit(struct nl_ast*, int);
 
 char *nl_ast_name(const struct nl_ast* node);
 

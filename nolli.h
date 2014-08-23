@@ -21,6 +21,7 @@ typedef void (*nl_error_handler_t)(void *user_data, int err, const char *fmt, ..
 typedef void (*nl_debug_handler_t)(void *user_data, const char *fmt, ...);
 
 typedef struct nl_context {
+    struct nl_strtab *strtab;
     struct nl_ast *ast_list;
     void *user_data;
     nl_error_handler_t error_handler;
@@ -51,5 +52,7 @@ void *nl_get_user_data(struct nl_context *ctx);
 
 void *nl_realloc(struct nl_context *ctx, void* block, size_t bytes);
 #define nl_alloc(ctx, size) nl_realloc((ctx), NULL, (size))
+
+extern const char *NL_GLOBAL_PACKAGE_NAME;
 
 #endif /* NOLLI_H */

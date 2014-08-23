@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h> /* for dumping table */
 
 
 /** Returns the next computed index for the two given hashes
@@ -104,6 +105,18 @@ struct nl_symtable *nl_symtable_create(struct nl_symtable *parent)
     return st;
 }
 
+void nl_symtable_dump(struct nl_symtable *tab)
+{
+    unsigned int i = 0;
+    while (tab != NULL) {
+        for (i = 0; i < tab->size; i++) {
+            if (tab->keys[i] != NULL) {
+                printf("%s -> %p\n", tab->keys[i], tab->vals[i]);
+            }
+        }
+        tab = tab->parent;
+    }
+}
 /*
     SEARCH
     NULL            key missing, return 0
@@ -125,6 +138,9 @@ struct nl_symtable *nl_symtable_create(struct nl_symtable *parent)
 */
 static void *nl_symtable_do(struct nl_symtable *table, const char *key, void *val, int what)
 {
+    assert(table != NULL);
+    assert(key != NULL);
+
     if (table->count > (table->size * 0.60)) {
         nl_symtable_grow(table);
     } else if (table->count < (table->size * 0.20)) {
@@ -145,9 +161,8 @@ static void *nl_symtable_do(struct nl_symtable *table, const char *key, void *va
                 table->count++;
                 return table->vals[idx];
             } else if (table->parent != NULL) {
-                table = table->parent;
-                i = 0;
-                continue;
+                /* printf("Searching for %s in parent\n", key); */
+                return nl_symtable_do(table->parent, key, val, what);
             } else {
                 return NULL;
             }
@@ -159,12 +174,12 @@ static void *nl_symtable_do(struct nl_symtable *table, const char *key, void *va
     return NULL;
 }
 
-void *nl_check_symbol(struct nl_symtable *nl_symtable, const char *name)
+void *nl_symtable_check(struct nl_symtable *nl_symtable, const char *name)
 {
     return nl_symtable_do(nl_symtable, name, NULL, NL_SYMTABLE_SEARCH);
 }
 
-void *nl_add_symbol(struct nl_symtable *nl_symtable, const char *name, void *value)
+void *nl_symtable_add(struct nl_symtable *nl_symtable, const char *name, void *value)
 {
     char *name_copy = strndup(name, SYMBOL_MAXLEN);
     void *val = nl_symtable_do(nl_symtable, name_copy, value, NL_SYMTABLE_INSERT);

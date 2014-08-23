@@ -3,14 +3,16 @@ nolli
 
 Nolli is:
 
-    - procedural
     - statically-typed
     - lightweight
-    - garbage collected
-    - compiled
-    - fast
+    - embeddable
 
-Nolli's syntax resembles that of [Go](http://golang.org), which happens to have an *excellent* [language spec](http://golang.org/ref/spec).
+and will soon be:
+
+    - garbage collected
+    - JIT-compiled
+
+Nolli's syntax is similar to that of [Go](http://golang.org), which happens to have an *excellent* [language spec](http://golang.org/ref/spec).
 
 Nolli is a hobby language, meaning it has a minimal set of features. This is partly intentional and partly
 because the core language is under heavy development.
@@ -26,6 +28,6 @@ Unix/MinGW build example:
     cmake ..
     make
 
-This generates the binary `nolli`.
+This generates the library `libnolli` and a sample compiler binary `nolli`.
 
 To generate the included source documentation, obtain [doxygen 1.8.3](http://www.doxygen.org), then run `make doc`.

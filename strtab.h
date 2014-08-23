@@ -21,7 +21,7 @@ struct nl_strtab {
 /**
  * Creates and stores and returns a string wrapper of the `char*`
  * or returns the existing wrapper in the table */
-struct nl_string *nl_strtab_wrap(struct nl_strtab*, char*);
+struct nl_string *nl_strtab_wrap(struct nl_strtab*, const char*);
 
 #include <stdio.h>
 void nl_strtab_dump(struct nl_strtab *tab, FILE *out);

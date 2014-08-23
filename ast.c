@@ -364,14 +364,12 @@ struct nl_ast *nl_ast_make_package(struct nl_ast *name, struct nl_ast *globals, 
     return node;
 }
 
-struct nl_ast *nl_ast_make_unit(struct nl_ast *packages, struct nl_ast *globals, int lineno)
+struct nl_ast *nl_ast_make_unit(struct nl_ast *packages, int lineno)
 {
     assert(packages);
-    assert(globals);
 
     struct nl_ast *node = make_node(NL_AST_UNIT, lineno);
     node->unit.packages = packages;
-    node->unit.globals = globals;
     return node;
 }
 
