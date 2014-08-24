@@ -84,11 +84,12 @@ static int init(struct nl_parser *parser, struct nl_context *ctx,
 {
     assert(parser);
 
+    assert(ctx->strtab != NULL);
+
     memset(parser, 0, sizeof(*parser));
 
     parser->ctx = ctx;
     parser->source = src;
-    parser->ctx->strtab = nl_alloc(ctx, sizeof(*parser->ctx->strtab));
     parser->lexer = nl_alloc(ctx, sizeof(*parser->lexer));
     nl_lexer_init(parser->lexer, ctx, buffer);
 
@@ -164,7 +165,7 @@ static struct nl_ast *unit(struct nl_parser *parser)
     struct nl_string *gname = nl_strtab_wrap(parser->ctx->strtab, NL_GLOBAL_PACKAGE_NAME);
     struct nl_ast *id = nl_ast_make_ident(gname, 0);
     struct nl_ast *gpkg = nl_ast_make_package(id, globals, 0);
-    nl_ast_list_append(packages, gpkg);
+    packages = nl_ast_list_append(packages, gpkg);
 
     struct nl_ast *prog = NULL;
     if (err) {

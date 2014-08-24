@@ -185,7 +185,14 @@ struct nl_ast *nl_ast_list_append(struct nl_ast *node, struct nl_ast *elem)
 
     if (node->list.head == NULL || node->list.tail == NULL) {
         node->list.head = elem;
-        node->list.tail = elem;
+
+        /* in the case that `elem` is a list itself, make `tail` the tail of `elem` */
+        struct nl_ast *prev = elem;
+        while (elem) {
+            prev = elem;
+            elem = elem->next;
+        }
+        node->list.tail = prev;
     } else {
         assert(node->tag > NL_AST_LIST_SENTINEL);
         assert(node->tag < NL_AST_LAST);
@@ -343,13 +350,13 @@ struct nl_ast *nl_ast_make_selector(struct nl_ast *parent, struct nl_ast *child,
     return node;
 }
 
-struct nl_ast *nl_ast_make_package_ref(struct nl_ast *package, struct nl_ast *expr, int lineno)
+struct nl_ast *nl_ast_make_package_ref(struct nl_ast *package, struct nl_ast *name, int lineno)
 {
     assert(package);
-    assert(expr);
+    assert(name);
     struct nl_ast *node = make_node(NL_AST_PACKAGE_REF, lineno);
     node->package_ref.package = package;
-    node->package_ref.expr = expr;
+    node->package_ref.name = name;
     return node;
 }
 

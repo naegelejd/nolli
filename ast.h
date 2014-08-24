@@ -159,7 +159,7 @@ struct nl_ast_selector {
 };
 
 struct nl_ast_package_ref {
-    struct nl_ast *package, *expr;
+    struct nl_ast *package, *name;
 };
 
 struct nl_ast_interface {

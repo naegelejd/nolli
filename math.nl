@@ -1,5 +1,7 @@
 package math {
 
+alias real float
+
 const real pi = 3.141592653589793
 const real e = 2.718281828459045
 

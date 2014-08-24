@@ -125,7 +125,7 @@ static int graph_package_ref(struct nl_ast *node, FILE *fp, int id)
     id = graph(node->package_ref.package, fp, id);
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->package_ref.expr, fp, id);
+    id = graph(node->package_ref.name, fp, id);
 
     return id;
 }

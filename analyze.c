@@ -38,27 +38,17 @@
  * 
  */
 
-/** Analysis State:
- *
- *  packages:
- *     package name -> symbols in package
- *  pkgname:
- *     current package name
- *  local_symbols:
- *      symbol table for current scope
- */
+/** Analysis State */
 struct analysis {
     struct nl_context *ctx;
     struct nl_symtable *packages;
-    struct pkgtable *packages_;
-    /* Convenience pointers */
-    struct nl_string *curpkg;
-    struct nl_symtable *local_symbols;
 };
 
+/** Collection of types/symbols for a package */
 struct pkgtable {
-    struct nl_symtable *types;
-    struct nl_symtable *definitions;
+    struct nl_symtable *type_names;     /**< Typenames -> types */
+    struct nl_symtable *type_tables;    /**< Typenames -> typetable */
+    struct nl_symtable *symbols;        /**< Symbols -> types */
 };
 
 const char *NL_GLOBAL_PACKAGE_NAME = "";
@@ -76,8 +66,6 @@ static int analysis_init(struct analysis *analysis, struct nl_context *ctx)
 
     analysis->ctx = ctx;
     analysis->packages = nl_symtable_create(NULL);
-    analysis->curpkg = NULL;
-    analysis->local_symbols = NULL;
 
     return NL_NO_ERR;
 }
@@ -89,8 +77,8 @@ static struct nl_type *set_type(struct nl_ast *node,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    struct nl_symtable *symbols = pkgtable->definitions;
-    struct nl_symtable *types = pkgtable->types;
+    struct nl_symtable *symbols = pkgtable->symbols;
+    struct nl_symtable *type_names = pkgtable->type_names;
     assert(symbols != NULL);
     assert(types != NULL);
 
@@ -114,15 +102,30 @@ static struct nl_type *set_type(struct nl_ast *node,
             tp = &nl_str_type;
             break;
         case NL_AST_IDENT:
-            /* TODO: check symbols or types first? */
+            /* TODO: check symbols or type_names first? */
             tp = nl_symtable_check(symbols, node->s->str);
             if (NULL == tp) {
-                tp = nl_symtable_check(types, node->s->str);
+                tp = nl_symtable_check(type_names, node->s->str);
                 if (NULL == tp) {
                     ANALYSIS_ERRORF(analysis, node, "Unknown type %s", node->s->str);
                 }
             }
             break;
+        case NL_AST_QUAL_TYPE: {
+            struct nl_ast *pkgname = node->package_ref.package;
+            assert(NL_AST_IDENT == pkgname->tag);
+            struct nl_ast *name = node->package_ref.name;
+            assert(NL_AST_IDENT == name->tag);
+
+            struct pkgtable *pkgtable = nl_symtable_check(analysis->packages, pkgname->s->str);
+            if (NULL == pkgtable) {
+                ANALYSIS_ERRORF(analysis, node, "Unknown package %s", pkgname->s->str);
+                /* FIXME */
+            } else {
+                tp = nl_symtable_check(pkgtable->type_names, name->s->str);
+            }
+            break;
+        }
         case NL_AST_FUNC_TYPE:
             tp = nl_type_new_func(NULL, NULL);  /* FIXME! */
             break;
@@ -133,6 +136,7 @@ static struct nl_type *set_type(struct nl_ast *node,
             tp = nl_type_new_interface(node->interface.name->s->str, NULL);  /* FIXME! */
             break;
         default:
+            printf("%s is not yet handled in set_type\n", nl_ast_name(node));
             assert(false);
             break;
     }
@@ -249,18 +253,6 @@ static struct nl_type *analyze_using(struct nl_ast *node, struct analysis *analy
     return NULL;    /* FIXME */
 }
 
-static struct nl_type *analyze_list(struct nl_ast *node, struct analysis *analysis)
-{
-    struct nl_ast *elem = node->list.head;
-    while (elem) {
-        // struct nl_type *tp = analyze(elem, analysis);
-        // (void)tp; /* FIXME - avoid warning */
-        elem = elem->next;
-    }
-
-    return NULL;    /* FIXME */
-}
-
 static struct nl_type* analyze_listlit(struct nl_ast *node, struct analysis *analysis)
 {
     return NULL;
@@ -283,8 +275,8 @@ static struct nl_type* analyze_usings(struct nl_ast *node, struct analysis *anal
     return NULL;    /* FIXME? */
 }
 
-static struct pkgtable *make_package_table(struct analysis *analysis,
-        struct nl_string *name, struct pkgtable *parent)
+static struct pkgtable *make_package_table(struct nl_string *name,
+        struct pkgtable *parent, struct analysis *analysis)
 {
     assert(name != NULL);
     struct pkgtable *tab = nl_symtable_check(analysis->packages, name->str);
@@ -292,11 +284,13 @@ static struct pkgtable *make_package_table(struct analysis *analysis,
     NL_DEBUGF(analysis->ctx, "Making package table %s", name->str);
     tab = nl_alloc(analysis->ctx, sizeof(*tab));
     if (parent != NULL) {
-        tab->types = nl_symtable_create(parent->types);
-        tab->definitions = nl_symtable_create(parent->definitions);
+        tab->type_names = nl_symtable_create(parent->type_names);
+        tab->type_tables = nl_symtable_create(parent->type_tables);
+        tab->symbols = nl_symtable_create(parent->symbols);
     } else {
-        tab->types = nl_symtable_create(NULL);
-        tab->definitions = nl_symtable_create(NULL);
+        tab->type_names = nl_symtable_create(NULL);
+        tab->type_tables = nl_symtable_create(NULL);
+        tab->symbols = nl_symtable_create(NULL);
     }
     nl_symtable_add(analysis->packages, name->str, tab);
     return tab;
@@ -305,6 +299,8 @@ static struct pkgtable *make_package_table(struct analysis *analysis,
 static void collect_class_type(struct nl_ast_class *classdef,
         struct nl_symtable *typetable, struct analysis *analysis)
 {
+    assert(classdef != NULL);
+    assert(typetable != NULL);
     struct nl_ast *name = classdef->name;
     assert(NL_AST_IDENT == name->tag);
     if (nl_symtable_check(typetable, name->s->str) != NULL) {
@@ -319,6 +315,8 @@ static void collect_class_type(struct nl_ast_class *classdef,
 static void collect_interface_type(struct nl_ast_class *interface,
         struct nl_symtable *typetable, struct analysis *analysis)
 {
+    assert(interface != NULL);
+    assert(typetable != NULL);
     struct nl_ast *name = interface->name;
     assert(NL_AST_IDENT == name->tag);
     if (nl_symtable_check(typetable, name->s->str) != NULL) {
@@ -344,10 +342,10 @@ static void collect_types(struct nl_ast *node, struct analysis *analysis)
     while (global) {
         switch (global->tag) {
             case NL_AST_CLASS:
-                collect_class_type(&global->classdef, pkgtable->types, analysis);
+                collect_class_type(&global->classdef, pkgtable->type_names, analysis);
                 break;
             case NL_AST_INTERFACE:
-                collect_interface_type(&global->classdef, pkgtable->types, analysis);
+                collect_interface_type(&global->classdef, pkgtable->type_names, analysis);
                 break;
             default: break;
         }
@@ -359,19 +357,22 @@ static void collect_alias(struct nl_ast_alias *alias,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    assert(pkgtable->types != NULL);
+    assert(pkgtable->type_names != NULL);
 
     assert(NL_AST_IDENT == alias->name->tag);
 
     struct nl_ast *name = alias->name;
     assert(NL_AST_IDENT == name->tag);
 
-    if (nl_symtable_check(pkgtable->types, name->s->str) != NULL) {
+    if (nl_symtable_check(pkgtable->type_names, name->s->str) != NULL) {
         ANALYSIS_ERRORF(analysis, name, "Re-defined alias %s", name->s->str);
         /* FIXME */
     } else {
         struct nl_type *tp = set_type(alias->type, pkgtable, analysis);
-        nl_symtable_add(pkgtable->types, name->s->str, tp);
+        if (NULL == type) {
+            ANALYSIS_ERRORF(analysis, name, "Invalid type in alias %s", name->s->str);
+        }
+        nl_symtable_add(pkgtable->type_names, name->s->str, tp);
     }
 }
 
@@ -399,19 +400,17 @@ static void collect_class_definition(struct nl_ast_class *classdef,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    struct nl_symtable *symbols = pkgtable->definitions;
-    struct nl_symtable *types = pkgtable->types;
-    assert(symbols != NULL);
-    assert(types != NULL);
+    struct nl_symtable *type_tables = pkgtable->type_tables;
+    assert(type_tables != NULL);
 
     struct nl_ast *classname = classdef->name;
     assert(NL_AST_IDENT == classname->tag);
-    if (nl_symtable_check(symbols, classname->s->str) != NULL) {
+    if (nl_symtable_check(type_tables, classname->s->str) != NULL) {
         ANALYSIS_ERRORF(analysis, classname, "Multiply defined class %s", classname->s->str);
         /* FIXME */
     } else {
         struct nl_symtable *class_symbols = nl_symtable_create(NULL);
-        nl_symtable_add(symbols, classname->s->str, class_symbols); /* FIXME */
+        nl_symtable_add(type_tables, classname->s->str, class_symbols); /* FIXME */
 
         if (classdef->tmpl != NULL) {
             struct nl_ast *tmpl = classdef->tmpl->list.head;
@@ -478,21 +477,19 @@ static void collect_interface_definition(struct nl_ast_interface *interface,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    struct nl_symtable *symbols = pkgtable->definitions;
-    struct nl_symtable *types = pkgtable->types;
-    assert(symbols != NULL);
-    assert(types != NULL);
+    struct nl_symtable *type_tables = pkgtable->type_tables;
+    assert(type_tables != NULL);
 
     struct nl_ast *interface_name = interface->name;
     assert(NL_AST_IDENT == interface_name->tag);
-    if (nl_symtable_check(symbols, interface_name->s->str) != NULL) {
+    if (nl_symtable_check(type_tables, interface_name->s->str) != NULL) {
         ANALYSIS_ERRORF(analysis, interface_name,
                 "Multiply defined interface %s near line %d",
                 interface_name->s->str, interface_name->lineno);
         /* FIXME */
     } else {
         struct nl_symtable *interface_symbols = nl_symtable_create(NULL);
-        nl_symtable_add(symbols, interface_name->s->str, interface_symbols); /* FIXME */
+        nl_symtable_add(type_tables, interface_name->s->str, interface_symbols); /* FIXME */
 
         struct nl_ast *methdecl = interface->methods->list.head;
         while (methdecl) {
@@ -547,10 +544,10 @@ static void collect_function_signature(struct nl_ast_function *func,
 
     struct pkgtable *nopkg = nl_symtable_check(analysis->packages, NL_GLOBAL_PACKAGE_NAME);
     assert(nopkg != NULL);
-    assert(nopkg->types != NULL);
-    assert(nopkg->definitions != NULL);
+    assert(nopkg->type_names != NULL);
+    assert(nopkg->symbols != NULL);
 
-    if (nl_symtable_check(nopkg->types, name->s->str) != NULL) {
+    if (nl_symtable_check(nopkg->type_names, name->s->str) != NULL) {
         ANALYSIS_ERRORF(analysis, name, "Re-definition of function %s", name->s->str);
         /* FIXME */
     } else {
@@ -559,7 +556,7 @@ static void collect_function_signature(struct nl_ast_function *func,
         struct nl_ast *rt = ft->func_type.ret_type;
         struct nl_ast *params = ft->func_type.params;
         struct nl_type *functype = nl_type_new_func(NULL, NULL);    /* FIXME! */
-        nl_symtable_add(nopkg->types, name->s->str, functype);
+        nl_symtable_add(nopkg->type_names, name->s->str, functype);
     }
 }
 
@@ -577,7 +574,7 @@ static void collect_function_signatures(struct nl_ast *node, struct analysis *an
     struct nl_ast *global = globals->list.head;
     while (global) {
         if (NL_AST_FUNCTION == global->tag) {
-            collect_function_signature(&global->function, pkgtable->definitions, analysis);
+            collect_function_signature(&global->function, pkgtable->symbols, analysis);
         }
         global = global->next;
     }
@@ -587,8 +584,8 @@ static void collect_global_declaration(struct nl_ast_decl *decl,
     struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    struct nl_symtable *symbols = pkgtable->definitions;
-    struct nl_symtable *types = pkgtable->types;
+    struct nl_symtable *symbols = pkgtable->symbols;
+    struct nl_symtable *types = pkgtable->type_names;
     assert(symbols != NULL);
     assert(types != NULL);
 
@@ -639,8 +636,8 @@ static void analyze_global_initialization(struct nl_ast_decl *decl,
     struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    struct nl_symtable *symbols = pkgtable->definitions;
-    struct nl_symtable *types = pkgtable->types;
+    struct nl_symtable *symbols = pkgtable->symbols;
+    struct nl_symtable *types = pkgtable->type_names;
     assert(symbols != NULL);
     assert(types != NULL);
 
@@ -693,10 +690,10 @@ static void analyze_function(struct nl_ast_function *func,
     struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    assert(pkgtable->definitions != NULL);
+    assert(pkgtable->symbols != NULL);
 
     /* create symbol table for function scope */
-    struct nl_symtable *symbols = nl_symtable_create(pkgtable->definitions);
+    struct nl_symtable *symbols = nl_symtable_create(pkgtable->symbols);
 
     struct nl_ast *body = func->body;
     assert(NL_AST_LIST_STATEMENTS == body->tag);
@@ -711,8 +708,8 @@ static void analyze_class_methods(struct nl_ast_class *classdef,
     struct pkgtable *pkgtable, struct analysis *analysis)
 {
     assert(pkgtable != NULL);
-    struct nl_symtable *symbols = pkgtable->definitions;
-    struct nl_symtable *types = pkgtable->types;
+    struct nl_symtable *symbols = pkgtable->symbols;
+    struct nl_symtable *types = pkgtable->type_names;
     assert(symbols != NULL);
     assert(types != NULL);
 
@@ -812,12 +809,11 @@ static void analyze(struct nl_ast *node, struct analysis *analysis)
     struct nl_ast *unit = node->list.head;
     while (unit) {
         struct nl_ast *ps = unit->unit.packages;
+        assert(ps != NULL);
+        assert(NL_AST_LIST_PACKAGES == ps->tag);
 
-        if (ps != NULL) {
-            assert(NL_AST_LIST_PACKAGES == ps->tag);
-            struct nl_ast *p = ps->list.head;
-            nl_ast_list_append(packages, p);
-        }
+        struct nl_ast *p = ps->list.head;
+        packages = nl_ast_list_append(packages, p);
 
         /* TODO: cleanup unit->unit.packages */
         unit->unit.packages = NULL;
@@ -825,16 +821,17 @@ static void analyze(struct nl_ast *node, struct analysis *analysis)
     }
 
     join_packages(packages, analysis);
+
     struct nl_ast *gpkg = find_global_package(packages);
     struct pkgtable *gpkgtable = NULL;
     assert(gpkg != NULL);
     assert(NL_AST_PACKAGE == gpkg->tag);
     struct nl_ast *name = gpkg->package.name;
     assert(NL_AST_IDENT == name->tag);
-    gpkgtable = make_package_table(analysis, name->s, NULL);
+    gpkgtable = make_package_table(name->s, NULL, analysis);
     /* Add builtin types to the global package table */
     NL_DEBUG(analysis->ctx, "Adding builtin types");
-    struct nl_symtable *builtin_types = gpkgtable->types;
+    struct nl_symtable *builtin_types = gpkgtable->type_names;
     assert(builtin_types != NULL);
     nl_symtable_add(builtin_types, "bool", &nl_bool_type);
     nl_symtable_add(builtin_types, "char", &nl_char_type);
@@ -848,7 +845,7 @@ static void analyze(struct nl_ast *node, struct analysis *analysis)
         if (pkg != gpkg) {
             struct nl_ast *name = pkg->package.name;
             assert(NL_AST_IDENT == name->tag);
-            make_package_table(analysis, name->s, gpkgtable);
+            make_package_table(name->s, gpkgtable, analysis);
         }
         pkg = pkg->next;
     }
