@@ -11,6 +11,7 @@ enum {
     NL_TYPE_FUNC,
     NL_TYPE_CLASS,
     NL_TYPE_INTERFACE,
+    NL_TYPE_REFERENCE,
     NL_TYPE_end
 };
 
@@ -29,11 +30,16 @@ struct nl_type_interface {
     struct nl_symtable *method_types;
 };
 
+struct nl_type_reference {
+    struct nl_string *package_name, *type_name;
+};
+
 struct nl_type {
     union {
         struct nl_type_func func;
         struct nl_type_class clss;
         struct nl_type_interface interface;
+        struct nl_type_reference reference;
     };
 
     struct nl_type *next;
@@ -54,6 +60,7 @@ struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param
 struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
         struct nl_symtable *members, struct nl_symtable *methods);
 struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *methods);
+struct nl_type* nl_type_new_reference(const struct nl_string *package_name, const struct nl_string *type_name);
 
 
 #endif /* NOLLI_TYPE_H */
