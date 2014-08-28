@@ -78,8 +78,8 @@ struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *meth
 
     return user_type;
 }
-struct nl_type* nl_type_new_reference(const struct nl_string *package_name,
-        const struct nl_string *type_name)
+struct nl_type* nl_type_new_reference(struct nl_string *package_name,
+        struct nl_string *type_name)
 {
     struct nl_type* tp = nl_alloc(NULL, sizeof(*tp));
     tp->tag = NL_TYPE_REFERENCE;

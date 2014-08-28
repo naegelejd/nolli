@@ -60,7 +60,7 @@ struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param
 struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
         struct nl_symtable *members, struct nl_symtable *methods);
 struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *methods);
-struct nl_type* nl_type_new_reference(const struct nl_string *package_name, const struct nl_string *type_name);
+struct nl_type* nl_type_new_reference(struct nl_string *package_name, struct nl_string *type_name);
 
 
 #endif /* NOLLI_TYPE_H */

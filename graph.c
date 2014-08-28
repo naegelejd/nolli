@@ -471,8 +471,15 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
         graph_int_num,
         graph_real_num,
         graph_str_lit,
-
         graph_ident,
+        graph_unexpr,
+        graph_binexpr,
+        graph_keyval,
+        graph_lookup,
+        graph_selector,
+        graph_package_ref,
+        graph_function,
+        graph_classlit,
 
         graph_tmpl_type,
         graph_qual_type,
@@ -480,32 +487,21 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
 
         graph_decl,
         graph_init,
-
-        graph_unexpr,
-        graph_binexpr,
-
-        graph_keyval,
-        graph_lookup,
-        graph_selector,
-        graph_package_ref,
-
         graph_bind,
         graph_assign,
         graph_ifelse,
         graph_while,
         graph_for,
         graph_call,
-        graph_function,
-        graph_classlit,
-
         graph_return,
         graph_break,
         graph_continue,
 
-        graph_class,
-        graph_interface,
         graph_alias,
         graph_using,
+
+        graph_class,
+        graph_interface,
         graph_package,
         graph_unit,
 
