@@ -24,13 +24,13 @@ static int graph_char_lit(struct nl_ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_int_num(struct nl_ast *node, FILE *fp, int id)
+static int graph_int_lit(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"%s: %ld\"]\n", id, nl_ast_name(node), node->l);
     return id;
 }
 
-static int graph_real_num(struct nl_ast *node, FILE *fp, int id)
+static int graph_real_lit(struct nl_ast *node, FILE *fp, int id)
 {
     fprintf(fp, "%d [label=\"%s: %g\"]\n", id, nl_ast_name(node), node->d);
     return id;
@@ -315,21 +315,21 @@ static int graph_function(struct nl_ast *node, FILE *fp, int id)
     return id;
 }
 
-static int graph_classlit(struct nl_ast *node, FILE *fp, int id)
+static int graph_class_lit(struct nl_ast *node, FILE *fp, int id)
 {
     int rID = id;
     fprintf(fp, "%d [label=\"%s\"]\n", rID, nl_ast_name(node));
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->classlit.type, fp, id);
+    id = graph(node->class_lit.type, fp, id);
 
-    if (node->classlit.tmpl) {
+    if (node->class_lit.tmpl) {
         fprintf(fp, "%d -> %d\n", rID, ++id);
-        id = graph(node->classlit.tmpl, fp, id);
+        id = graph(node->class_lit.tmpl, fp, id);
     }
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
-    id = graph(node->classlit.items, fp, id);
+    id = graph(node->class_lit.items, fp, id);
 
     return id;
 }
@@ -375,9 +375,9 @@ static int graph_class(struct nl_ast *node, FILE *fp, int id)
     fprintf(fp, "%d -> %d\n", rID, ++id);
     id = graph(node->classdef.name, fp, id);
 
-    if (node->classlit.tmpl) {
+    if (node->classdef.tmpl) {
         fprintf(fp, "%d -> %d\n", rID, ++id);
-        id = graph(node->classlit.tmpl, fp, id);
+        id = graph(node->classdef.tmpl, fp, id);
     }
 
     fprintf(fp, "%d -> %d\n", rID, ++id);
@@ -468,18 +468,21 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
 
         graph_bool_lit,
         graph_char_lit,
-        graph_int_num,
-        graph_real_num,
+        graph_int_lit,
+        graph_real_lit,
         graph_str_lit,
+        graph_list,     /* list_lit */
+        graph_list,     /* map_lit */
+        graph_class_lit,
         graph_ident,
         graph_unexpr,
         graph_binexpr,
+        graph_call,
         graph_keyval,
         graph_lookup,
         graph_selector,
         graph_package_ref,
         graph_function,
-        graph_classlit,
 
         graph_tmpl_type,
         graph_qual_type,
@@ -507,8 +510,6 @@ static int graph(struct nl_ast *root, FILE *fp, int id)
 
         NULL,   /* sentinel separator */
 
-        graph_list,
-        graph_list,
         graph_list,
         graph_list,
         graph_list,

@@ -9,18 +9,21 @@ enum {
     /* expressions */
     NL_AST_BOOL_LIT,
     NL_AST_CHAR_LIT,
-    NL_AST_INT_NUM,
-    NL_AST_REAL_NUM,
+    NL_AST_INT_LIT,
+    NL_AST_REAL_LIT,
     NL_AST_STR_LIT,
+    NL_AST_LIST_LIT,
+    NL_AST_MAP_LIT,
+    NL_AST_CLASS_LIT,
     NL_AST_IDENT,
     NL_AST_UNEXPR,
     NL_AST_BINEXPR,
+    NL_AST_CALL,
     NL_AST_KEYVAL,
     NL_AST_LOOKUP,
     NL_AST_SELECTOR,
     NL_AST_PACKAGE_REF,
     NL_AST_FUNCTION,
-    NL_AST_CLASSLIT,
 
     /* non-identifier types */
     NL_AST_TMPL_TYPE,
@@ -35,7 +38,7 @@ enum {
     NL_AST_IFELSE,
     NL_AST_WHILE,
     NL_AST_FOR,
-    NL_AST_CALL,
+    NL_AST_CALL_STMT,
     NL_AST_RETURN,
     NL_AST_BREAK,
     NL_AST_CONTINUE,
@@ -53,8 +56,6 @@ enum {
     NL_AST_LIST_SENTINEL,  /* never used */
 
     /* linked-lists */
-    NL_AST_LIST_LISTLIT,
-    NL_AST_LIST_MAPLIT,
     NL_AST_LIST_IDENTS,
     NL_AST_LIST_TYPES,
     NL_AST_LIST_PARAMS,
@@ -201,10 +202,10 @@ struct nl_ast {
         double d;
         struct nl_string *s;
 
+        struct nl_ast_classlit class_lit;
         struct nl_ast_tmpl_type tmpl_type;
         struct nl_ast_qual_type qual_type;
         struct nl_ast_func_type func_type;
-        struct nl_ast_classlit classlit;
         struct nl_ast_function function;
         struct nl_ast_init init;
         struct nl_ast_unexpr unexpr;
@@ -237,8 +238,8 @@ struct nl_ast {
 
 struct nl_ast *nl_ast_make_bool_lit(bool b, int);
 struct nl_ast *nl_ast_make_char_lit(char c, int);
-struct nl_ast *nl_ast_make_int_num(long l, int);
-struct nl_ast *nl_ast_make_real_num(double d, int);
+struct nl_ast *nl_ast_make_int_lit(long l, int);
+struct nl_ast *nl_ast_make_real_lit(double d, int);
 struct nl_ast *nl_ast_make_str_lit(struct nl_string *s, int);
 
 struct nl_ast *nl_ast_make_ident(struct nl_string *s, int);
@@ -250,6 +251,7 @@ struct nl_ast *nl_ast_make_func_type(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_initialization(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_unexpr(int op, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_binexpr(struct nl_ast*, int op, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_call(struct nl_ast*, struct nl_ast*, int);
 
 struct nl_ast *nl_ast_make_list(int type, int);
 struct nl_ast *nl_ast_list_append(struct nl_ast*, struct nl_ast*);
@@ -265,7 +267,6 @@ struct nl_ast *nl_ast_make_assignment(struct nl_ast*, int op, struct nl_ast*, in
 struct nl_ast *nl_ast_make_ifelse(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_while(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_for(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_call(struct nl_ast*, struct nl_ast*, int);
 
 struct nl_ast *nl_ast_make_break(int);
 struct nl_ast *nl_ast_make_continue(int);

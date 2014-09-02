@@ -714,6 +714,7 @@ static struct nl_ast *ident_statement(struct nl_parser *parser)
         /* The only type of expression that can double as a statement is
             a function call (disregarding the return value)...
             so "lhs" should resolve to a "call" or it's a semantic error */
+        lhs->tag = NL_AST_CALL_STMT;    /* tweak AST tag */
         stmt = lhs;
     }
 
@@ -1006,7 +1007,7 @@ static struct nl_ast *intlit(struct nl_parser *parser)
         PARSE_ERRORF(parser, "Invalid integer %s", tmpbuff);
         lit = NULL;
     } else {
-        lit = nl_ast_make_int_num(l, lineno(parser));
+        lit = nl_ast_make_int_lit(l, lineno(parser));
     }
     return lit;
 }
@@ -1030,7 +1031,7 @@ static struct nl_ast *reallit(struct nl_parser *parser)
         PARSE_ERRORF(parser, "Invalid real number %s", tmpbuff);
         lit = NULL;
     } else {
-        lit = nl_ast_make_real_num(d, lineno(parser));
+        lit = nl_ast_make_real_lit(d, lineno(parser));
     }
     return lit;
 }
@@ -1103,7 +1104,7 @@ static struct nl_ast *listlit(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *expr_list = nl_ast_make_list(NL_AST_LIST_LISTLIT, lineno(parser));
+    struct nl_ast *expr_list = nl_ast_make_list(NL_AST_LIST_LIT, lineno(parser));
     if (!check(parser, TOK_RSQUARE)) {
         do {
             struct nl_ast *expr = expression(parser);
@@ -1133,7 +1134,7 @@ static struct nl_ast *maplit(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *keyval_list = nl_ast_make_list(NL_AST_LIST_MAPLIT, lineno(parser));
+    struct nl_ast *keyval_list = nl_ast_make_list(NL_AST_MAP_LIT, lineno(parser));
     if (!check(parser, TOK_RCURLY)) {
         do {
             struct nl_ast *key = expression(parser);

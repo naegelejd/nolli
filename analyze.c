@@ -93,13 +93,13 @@ static struct nl_type *expr_get_type_char_lit(struct nl_ast *node,
     return &nl_char_type;
 }
 
-static struct nl_type *expr_get_type_int_num(struct nl_ast *node,
+static struct nl_type *expr_get_type_int_lit(struct nl_ast *node,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
     return &nl_int_type;
 }
 
-static struct nl_type *expr_get_type_real_num(struct nl_ast *node,
+static struct nl_type *expr_get_type_real_lit(struct nl_ast *node,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
     return &nl_real_type;
@@ -110,6 +110,30 @@ static struct nl_type *expr_get_type_str_lit(struct nl_ast *node,
 {
     return &nl_str_type;
 }
+
+static struct nl_type* expr_get_type_list_lit(struct nl_ast *node,
+        struct pkgtable *pkgtable, struct analysis *analysis)
+{
+    return NULL;
+}
+
+static struct nl_type* expr_get_type_map_lit(struct nl_ast *node,
+        struct pkgtable *pkgtable, struct analysis *analysis)
+{
+    return NULL;
+}
+
+static struct nl_type *expr_get_type_class_lit(struct nl_ast *node,
+        struct pkgtable *pkgtable, struct analysis *analysis)
+{
+    // analyze(node->class_lit.type, analysis);
+    if (node->class_lit.tmpl) {
+        // analyze(node->class_lit.tmpl, analysis);
+    }
+    // analyze(node->class_lit.items, analysis);
+    return NULL;    /* FIXME */
+}
+
 
 static struct nl_type *expr_get_type_ident(struct nl_ast *node,
         struct pkgtable *pkgtable, struct analysis *analysis)
@@ -150,6 +174,22 @@ static struct nl_type *expr_get_type_binexpr(struct nl_ast *node,
     return tp;
 }
 
+static struct nl_type *expr_get_type_call(struct nl_ast *node,
+        struct pkgtable *pkgtable, struct analysis *analysis)
+{
+    assert(NL_AST_CALL == node->tag);
+
+    struct nl_type *tp = expr_set_type(node->call.func, pkgtable, analysis);
+    if (NULL == tp || tp->tag != NL_TYPE_FUNC) {
+        /* TODO: invalid function in "call" */
+    } else {
+        /* TODO: compare argument types with parameter types */
+
+        tp = tp->func.ret_type;
+    }
+    return tp;
+}
+
 static struct nl_type *expr_get_type_keyval(struct nl_ast *node,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
@@ -180,26 +220,6 @@ static struct nl_type *expr_get_type_function(struct nl_ast *node,
     return NULL;
 }
 
-static struct nl_type *expr_get_type_classlit(struct nl_ast *node,
-        struct pkgtable *pkgtable, struct analysis *analysis)
-{
-    return NULL;
-}
-
-static struct nl_type *expr_get_type_call(struct nl_ast *node,
-        struct pkgtable *pkgtable, struct analysis *analysis)
-{
-    struct nl_type *tp = expr_set_type(node->call.func, pkgtable, analysis);
-    if (NULL == tp || tp->tag != NL_TYPE_FUNC) {
-        /* TODO: invalid function in "call" */
-    } else {
-        /* TODO: compare argument types with parameter types */
-
-        tp = tp->func.ret_type;
-    }
-    return tp;
-}
-
 static struct nl_type *expr_set_type(struct nl_ast *node,
         struct pkgtable *pkgtable, struct analysis *analysis)
 {
@@ -211,29 +231,27 @@ static struct nl_type *expr_set_type(struct nl_ast *node,
     static expression_typer typers[] = {
         expr_get_type_bool_lit,
         expr_get_type_char_lit,
-        expr_get_type_int_num,
-        expr_get_type_real_num,
+        expr_get_type_int_lit,
+        expr_get_type_real_lit,
         expr_get_type_str_lit,
+        expr_get_type_list_lit,
+        expr_get_type_map_lit,
+        expr_get_type_class_lit,
         expr_get_type_ident,
         expr_get_type_unexpr,
         expr_get_type_binexpr,
+        expr_get_type_call,
         expr_get_type_keyval,
         expr_get_type_lookup,
         expr_get_type_selector,
         expr_get_type_packageref,
         expr_get_type_function,
-        expr_get_type_classlit
     };
-    assert(sizeof(typers) / sizeof(*typers) == NL_AST_CLASSLIT - NL_AST_BOOL_LIT + 1);
+    assert(sizeof(typers) / sizeof(*typers) == NL_AST_FUNCTION - NL_AST_BOOL_LIT + 1);
 
     struct nl_type *tp = NULL;
 
-    /* TODO: call statements should be different from call expressions */
-    if (NL_AST_CALL == node->tag) {
-        tp = expr_get_type_call(node, pkgtable, analysis);
-    } else {
-        tp = typers[node->tag - NL_AST_BOOL_LIT](node, pkgtable, analysis);
-    }
+    tp = typers[node->tag - NL_AST_BOOL_LIT](node, pkgtable, analysis);
 
     if (tp == NULL) {
         ANALYSIS_ERROR(analysis, node, "Bad type in expression");
@@ -432,9 +450,9 @@ static void analyze_ifelse(struct nl_ast *node, struct pkgtable *pkgtable, struc
     }
 }
 
-static void analyze_call(struct nl_ast *node, struct pkgtable *pkgtable, struct analysis *analysis)
+static void analyze_call_stmt(struct nl_ast *node, struct pkgtable *pkgtable, struct analysis *analysis)
 {
-    assert(NL_AST_CALL == node->tag);
+    assert(NL_AST_CALL_STMT == node->tag);
     struct nl_ast *func = node->call.func;
     struct nl_ast *args = node->call.args;
     assert(func != NULL);
@@ -482,32 +500,12 @@ static void analyze_continue(struct nl_ast *node, struct pkgtable *pkgtable, str
     }
 }
 
-static struct nl_type *analyze_classlit(struct nl_ast *node, struct analysis *analysis)
-{
-    // analyze(node->classlit.type, analysis);
-    if (node->classlit.tmpl) {
-        // analyze(node->classlit.tmpl, analysis);
-    }
-    // analyze(node->classlit.items, analysis);
-    return NULL;    /* FIXME */
-}
-
 static struct nl_type *analyze_using(struct nl_ast *node, struct analysis *analysis)
 {
     assert(node->usings.names);
     // analyze(node->usings.names, analysis);
 
     return NULL;    /* FIXME */
-}
-
-static struct nl_type* analyze_listlit(struct nl_ast *node, struct analysis *analysis)
-{
-    return NULL;
-}
-
-static struct nl_type* analyze_maplit(struct nl_ast *node, struct analysis *analysis)
-{
-    return NULL;
 }
 
 static struct nl_type* analyze_usings(struct nl_ast *node, struct analysis *analysis)
@@ -982,7 +980,7 @@ static void analyze_statement(struct nl_ast *stmt,
         analyze_ifelse,
         analyze_while,
         analyze_for,
-        analyze_call,
+        analyze_call_stmt,
         analyze_return,
         analyze_break,
         analyze_continue

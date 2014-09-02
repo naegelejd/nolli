@@ -28,16 +28,16 @@ struct nl_ast *nl_ast_make_char_lit(char c, int lineno)
     return node;
 }
 
-struct nl_ast *nl_ast_make_int_num(long l, int lineno)
+struct nl_ast *nl_ast_make_int_lit(long l, int lineno)
 {
-    struct nl_ast *node = make_node(NL_AST_INT_NUM, lineno);
+    struct nl_ast *node = make_node(NL_AST_INT_LIT, lineno);
     node->l = l;
     return node;
 }
 
-struct nl_ast *nl_ast_make_real_num(double d, int lineno)
+struct nl_ast *nl_ast_make_real_lit(double d, int lineno)
 {
-    struct nl_ast *node = make_node(NL_AST_REAL_NUM, lineno);
+    struct nl_ast *node = make_node(NL_AST_REAL_LIT, lineno);
     node->d = d;
     return node;
 }
@@ -332,10 +332,10 @@ struct nl_ast *nl_ast_make_classlit(struct nl_ast *tp, struct nl_ast *tmpl, stru
     assert(tp);
     assert(items);
 
-    struct nl_ast *node = make_node(NL_AST_CLASSLIT, lineno);
-    node->classlit.type = tp;
-    node->classlit.tmpl = tmpl;
-    node->classlit.items = items;
+    struct nl_ast *node = make_node(NL_AST_CLASS_LIT, lineno);
+    node->class_lit.type = tp;
+    node->class_lit.tmpl = tmpl;
+    node->class_lit.items = items;
     return node;
 }
 
@@ -387,18 +387,21 @@ char *nl_ast_name(const struct nl_ast* node)
 
         "bool_lit",
         "char_lit",
-        "int_num",
-        "real_num",
+        "int_lit",
+        "real_lit",
         "str_lit",
+        "list_lit",
+        "map_lit",
+        "class_lit",
         "ident",
         "unexpr",
         "binexpr",
+        "call",
         "keyval",
         "lookup",
         "selector",
         "packageref",
         "function",
-        "classlit",
 
         "tmpl_type",
         "qual_type",
@@ -411,7 +414,7 @@ char *nl_ast_name(const struct nl_ast* node)
         "ifelse",
         "while",
         "for",
-        "call",
+        "call_statement",
         "return",
         "break",
         "continue",
@@ -426,8 +429,6 @@ char *nl_ast_name(const struct nl_ast* node)
 
         "list_sentinel",
 
-        "list_listlit",
-        "list_maplit",
         "list_idents",
         "list_types",
         "list_params",
