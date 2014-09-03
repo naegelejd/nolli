@@ -1,6 +1,8 @@
 #ifndef NOLLI_AST_H
 #define NOLLI_AST_H
 
+#include "strtab.h"
+
 #include <stdbool.h>
 
 enum {
@@ -200,7 +202,7 @@ struct nl_ast {
         char c;
         long l;
         double d;
-        struct nl_string *s;
+        nl_string_t s;
 
         struct nl_ast_classlit class_lit;
         struct nl_ast_tmpl_type tmpl_type;
@@ -240,9 +242,9 @@ struct nl_ast *nl_ast_make_bool_lit(bool b, int);
 struct nl_ast *nl_ast_make_char_lit(char c, int);
 struct nl_ast *nl_ast_make_int_lit(long l, int);
 struct nl_ast *nl_ast_make_real_lit(double d, int);
-struct nl_ast *nl_ast_make_str_lit(struct nl_string *s, int);
+struct nl_ast *nl_ast_make_str_lit(nl_string_t s, int);
 
-struct nl_ast *nl_ast_make_ident(struct nl_string *s, int);
+struct nl_ast *nl_ast_make_ident(nl_string_t s, int);
 
 struct nl_ast *nl_ast_make_tmpl_type(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_qual_type(struct nl_ast*, struct nl_ast*, int);

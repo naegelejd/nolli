@@ -16,9 +16,13 @@ static void nl_default_debug_handler(void *user_data, const char *fmt, ...);
 int nl_init(struct nl_context *ctx)
 {
     memset(ctx, 0, sizeof(*ctx));
+
     ctx->strtab = nl_alloc(ctx, sizeof(*ctx->strtab));
+    nl_strtab_init(ctx->strtab);
+
     nl_set_error_handler(ctx, nl_default_error_handler);
     nl_set_debug_handler(ctx, nl_default_debug_handler);
+
     return NL_NO_ERR;
 }
 

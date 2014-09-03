@@ -1,29 +1,22 @@
 #ifndef NOLLI_STRTAB_H
 #define NOLLI_STRTAB_H
 
-/**
- * Placeholder string table.
- *
- * Currently a singly-linked list of wrappers around `char*`.
- * A tree or hashtable would obviously be more ideal.
- */
-
-struct nl_string {
-    char const * str;
-    struct nl_string *next;
-};
+typedef char* nl_string_t;
 
 struct nl_strtab {
-    struct nl_string *head;
-    /* struct string *tail; */
+    nl_string_t *strings;
+    unsigned int size_idx;      /**< identifier for current size of table */
+    unsigned int collisions;    /**< number of hash collisions */
+    unsigned int count;         /**< current number of key/value pairs */
+    unsigned int size;          /**< current count of allocated pairs*/
 };
 
+int nl_strtab_init(struct nl_strtab *tab);
 /**
  * Creates and stores and returns a string wrapper of the `char*`
  * or returns the existing wrapper in the table */
-struct nl_string *nl_strtab_wrap(struct nl_strtab*, const char*);
+nl_string_t nl_strtab_wrap(struct nl_strtab *tab, const char *key);
 
-#include <stdio.h>
-void nl_strtab_dump(struct nl_strtab *tab, FILE *out);
+void nl_strtab_dump(struct nl_strtab *tab);
 
 #endif /* NOLLI_STRTAB_H */

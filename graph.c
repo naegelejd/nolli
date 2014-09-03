@@ -38,13 +38,13 @@ static int graph_real_lit(struct nl_ast *node, FILE *fp, int id)
 
 static int graph_str_lit(struct nl_ast *node, FILE *fp, int id)
 {
-    fprintf(fp, "%d [label=\"%s: \\\"%s\\\"\"]\n", id, nl_ast_name(node), node->s->str);
+    fprintf(fp, "%d [label=\"%s: \\\"%s\\\"\"]\n", id, nl_ast_name(node), node->s);
     return id;
 }
 
 static int graph_ident(struct nl_ast *node, FILE *fp, int id)
 {
-    fprintf(fp, "%d [label=\"%s: %s\"]\n", id, nl_ast_name(node), node->s->str);
+    fprintf(fp, "%d [label=\"%s: %s\"]\n", id, nl_ast_name(node), node->s);
     return id;
 }
 

@@ -1,6 +1,8 @@
 #ifndef NOLLI_TYPE_H
 #define NOLLI_TYPE_H
 
+#include "strtab.h"
+
 enum {
     NL_TYPE_start,
     NL_TYPE_BOOL,
@@ -31,7 +33,7 @@ struct nl_type_interface {
 };
 
 struct nl_type_reference {
-    struct nl_string *package_name, *type_name;
+    nl_string_t package_name, type_name;
 };
 
 struct nl_type {
@@ -60,7 +62,7 @@ struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param
 struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
         struct nl_symtable *members, struct nl_symtable *methods);
 struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *methods);
-struct nl_type* nl_type_new_reference(struct nl_string *package_name, struct nl_string *type_name);
+struct nl_type* nl_type_new_reference(nl_string_t package_name, nl_string_t type_name);
 
 
 #endif /* NOLLI_TYPE_H */

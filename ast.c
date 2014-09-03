@@ -42,7 +42,7 @@ struct nl_ast *nl_ast_make_real_lit(double d, int lineno)
     return node;
 }
 
-struct nl_ast *nl_ast_make_str_lit(struct nl_string *s, int lineno)
+struct nl_ast *nl_ast_make_str_lit(nl_string_t s, int lineno)
 {
     assert(s);
     struct nl_ast *node = make_node(NL_AST_STR_LIT, lineno);
@@ -50,7 +50,7 @@ struct nl_ast *nl_ast_make_str_lit(struct nl_string *s, int lineno)
     return node;
 }
 
-struct nl_ast *nl_ast_make_ident(struct nl_string *s, int lineno)
+struct nl_ast *nl_ast_make_ident(nl_string_t s, int lineno)
 {
     assert(s);
     struct nl_ast *node = make_node(NL_AST_IDENT, lineno);
@@ -194,7 +194,8 @@ struct nl_ast *nl_ast_list_append(struct nl_ast *node, struct nl_ast *elem)
         }
         node->list.tail = prev;
     } else {
-        assert(node->tag > NL_AST_LIST_SENTINEL);
+        assert(node->tag > NL_AST_LIST_SENTINEL ||
+                NL_AST_LIST_LIT == node->tag || NL_AST_MAP_LIT == node->tag);
         assert(node->tag < NL_AST_LAST);
         node->list.tail->next = elem;
         node->list.tail = elem;

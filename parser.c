@@ -162,7 +162,7 @@ static struct nl_ast *unit(struct nl_parser *parser)
         }
     }
 
-    struct nl_string *gname = nl_strtab_wrap(parser->ctx->strtab, NL_GLOBAL_PACKAGE_NAME);
+    nl_string_t gname = nl_strtab_wrap(parser->ctx->strtab, NL_GLOBAL_PACKAGE_NAME);
     struct nl_ast *id = nl_ast_make_ident(gname, 0);
     struct nl_ast *gpkg = nl_ast_make_package(id, globals, 0);
     packages = nl_ast_list_append(packages, gpkg);
@@ -979,10 +979,10 @@ static struct nl_ast *ident(struct nl_parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         PARSE_ERROR(parser, "Invalid identifier");
     } else {
-        struct nl_string *s = nl_strtab_wrap(parser->ctx->strtab,
+        nl_string_t s = nl_strtab_wrap(parser->ctx->strtab,
                 current_buffer(parser));
         assert(s);
-        PARSE_DEBUGF(parser, "Parsed identifier: %s", s->str);
+        PARSE_DEBUGF(parser, "Parsed identifier: %s", s);
         id = nl_ast_make_ident(s, lineno(parser));
     }
     return id;
@@ -1067,9 +1067,9 @@ static struct nl_ast *operand(struct nl_parser *parser)
     } else if (check(parser, TOK_REAL)) {
         op = reallit(parser);
     } else if (accept(parser, TOK_STRING)) {
-        struct nl_string *s = nl_strtab_wrap(parser->ctx->strtab,
+        nl_string_t s = nl_strtab_wrap(parser->ctx->strtab,
                 current_buffer(parser));
-        PARSE_DEBUGF(parser, "Parsed string literal: %s", s->str);
+        PARSE_DEBUGF(parser, "Parsed string literal: %s", s);
         op = nl_ast_make_str_lit(s, lineno(parser));
     } else if (accept(parser, TOK_LPAREN)) {
         struct nl_ast *expr = expression(parser);

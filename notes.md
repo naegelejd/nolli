@@ -51,8 +51,6 @@ The type-checked AST is then traversed to generate... TBD (intermediate represen
 
 ## TODO
 
-- [improvement] simplify symbol table by using `nl_string` and comparing pointers
-- [improvement] use hash table in `nl_strtab` instead of `nl_symtab`
 - [bug] return NULL in every parser function when an error occurs
 - [bug] free `struct ast`s when errors occur during parsing
 - [bug] fix broken real number parsing (exponent/mantissa/etc...)
@@ -67,6 +65,8 @@ The type-checked AST is then traversed to generate... TBD (intermediate represen
 
 ## Complete
 
+- [improvement] simplify symbol table by using `nl_string` and comparing pointers
+- [improvement] use hash table in `nl_strtab` instead of `nl_symtab`
 - handle error messages in a fashion suitable for a library
 - the parser need to respect operator associativity (POW symbol is right-associative)
 - the parser needs to respect operator precedence. I plan to use the
