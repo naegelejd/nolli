@@ -5,21 +5,21 @@ alias real float
 const real pi = 3.141592653589793
 const real e = 2.718281828459045
 
-func T (list<T> a) sum {
-    var T x
+func int (list<int> a) sum {
+    var int x
     for y in a {
         x += y
     }
     return x
 }
 
-func T (list<T> a) mean {
+func int (list<int> a) mean {
     s := sum(a)
     return s / a.length()
 }
 
 
-func T (T x, T y) pow {
+func int (int x, int y) pow {
     return x ^ y
 }
 

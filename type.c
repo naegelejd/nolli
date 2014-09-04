@@ -43,6 +43,14 @@ struct nl_type nl_str_type = {
     .n = 0
 };
 
+struct nl_type nl_tmpl_placeholder_type = {
+    .func = {NULL},
+    .next = NULL,
+    .repr = "tmpl_placeholder",
+    .tag = NL_TYPE_TMPL_PLACEHOLDER,
+    .n = 0
+};
+
 struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param_types_head)
 {
     struct nl_type* func = nl_alloc(NULL, sizeof(*func));
@@ -90,4 +98,13 @@ struct nl_type* nl_type_new_reference(nl_string_t package_name,
     tp->reference.type_name = type_name;
 
     return tp;
+}
+
+bool nl_types_equal(struct nl_type *tp1, struct nl_type *tp2)
+{
+    /* FIXME: actually compare types */
+    if (tp1 == tp2) {
+        return true;
+    }
+    return false;
 }

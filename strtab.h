@@ -12,6 +12,7 @@ struct nl_strtab {
 };
 
 int nl_strtab_init(struct nl_strtab *tab);
+
 /**
  * Creates and stores and returns a string wrapper of the `char*`
  * or returns the existing wrapper in the table */
