@@ -103,6 +103,10 @@ static int graph_func_type(struct nl_ast *node, FILE *fp, int id)
 
     fprintf(fp, "%d [label=\"%s\"]\n", rID, nl_ast_name(node));
 
+    if (node->func_type.tmpl) {
+        fprintf(fp, "%d -> %d\n", rID, ++id);
+        id = graph(node->func_type.tmpl, fp, id);
+    }
     if (node->func_type.ret_type) {
         fprintf(fp, "%d -> %d\n", rID, ++id);
         id = graph(node->func_type.ret_type, fp, id);

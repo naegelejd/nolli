@@ -1513,6 +1513,15 @@ static struct nl_ast *functype(struct nl_parser *parser)
         err = true;
     }
 
+    struct nl_ast *tmpl = NULL;
+    if (check(parser, TOK_LT)) {
+        tmpl = templ(parser);
+        if (NULL == tmpl) {
+            err = true;
+            PARSE_ERROR(parser, "Invalid function template");
+        }
+    }
+
     struct nl_ast *ret_type = NULL;
     if (!check(parser, TOK_LPAREN)) {
         ret_type = type(parser);
@@ -1532,9 +1541,9 @@ static struct nl_ast *functype(struct nl_parser *parser)
 
     struct nl_ast *ft = NULL;
     if (err) {
-        ft = NULL;  /* TODO: destroy ret_type & params */
+        ft = NULL;  /* TODO: destroy tmpl, ret_type & params */
     } else {
-        ft = nl_ast_make_func_type(ret_type, params, lineno(parser));
+        ft = nl_ast_make_func_type(tmpl, ret_type, params, lineno(parser));
     }
     return ft;
 }

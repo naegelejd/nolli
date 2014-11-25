@@ -97,16 +97,19 @@ struct nl_ast *nl_ast_make_qual_type(struct nl_ast *package, struct nl_ast *name
     return node;
 }
 
-struct nl_ast *nl_ast_make_func_type(struct nl_ast *ret_type, struct nl_ast *params, int lineno)
+struct nl_ast *nl_ast_make_func_type(struct nl_ast *tmpl, struct nl_ast *ret_type,
+        struct nl_ast *params, int lineno)
 {
     assert(params);
     struct nl_ast *node = make_node(NL_AST_FUNC_TYPE, lineno);
+    node->func_type.tmpl = tmpl;
     node->func_type.ret_type = ret_type;
     node->func_type.params = params;
     return node;
 }
 
-struct nl_ast *nl_ast_make_class(struct nl_ast *name, struct nl_ast *tmpl, struct nl_ast *members, struct nl_ast *methods, int lineno)
+struct nl_ast *nl_ast_make_class(struct nl_ast *name, struct nl_ast *tmpl,
+        struct nl_ast *members, struct nl_ast *methods, int lineno)
 {
     assert(name);
     assert(members);

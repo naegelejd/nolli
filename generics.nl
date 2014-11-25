@@ -1,4 +1,4 @@
-package generics
+package generics {
 
 class set<T> {
     list<T> data
@@ -9,12 +9,12 @@ class set<T> {
         }
     }
 
-    func (T elem) add {
+    func (T elem) remove {
         data.remove(elem)
     }
 }
 
-func E (list<E> numbers) sum {
+func<E> E (list<E> numbers) sum {
     var E n
     for x in numbers {
         n += x
@@ -22,8 +22,11 @@ func E (list<E> numbers) sum {
     return n
 }
 
+alias func<T> T (list<T>) adder
+
 func () main {
     s := new set<int>{[0, 1, 2, 3, 4, 5]}
-
-    print(sum(s.data))
+    const adder total = sum
+    print(total(s.data))
+}
 }

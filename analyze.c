@@ -194,8 +194,14 @@ static struct nl_type *expr_get_type_binexpr(struct nl_ast *node,
     struct nl_type *rhs_type = expr_set_type(node->binexpr.rhs, symbols, types, analysis);
 
     if (!nl_types_equal(lhs_type, rhs_type)) {
-        ANALYSIS_ERROR(analysis, node->binexpr.lhs, "Type mismatch in binary expression");
-        return NULL;
+        /* FIXME: this is a hack to allow binary expressions on mixed number types */
+        if ((lhs_type == &nl_int_type || lhs_type == &nl_real_type) &&
+                (rhs_type == &nl_int_type || rhs_type == &nl_real_type)) {
+            return &nl_real_type;
+        } else {
+            ANALYSIS_ERROR(analysis, node->binexpr.lhs, "Type mismatch in binary expression");
+            return NULL;
+        }
     }
 
     struct nl_type *tp = NULL;
@@ -640,8 +646,14 @@ static void collect_class_type(struct nl_ast_class *classdef,
 {
     assert(classdef != NULL);
     assert(typetable != NULL);
+
     struct nl_ast *name = classdef->name;
     assert(NL_AST_IDENT == name->tag);
+
+    if (classdef->tmpl != NULL) {
+        printf("found template class %s\n", name->s);
+    }
+
     if (nl_symtable_get(typetable, name->s) != NULL) {
         ANALYSIS_ERRORF(analysis, name, "Re-defined class %s", name->s);
         /* FIXME */
@@ -892,6 +904,11 @@ static void collect_function_signature(struct nl_ast_function *func,
     } else {
         struct nl_ast *ft = func->type;
         assert(NL_AST_FUNC_TYPE == ft->tag);
+
+        if (ft->func_type.tmpl != NULL) {
+            printf("found template function %s\n", name->s);
+        }
+
         struct nl_type *rt = set_type(ft->func_type.ret_type, pkgtable->type_names, analysis);
 
         /* struct nl_ast *params = ft->func_type.params; */

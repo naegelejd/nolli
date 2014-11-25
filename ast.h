@@ -90,7 +90,7 @@ struct nl_ast_qual_type {
 };
 
 struct nl_ast_func_type {
-    struct nl_ast *ret_type, *params;
+    struct nl_ast *tmpl, *ret_type, *params;
 };
 
 struct nl_ast_classlit {
@@ -248,7 +248,7 @@ struct nl_ast *nl_ast_make_ident(nl_string_t s, int);
 
 struct nl_ast *nl_ast_make_tmpl_type(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_qual_type(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_func_type(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_func_type(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
 
 struct nl_ast *nl_ast_make_initialization(struct nl_ast*, struct nl_ast*, int);
 struct nl_ast *nl_ast_make_unexpr(int op, struct nl_ast*, int);

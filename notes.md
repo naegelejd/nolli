@@ -54,10 +54,14 @@ The type-checked AST is then traversed to generate... TBD (intermediate represen
 - [bug] return NULL in every parser function when an error occurs
 - [bug] free `struct ast`s when errors occur during parsing
 - [bug] fix broken real number parsing (exponent/mantissa/etc...)
+- change class literals to only accept name:value pairs in any order
+- collapse `methdecl` into body of `interface` in parser.c
+- automatic template instantiation
 - type check
+- remove `new` keyword (parse class literal)
 - remove different AST list types. make one AST list type
 - make AST node creation functions static in parser.c?
-- 'libify' - make sure nolli is always embeddable, re-entrant, linkable
+- ensure nolli is always embeddable, re-entrant, linkable
 - intermediate representation
 - garbage collector
 - coroutines
