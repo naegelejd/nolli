@@ -135,7 +135,7 @@ term:   operand |
 expr: unexpr | binexpr ;
 exprs: /* nothing */ | expr | exprs ',' expr;
 
-unexpr: '-' %prec UMINUS unexpr | '!' %prec UNOT | term ;
+unexpr: '-' %prec UMINUS unexpr | '!' %prec UNOT unexpr | term ;
 
 binexpr: expr '+' unexpr |
         expr '-' unexpr |
