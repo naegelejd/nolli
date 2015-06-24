@@ -631,7 +631,7 @@ static struct nl_ast *type(struct nl_parser *parser)
 
         if (check(parser, TOK_LT)) {
             struct nl_ast *tmpl = templ(parser);
-            if (templ == NULL) {
+            if (tmpl == NULL) {
                 err = true;
             }
             type = nl_ast_make_tmpl_type(type, tmpl, lineno(parser));
@@ -674,6 +674,7 @@ static struct nl_ast *templ(struct nl_parser *parser)
 
 static struct nl_ast *ident_statement(struct nl_parser *parser)
 {
+    struct nl_ast *stmt = NULL;
     bool err = false;
     /* This is the easiest way to parse an assignment...
      * Parse the left-hand side as an expression, then worry about
@@ -683,10 +684,7 @@ static struct nl_ast *ident_statement(struct nl_parser *parser)
     if (lhs == NULL) {
         err = true;
         PARSE_ERROR(parser, "Invalid left-hand-side");
-    }
-
-    struct nl_ast *stmt = NULL;
-    if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
+    } else if (parser->cur == TOK_ASS || parser->cur == TOK_IADD ||
             parser->cur == TOK_ISUB || parser->cur == TOK_IMUL ||
             parser->cur == TOK_IDIV || parser->cur == TOK_IMOD)
     {
