@@ -13,6 +13,7 @@ enum {
     NL_ERR_PARSE,
     NL_ERR_GRAPH,
     NL_ERR_ANALYZE,
+    NL_ERR_JIT,
     NL_ERR_FATAL,
     NL_ERR_END
 };
@@ -39,9 +40,9 @@ void nl_add_ast(struct nl_context *ctx, struct nl_ast*);
 
 int nl_graph_ast(struct nl_context *ctx);
 
-int nl_analyze(struct nl_context *ctx);
+int nl_analyze(struct nl_context *ctx, struct nl_ast** packages);
 
-void nl_execute(struct nl_context *ctx);
+int nl_jit(struct nl_context *ctx, struct nl_ast* packages, int* return_code);
 
 void nl_set_error_handler(struct nl_context *ctx, nl_error_handler_t handler);
 void nl_set_debug_handler(struct nl_context *ctx, nl_debug_handler_t handler);

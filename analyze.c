@@ -1204,7 +1204,7 @@ static struct nl_ast *find_global_package(struct nl_ast *packages)
     return ret;
 }
 
-static void analyze(struct nl_ast *node, struct analysis *analysis)
+static struct nl_ast* analyze(struct nl_ast *node, struct analysis *analysis)
 {
     /* Collect all globals and packages from each unit */
     struct nl_ast *packages = nl_ast_make_list(NL_AST_LIST_PACKAGES, -1);
@@ -1280,9 +1280,11 @@ static void analyze(struct nl_ast *node, struct analysis *analysis)
         analyze_methods_and_functions(pkg, analysis);
         pkg = pkg->next;
     }
+
+    return packages;
 }
 
-int nl_analyze(struct nl_context *ctx)
+int nl_analyze(struct nl_context *ctx, struct nl_ast** packages)
 {
     assert(ctx);
 
@@ -1292,7 +1294,7 @@ int nl_analyze(struct nl_context *ctx)
         return err;
     }
 
-    analyze(ctx->ast_list, &analysis);
+    *packages = analyze(ctx->ast_list, &analysis);
 
     return NL_NO_ERR;
 }

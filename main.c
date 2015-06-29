@@ -29,14 +29,19 @@ int main(int argc, char **argv)
         goto early_exit;
     }
 
-    err = nl_analyze(&ctx);
+    struct nl_ast* packages = NULL;
+    err = nl_analyze(&ctx, &packages);
     if (err) {
         goto early_exit;
     }
 
-    /* nl_execute(&ctx); */
+    int return_code = 0;
+    err = nl_jit(&ctx, packages, &return_code);
+    if (err) {
+        goto early_exit;
+    }
 
-    return EXIT_SUCCESS;
+    return return_code;
 
 early_exit:
     fprintf(stderr, "%s\n", "Stopping early.");
