@@ -1,10 +1,14 @@
 #!/usr/bin/env nolli
 
 func int () main {
-    # if (true) {
-    #     return 42
-    # } else {
-    #     return 7
-    # }
-    return 8 / 2;
+    cond := true
+    var int i
+    while cond {
+        i += 7
+        if (i >= 42) {
+            cond = false
+        }
+    }
+
+    return i / 6
 }

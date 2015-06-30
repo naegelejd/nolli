@@ -195,18 +195,18 @@ static struct nl_type *expr_get_type_binexpr(struct nl_ast *node,
 
     if (!nl_types_equal(lhs_type, rhs_type)) {
         /* FIXME: this is a hack to allow binary expressions on mixed number types */
-        if ((lhs_type == &nl_int_type || lhs_type == &nl_real_type) &&
-                (rhs_type == &nl_int_type || rhs_type == &nl_real_type)) {
-            return &nl_real_type;
-        } else {
+        /* if ((lhs_type == &nl_int_type || lhs_type == &nl_real_type) && */
+        /*         (rhs_type == &nl_int_type || rhs_type == &nl_real_type)) { */
+        /*     return &nl_real_type; */
+        /* } else { */
             ANALYSIS_ERROR(analysis, node->binexpr.lhs, "Type mismatch in binary expression");
-            return NULL;
-        }
+            /* return NULL; */
+        /* } */
     }
 
     struct nl_type *tp = NULL;
     if (TOK_EQ == node->binexpr.op || TOK_NEQ == node->binexpr.op ||
-            (TOK_LT >= node->binexpr.op && TOK_AND <= node->binexpr.op)) {
+            (TOK_LT <= node->binexpr.op && TOK_AND >= node->binexpr.op)) {
         tp = &nl_bool_type;
     } else {
         tp = lhs_type;
@@ -484,10 +484,9 @@ static void analyze_ifelse(struct nl_ast *node, struct nl_symtable *parent_symbo
     struct nl_ast *if_body = node->ifelse.if_body;
     struct nl_ast *else_body = node->ifelse.else_body;
     assert(cond != NULL);
+
     assert(if_body != NULL);
-    assert(else_body != NULL);
     assert(NL_AST_LIST_STATEMENTS == if_body->tag);
-    assert(NL_AST_LIST_STATEMENTS == else_body->tag);
 
     struct nl_type *cond_type = expr_set_type(cond, parent_symbols, types, analysis);
     if (cond_type != &nl_bool_type) {
@@ -502,11 +501,15 @@ static void analyze_ifelse(struct nl_ast *node, struct nl_symtable *parent_symbo
         true_stmt = true_stmt->next;
     }
 
-    struct nl_symtable *else_symbols = nl_symtable_create(parent_symbols);
-    struct nl_ast *false_stmt = if_body->list.head;
-    while (false_stmt) {
-        analyze_statement(false_stmt, else_symbols, types, func_info, analysis);
-        false_stmt = false_stmt->next;
+    if (else_body != NULL) {
+        assert(NL_AST_LIST_STATEMENTS == else_body->tag);
+
+        struct nl_symtable *else_symbols = nl_symtable_create(parent_symbols);
+        struct nl_ast *false_stmt = else_body->list.head;
+        while (false_stmt) {
+            analyze_statement(false_stmt, else_symbols, types, func_info, analysis);
+            false_stmt = false_stmt->next;
+        }
     }
 }
 

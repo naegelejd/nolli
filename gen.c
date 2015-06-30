@@ -1,6 +1,7 @@
 #include "nolli.h"
 #include "ast.h"
 #include "type.h"
+#include "symtable.h"
 #include "debug.h"
 
 /* FIXME: need lexer.h to look up tokens */
@@ -26,6 +27,7 @@ struct jit {
     struct nl_context* ctx;
     LLVMModuleRef mod;
     LLVMBuilderRef builder;
+    struct nl_symtable* named_values;
 };
 
 static void jit_node(struct jit*, struct nl_ast*);
@@ -43,52 +45,82 @@ static LLVMValueRef jit_expr(struct jit* jit, struct nl_ast* node);
 /*     jit_node(jit, node->unit.packages); */
 /* } */
 
-typedef LLVMValueRef (*bin_op_instr) (LLVMBuilderRef, LLVMValueRef, LLVMValueRef, const char*);
-
-static bin_op_instr jit_bin_int_expr(struct jit* jit, struct nl_ast* node)
+static LLVMValueRef jit_ident(struct jit* jit, struct nl_ast* node)
 {
-    bin_op_instr instr;
-    switch (node->binexpr.op) {
-        case TOK_ADD:
-            instr = LLVMBuildAdd;
-            break;
-        case TOK_SUB:
-            instr = LLVMBuildSub;
-            break;
-        case TOK_MUL:
-            instr = LLVMBuildMul;
-            break;
-        case TOK_DIV:
-            instr = LLVMBuildSDiv;
-            break;
-        default:
-            JIT_ERROR(jit, node, "unsupported real binary operation");
-            instr = NULL;
+    assert(node->tag == NL_AST_IDENT);
+
+    LLVMValueRef val = nl_symtable_search(jit->named_values, node->s);
+    if (NULL == val) {
+        JIT_ERRORF(jit, node, "no such variable: %s", node->s);
+        return NULL; /* TODO: exit JIT */
     }
-    return instr;
+    return LLVMBuildLoad(jit->builder, val, node->s);
 }
 
-static bin_op_instr jit_bin_real_expr(struct jit* jit, struct nl_ast* node)
+static LLVMValueRef jit_bin_int_expr(struct jit* jit, struct nl_ast* node,
+        LLVMValueRef lhs, LLVMValueRef rhs)
 {
-    bin_op_instr instr;
+    LLVMValueRef result;
     switch (node->binexpr.op) {
         case TOK_ADD:
-            instr = LLVMBuildFAdd;
+            result = LLVMBuildAdd(jit->builder, lhs, rhs, "tmp.add");
             break;
         case TOK_SUB:
-            instr = LLVMBuildFSub;
+            result = LLVMBuildSub(jit->builder, lhs, rhs, "tmp.sub");
             break;
         case TOK_MUL:
-            instr = LLVMBuildFMul;
+            result = LLVMBuildMul(jit->builder, lhs, rhs, "tmp.mul");
             break;
         case TOK_DIV:
-            instr = LLVMBuildFDiv;
+            result = LLVMBuildSDiv(jit->builder, lhs, rhs, "tmp.div");
+            break;
+        case TOK_LT:
+            result = LLVMBuildICmp(jit->builder, LLVMIntSLT, lhs, rhs, "tmp.lt");
+            break;
+        case TOK_LTE:
+            result = LLVMBuildICmp(jit->builder, LLVMIntSLE, lhs, rhs, "tmp.le");
+            break;
+        case TOK_GT:
+            result = LLVMBuildICmp(jit->builder, LLVMIntSGT, lhs, rhs, "tmp.gt");
+            break;
+        case TOK_GTE:
+            result = LLVMBuildICmp(jit->builder, LLVMIntSGE, lhs, rhs, "tmp.ge");
+            break;
+        case TOK_EQ:
+            result = LLVMBuildICmp(jit->builder, LLVMIntEQ, lhs, rhs, "tmp.eq");
+            break;
+        case TOK_NEQ:
+            result = LLVMBuildICmp(jit->builder, LLVMIntNE, lhs, rhs, "tmp.ne");
+            break;
+        default:
+            JIT_ERROR(jit, node, "unsupported int binary operation");
+            result = NULL;
+    }
+    return result;
+}
+
+static LLVMValueRef jit_bin_real_expr(struct jit* jit, struct nl_ast* node,
+        LLVMValueRef lhs, LLVMValueRef rhs)
+{
+    LLVMValueRef result;
+    switch (node->binexpr.op) {
+        case TOK_ADD:
+            result = LLVMBuildFAdd(jit->builder, lhs, rhs, "tmp.fadd");
+            break;
+        case TOK_SUB:
+            result = LLVMBuildFSub(jit->builder, lhs, rhs, "tmp.fsub");
+            break;
+        case TOK_MUL:
+            result = LLVMBuildFMul(jit->builder, lhs, rhs, "tmp.fmul");
+            break;
+        case TOK_DIV:
+            result = LLVMBuildFDiv(jit->builder, lhs, rhs, "tmp.fdiv");
             break;
         default:
             JIT_ERROR(jit, node, "unsupported real binary operation");
-            instr = NULL;
+            result = NULL;
     }
-    return instr;
+    return result;
 }
 
 static LLVMValueRef jit_bin_expr(struct jit* jit, struct nl_ast* node)
@@ -100,20 +132,20 @@ static LLVMValueRef jit_bin_expr(struct jit* jit, struct nl_ast* node)
 
     struct nl_type* lhs_type = node->binexpr.lhs->type;
 
-    bin_op_instr instr;
+    LLVMValueRef result;
     switch (lhs_type->tag) {
         case NL_TYPE_INT:
-            instr = jit_bin_int_expr(jit, node);
+            result = jit_bin_int_expr(jit, node, lhs, rhs);
             break;
         case NL_TYPE_REAL:
-            instr = jit_bin_real_expr(jit, node);
+            result = jit_bin_real_expr(jit, node, lhs, rhs);
             break;
         default:
             JIT_ERROR(jit, node, "unsupported binary operand type");
             return NULL;
     }
 
-    return instr(jit->builder, lhs, rhs, "tmp");
+    return result;
 }
 
 static LLVMValueRef jit_call(struct jit* jit, struct nl_ast* node)
@@ -145,13 +177,20 @@ static LLVMValueRef jit_expr(struct jit* jit, struct nl_ast* node)
     LLVMValueRef expr;
     switch (node->tag) {
     case NL_AST_BOOL_LIT:
-        expr = LLVMConstInt(LLVMInt1Type(), 1, false);
+        if (node->b) {
+            expr = LLVMConstInt(LLVMInt1Type(), 1, false);
+        } else {
+            expr = LLVMConstInt(LLVMInt1Type(), 0, false);
+        }
         break;
     case NL_AST_INT_LIT:
         expr = LLVMConstInt(LLVMInt64Type(), node->l, true);
         break;
     case NL_AST_REAL_LIT:
         expr = LLVMConstReal(LLVMDoubleType(), node->d);
+        break;
+    case NL_AST_IDENT:
+        expr = jit_ident(jit, node);
         break;
     case NL_AST_BINEXPR:
         expr = jit_bin_expr(jit, node);
@@ -167,44 +206,217 @@ static LLVMValueRef jit_expr(struct jit* jit, struct nl_ast* node)
     return expr;
 }
 
+static void jit_decl(struct jit* jit, struct nl_ast* node)
+{
+    assert(node->tag == NL_AST_DECL);
+    /*
+     * node->decl.type
+     * node->decl.rhs
+     * node->decl.tp // var/const
+     */
+
+    struct nl_ast* rhs = node->decl.rhs;
+    if (rhs->tag == NL_AST_LIST_DECLS) {
+        // TODO: decl list
+    } else {
+        assert(rhs->tag == NL_AST_IDENT);
+        // TODO: initializers
+
+        const char *varname = rhs->s;
+        struct nl_ast* decl_type = node->decl.type;
+
+        LLVMTypeRef type;
+        LLVMValueRef value;
+        switch (decl_type->type->tag) {
+        case NL_TYPE_BOOL:
+            type = LLVMInt1Type();
+            value = LLVMConstInt(type, 0, false);
+            break;
+        case NL_TYPE_INT:
+            type = LLVMInt64Type();
+            value = LLVMConstInt(type, 0, false);
+            break;
+        case NL_TYPE_REAL:
+            type = LLVMDoubleType();
+            value = LLVMConstReal(type, 0.0);
+            break;
+        default:
+            JIT_ERROR(jit, node, "decl type not yet supported");
+            return;     /* TODO: exit JIT */
+        }
+
+        LLVMValueRef alloca = LLVMBuildAlloca(jit->builder, type, varname);
+        LLVMBuildStore(jit->builder, value, alloca);
+
+        /* save this variable binding */
+        nl_symtable_add(jit->named_values, (nl_string_t)varname, alloca);
+    }
+}
+
+static void jit_bind(struct jit* jit, struct nl_ast* node)
+{
+    assert(node->tag == NL_AST_BIND);
+
+    LLVMValueRef bind_value = jit_expr(jit, node->bind.expr);
+
+    const char *varname = node->bind.ident->s;
+    struct nl_type* expr_type = node->bind.expr->type;
+
+    LLVMTypeRef type;
+    switch (expr_type->tag) {
+    case NL_TYPE_BOOL:
+        type = LLVMInt1Type();
+        break;
+    case NL_TYPE_INT:
+        type = LLVMInt64Type();
+        break;
+    case NL_TYPE_REAL:
+        type = LLVMDoubleType();
+        break;
+    default:
+        JIT_ERROR(jit, node, "bind type not yet supported");
+        return;     /* TODO: exit JIT */
+    }
+
+    LLVMValueRef alloca = LLVMBuildAlloca(jit->builder, type, varname);
+    LLVMBuildStore(jit->builder, bind_value, alloca);
+
+    /* save this variable binding */
+    nl_symtable_add(jit->named_values, (nl_string_t)varname, alloca);
+}
+
+static void jit_assign(struct jit* jit, struct nl_ast* node)
+{
+    assert(node->tag == NL_AST_ASSIGN);
+
+    struct nl_ast* lhs = node->assignment.lhs;
+    assert(lhs->tag == NL_AST_IDENT); /* only variable assignments for now */
+
+    LLVMValueRef rhs = jit_expr(jit, node->assignment.expr);
+
+    if (node->assignment.op != TOK_ASS) {
+        LLVMValueRef lhs_value = jit_ident(jit, lhs);
+        switch (node->assignment.op) {
+        case TOK_ASS:
+            break;
+        case TOK_IADD:
+            rhs = LLVMBuildAdd(jit->builder, lhs_value, rhs, "tmp.add");
+            break;
+        case TOK_ISUB:
+            rhs = LLVMBuildSub(jit->builder, lhs_value, rhs, "tmp.sub");
+            break;
+        case TOK_IMUL:
+            rhs = LLVMBuildMul(jit->builder, lhs_value, rhs, "tmp.mul");
+            break;
+        case TOK_IDIV:
+            rhs = LLVMBuildSDiv(jit->builder, lhs_value, rhs, "tmp.div");
+            break;
+        default:
+            JIT_ERROR(jit, node, "unsupported assignment operator");
+            return;     /* TODO: exit JIT */
+        }
+    }
+
+    LLVMValueRef alloca = nl_symtable_search(jit->named_values, lhs->s);
+    if (NULL == alloca) {
+        JIT_ERRORF(jit, node, "no such variable: %s", lhs->s);
+        return; /* TODO: exit JIT */
+    }
+
+    LLVMBuildStore(jit->builder, rhs, alloca);
+}
+
 static void jit_ifelse(struct jit* jit, struct nl_ast* node)
 {
     assert(node->tag == NL_AST_IFELSE);
+
+    struct nl_ast* if_body = node->ifelse.if_body;
+    struct nl_ast* else_body = node->ifelse.else_body;
 
     LLVMValueRef cond = jit_expr(jit, node->ifelse.cond);
 
     LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(jit->builder);
     LLVMValueRef function = LLVMGetBasicBlockParent(insert_block);
 
-    LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(function, "then");
-    LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(function, "else");
-    LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(function, "ifcont");
+    LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(function, "if.then");
+    LLVMBasicBlockRef else_block;
+    if (else_body != NULL) {
+        else_block = LLVMAppendBasicBlock(function, "if.else");
+    }
+    LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(function, "if.end");
 
-    LLVMBuildCondBr(jit->builder, cond, then_block, else_block);
+    if (else_body != NULL) {
+        LLVMBuildCondBr(jit->builder, cond, then_block, else_block);
+    } else {
+        LLVMBuildCondBr(jit->builder, cond, then_block, end_block);
+    }
 
     LLVMPositionBuilderAtEnd(jit->builder, then_block);
-    jit_node(jit, node->ifelse.if_body);
-    LLVMBuildBr(jit->builder, end_block);
+    jit_node(jit, if_body);
+    if (!LLVMGetBasicBlockTerminator(then_block)) {
+        /* only emit branch if block doesn't already have a terminator (e.g. return) */
+        LLVMBuildBr(jit->builder, end_block);
+    }
+
+    LLVMMoveBasicBlockAfter(then_block, LLVMGetLastBasicBlock(function));
 
     /* update then_block to current insert block, which may have changed */
-    then_block = LLVMGetInsertBlock(jit->builder);
+    /* then_block = LLVMGetInsertBlock(jit->builder); */
 
-    LLVMPositionBuilderAtEnd(jit->builder, else_block);
-    jit_node(jit, node->ifelse.else_body);
-    LLVMBuildBr(jit->builder, end_block);
+    if (else_body != NULL) {
+        LLVMPositionBuilderAtEnd(jit->builder, else_block);
+        jit_node(jit, node->ifelse.else_body);
+        if (!LLVMGetBasicBlockTerminator(else_block)) {
+            /* only emit branch if block doesn't already have a terminator */
+            LLVMBuildBr(jit->builder, end_block);
+        }
 
-    /* update else_block to current insert block, which may have changed */
-    else_block = LLVMGetInsertBlock(jit->builder);
+        LLVMMoveBasicBlockAfter(else_block, LLVMGetLastBasicBlock(function));
+        /* update else_block to current insert block, which may have changed */
+        /* else_block = LLVMGetInsertBlock(jit->builder); */
+    }
 
+    LLVMMoveBasicBlockAfter(end_block, LLVMGetLastBasicBlock(function));
     LLVMPositionBuilderAtEnd(jit->builder, end_block);
 
-    LLVMValueRef phi = LLVMBuildPhi(jit->builder, LLVMInt1Type(), "iftmp");
+    /* the following is for if-else *expressions* */
+    /* LLVMValueRef phi = LLVMBuildPhi(jit->builder, LLVMInt1Type(), "iftmp"); */
+    /* LLVMValueRef fake1 = LLVMConstInt(LLVMInt1Type(), 1, false); */
+    /* LLVMValueRef fake2 = LLVMConstInt(LLVMInt1Type(), 1, false); */
+    /* LLVMValueRef values[] = {fake1, fake2}; */
+    /* LLVMBasicBlockRef blocks[] = {then_block, else_block}; */
+    /* LLVMAddIncoming(phi, values, blocks, 2); */
+}
 
-    LLVMValueRef fake1 = LLVMConstInt(LLVMInt1Type(), 1, false);
-    LLVMValueRef fake2 = LLVMConstInt(LLVMInt1Type(), 1, false);
-    LLVMValueRef values[] = {fake1, fake2};
-    LLVMBasicBlockRef blocks[] = {then_block, else_block};
-    LLVMAddIncoming(phi, values, blocks, 2);
+static void jit_while(struct jit* jit, struct nl_ast* node)
+{
+    assert(node->tag == NL_AST_WHILE);
+
+    LLVMBasicBlockRef insert_block = LLVMGetInsertBlock(jit->builder);
+    LLVMValueRef function = LLVMGetBasicBlockParent(insert_block);
+
+    LLVMBasicBlockRef loop_block = LLVMAppendBasicBlock(function, "while.loop");
+    LLVMBasicBlockRef body_block = LLVMAppendBasicBlock(function, "while.body");
+    LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(function, "while.end");
+
+    /* insert an explicit fallthrough from current block to loop block */
+    LLVMBuildBr(jit->builder, loop_block);
+    LLVMPositionBuilderAtEnd(jit->builder, loop_block);
+
+    LLVMValueRef cond = jit_expr(jit, node->while_loop.cond);
+    LLVMBuildCondBr(jit->builder, cond, body_block, end_block);
+
+    LLVMPositionBuilderAtEnd(jit->builder, body_block);
+
+    jit_node(jit, node->while_loop.body);
+    if (!LLVMGetBasicBlockTerminator(loop_block)) {
+        LLVMBuildBr(jit->builder, loop_block);
+    }
+
+    LLVMBuildBr(jit->builder, loop_block);
+
+    LLVMMoveBasicBlockAfter(end_block, LLVMGetLastBasicBlock(function));
+    LLVMPositionBuilderAtEnd(jit->builder, end_block);
 }
 
 static void jit_call_stmt(struct jit* jit, struct nl_ast* node)
@@ -315,14 +527,14 @@ static void jit_node(struct jit* jit, struct nl_ast* node)
         jit_fake /* jit_qual_type */,
         jit_fake /* jit_func_type */,
 
-        jit_fake /* jit_decl */,
+        jit_decl,
         jit_fake /* jit_init */,
-        jit_fake /* jit_bind */,
-        jit_fake /* jit_assign */,
+        jit_bind,
+        jit_assign,
         jit_ifelse,
-        jit_fake /* jit_while */,
+        jit_while,
         jit_fake /* jit_for */,
-        jit_call_stmt ,
+        jit_call_stmt,
         jit_return,
         jit_fake /* jit_break */,
         jit_fake /* jit_continue */,
@@ -396,7 +608,13 @@ int nl_jit(struct nl_context *ctx, struct nl_ast* packages, int* return_code)
 
     LLVMBuilderRef builder = LLVMCreateBuilder();
 
-    struct jit jit = {.ctx=ctx, .mod=mod, .builder=builder};
+    struct nl_symtable* named_values = nl_symtable_create(NULL);
+    struct jit jit = {
+        .ctx=ctx,
+        .mod=mod,
+        .builder=builder,
+        .named_values=named_values,
+    };
 
     jit_node(&jit, packages);
 
