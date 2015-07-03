@@ -221,9 +221,30 @@ static struct nl_type *expr_get_type_call(struct nl_ast *node,
 
     struct nl_type *tp = expr_set_type(node->call.func, symbols, types, analysis);
     if (NULL == tp || tp->tag != NL_TYPE_FUNC) {
-        /* TODO: invalid function in "call" */
+        /* TODO ?? invalid function in "call" */
+        ANALYSIS_ERROR(analysis, node, "attempt to call something that isn't a function");
     } else {
-        /* TODO: compare argument types with parameter types */
+        struct nl_ast* args = node->call.args;
+        struct nl_ast* arg = args->list.head;
+        unsigned int arg_count = args->list.count;
+        unsigned int param_count = tp->func.param_count;
+        if (param_count != args->list.count) {
+            ANALYSIS_ERRORF(analysis, node, "incorrect number of arguments"
+                    " (expected %d, found %d)", param_count, arg_count);
+            return NULL;
+        }
+
+        struct nl_type* param_type = tp->func.param_types_head;
+        while (arg) {
+            assert(param_type != NULL);
+            struct nl_type* arg_type = expr_set_type(arg, symbols, types, analysis);
+            if (!nl_types_equal(param_type, arg_type)) {
+                ANALYSIS_ERROR(analysis, node, "Mismatch of types in function call");
+            }
+            /* printf("checked param_type for function %s\n", node->call.func->s); */
+            param_type = param_type->next;
+            arg = arg->next;
+        }
 
         tp = tp->func.ret_type;
     }
@@ -340,7 +361,7 @@ static struct nl_type *set_type(struct nl_ast *node,
             break;
         }
         case NL_AST_FUNC_TYPE:
-            tp = nl_type_new_func(NULL, NULL);  /* FIXME! */
+            tp = nl_type_new_func(NULL, NULL, 0);  /* FIXME! */
             break;
         case NL_AST_CLASS:
             tp = nl_type_new_class(node->classdef.name->s, NULL, NULL, NULL);  /* FIXME! */
@@ -517,30 +538,34 @@ static void analyze_call_stmt(struct nl_ast *node, struct nl_symtable *parent_sy
         struct nl_symtable *types, struct func_info *func_info, struct analysis *analysis)
 {
     assert(NL_AST_CALL_STMT == node->tag);
-    struct nl_ast *func = node->call.func;
-    struct nl_ast *args = node->call.args;
-    assert(func != NULL);
-    assert(args != NULL);
-    assert(NL_AST_LIST_ARGS == args->tag);
 
-    struct nl_type *callee_type = expr_set_type(func, parent_symbols, types, analysis);
-    if (callee_type->tag != NL_TYPE_FUNC) {
-        ANALYSIS_ERROR(analysis, func, "Attempt to call something that isn't a function");
-        return;
-    }
+    /* just treat the call statement as a call expression and set its type */
+    expr_get_type_call(node, parent_symbols, types, analysis);
 
-    /* TODO: ensure the number of args matches the number of parameters */
-    struct nl_ast *arg = args->list.head;
-    struct nl_type *param_type = callee_type->func.param_types_head;
-    while (arg && param_type) {
-        struct nl_type *arg_type = expr_set_type(arg, parent_symbols, types, analysis);
-        if (!nl_types_equal(arg_type, param_type)) {
-            ANALYSIS_ERROR(analysis, node, "Mismatch of types in return");
-        }
+    /* struct nl_ast *func = node->call.func; */
+    /* struct nl_ast *args = node->call.args; */
+    /* assert(func != NULL); */
+    /* assert(args != NULL); */
+    /* assert(NL_AST_LIST_ARGS == args->tag); */
 
-        arg = arg->next;
-        param_type = param_type->next;
-    }
+    /* struct nl_type *callee_type = expr_set_type(func, parent_symbols, types, analysis); */
+    /* if (callee_type->tag != NL_TYPE_FUNC) { */
+    /*     ANALYSIS_ERROR(analysis, func, "Attempt to call something that isn't a function"); */
+    /*     return; */
+    /* } */
+
+    /* /1* TODO: ensure the number of args matches the number of parameters *1/ */
+    /* struct nl_ast *arg = args->list.head; */
+    /* struct nl_type *param_type = callee_type->func.param_types_head; */
+    /* while (arg && param_type) { */
+    /*     struct nl_type *arg_type = expr_set_type(arg, parent_symbols, types, analysis); */
+    /*     if (!nl_types_equal(arg_type, param_type)) { */
+    /*         ANALYSIS_ERROR(analysis, node, "Mismatch of types in return"); */
+    /*     } */
+
+    /*     arg = arg->next; */
+    /*     param_type = param_type->next; */
+    /* } */
 }
 
 static void analyze_return(struct nl_ast *node, struct nl_symtable *parent_symbols,
@@ -914,10 +939,28 @@ static void collect_function_signature(struct nl_ast_function *func,
 
         struct nl_type *rt = set_type(ft->func_type.ret_type, pkgtable->type_names, analysis);
 
-        /* struct nl_ast *params = ft->func_type.params; */
-        /* TODO: convert params to list of types */
+        /* this is one (ugly) way of building a list of nl_types from a list of nl_asts */
+        struct nl_ast* params = ft->func_type.params;
+        struct nl_ast* param = params->list.head;
+        struct nl_type* param_types_head = NULL;
+        struct nl_type* param_type = NULL;
+        while (param) {
+            assert(param->tag == NL_AST_DECL);
+            struct nl_ast* decl_type = param->decl.type;
+            struct nl_type* tmp = set_type(decl_type, pkgtable->type_names, analysis);
+            if (param_type == NULL) {
+                param_types_head = param_type = tmp;
+            } else {
+                param_type->next = tmp;
+                param_type = tmp;
+            }
+            /* printf("added param_type for function %s\n", name->s); */
+            param = param->next;
+        }
 
-        struct nl_type *functype = nl_type_new_func(rt, NULL);    /* FIXME: pass list of types */
+        unsigned int count = params->list.count;
+        /* create the actual "function type" */
+        struct nl_type *functype = nl_type_new_func(rt, param_types_head, count);
         nl_symtable_add(pkgtable->symbols, name->s, functype);
     }
 }
@@ -1098,6 +1141,7 @@ static void analyze_function(struct nl_ast_function *func,
         struct nl_ast *rhs = param->decl.rhs;
         assert(NL_AST_IDENT == rhs->tag);   /* FIXME - parameters can be "init"s too */
         struct nl_type *tp = set_type(param->decl.type, pkgtable->type_names, analysis);
+        /* printf("analyzed argument %s with type %s (%d)\n", rhs->s, param->decl.type->s, param->decl.type->type->tag); */
         /* printf("adding symbol %s to table %p for function %s\n", rhs->s, symbols, func->name->s); */
         nl_symtable_add(symbols, rhs->s, tp);
         param = param->next;

@@ -51,13 +51,14 @@ struct nl_type nl_tmpl_placeholder_type = {
     .n = 0
 };
 
-struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param_types_head)
+struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param_types_head, unsigned int count)
 {
     struct nl_type* func = nl_alloc(NULL, sizeof(*func));
     func->tag = NL_TYPE_FUNC;
 
     func->func.ret_type = ret_type;
     func->func.param_types_head = param_types_head;
+    func->func.param_count = count;
 
     return func;
 }

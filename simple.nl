@@ -1,5 +1,13 @@
 #!/usr/bin/env nolli
 
+func int (int a, int b) sum {
+    return a + b;
+}
+
+func real (real a, real b) prod {
+    return a * b
+}
+
 func int () main {
     cond := true
     var int i
@@ -10,5 +18,5 @@ func int () main {
         }
     }
 
-    return i / 6
+    return i / sum(3, 4)
 }

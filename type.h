@@ -25,6 +25,7 @@ enum {
 struct nl_type_func {
     struct nl_type *ret_type;
     struct nl_type *param_types_head;
+    unsigned int param_count;
 };
 
 struct nl_type_class {
@@ -64,7 +65,8 @@ extern struct nl_type nl_str_type;
 extern struct nl_type nl_tmpl_placeholder_type;
 
 /* TODO: all types should be hashed when they are first parsed! */
-struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param_types_head);
+struct nl_type* nl_type_new_func(struct nl_type *ret_type,
+        struct nl_type *param_types_head, unsigned int count);
 struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
         struct nl_symtable *members, struct nl_symtable *methods);
 struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *methods);

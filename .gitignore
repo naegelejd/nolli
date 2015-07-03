@@ -46,3 +46,7 @@ obj/
 trash/
 junk/
 ignore/
+
+# personal
+*.ycm*
+*sublime-*

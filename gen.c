@@ -459,6 +459,9 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
     struct nl_type* return_type = function_type->func_type.ret_type->type;
     LLVMTypeRef ret_type;
     switch (return_type->tag) {
+    case NL_TYPE_BOOL:
+        ret_type = LLVMInt1Type();
+        break;
     case NL_TYPE_INT:
         ret_type = LLVMInt64Type();
         break;
@@ -470,12 +473,84 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
         return;
     }
 
-    LLVMTypeRef func_type = LLVMFunctionType(ret_type, NULL, 0, 0);
+    unsigned int param_count = function_type->func_type.params->list.count;
+    LLVMTypeRef* param_types = nl_alloc(jit->ctx, sizeof(*param_types) * param_count);
+
+    struct nl_ast* param = function_type->func_type.params->list.head;
+    unsigned int idx = 0;
+    while (param) {
+        assert(param->tag == NL_AST_DECL);
+        struct nl_type* ptp = param->decl.type->type;
+        LLVMTypeRef param_type;
+        switch (ptp->tag) {
+            case NL_TYPE_BOOL:
+                param_type = LLVMInt1Type();
+                break;
+            case NL_TYPE_INT:
+                param_type = LLVMInt64Type();
+                break;
+            case NL_TYPE_REAL:
+                param_type = LLVMDoubleType();
+                break;
+            default:
+                JIT_ERROR(jit, function_type, "argument type not yet supported");
+                /* printf("jit argument %s with type %s: %d\n", param->decl.rhs->s, */
+                /*         param->decl.type->s, param->decl.type->type->tag); */
+                return;
+        }
+        param_types[idx++] = param_type;
+        param = param->next;
+    }
+
+    // TODO: variable argument functions
+    LLVMTypeRef func_type = LLVMFunctionType(ret_type, param_types, param_count, false);
 
     LLVMValueRef func = LLVMAddFunction(jit->mod, func_name, func_type);
 
     LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
     LLVMPositionBuilderAtEnd(jit->builder, entry);
+
+    /* create argument allocas */
+    /* struct nl_ast* */ param = function_type->func_type.params->list.head;
+    /* unsigned int */ idx = 0;
+    while (param) {
+        assert(param->tag == NL_AST_DECL);
+        struct nl_type* ptp = param->decl.type->type;
+        LLVMTypeRef param_type;
+        switch (ptp->tag) {
+            case NL_TYPE_BOOL:
+                param_type = LLVMInt1Type();
+                break;
+            case NL_TYPE_INT:
+                param_type = LLVMInt64Type();
+                break;
+            case NL_TYPE_REAL:
+                param_type = LLVMDoubleType();
+                break;
+            default:
+                JIT_ERROR(jit, function_type, "argument type not yet supported");
+                /* printf("jit argument %s with type %s: %d\n", param->decl.rhs->s, */
+                /*         param->decl.type->s, param->decl.type->type->tag); */
+                return;
+        }
+        param_types[idx] = param_type;
+        // TODO: handle initialized arguments
+        assert(param->decl.rhs->tag == NL_AST_IDENT);
+        const char *param_name = param->decl.rhs->s;
+        /* printf("naming parameter %s\n", param_name); */
+
+        LLVMValueRef arg = LLVMGetParam(func, idx);
+        LLVMSetValueName(arg, param_name);
+
+        LLVMValueRef alloca = LLVMBuildAlloca(jit->builder, param_type, param_name);
+        LLVMBuildStore(jit->builder, arg, alloca);
+
+        /* add argument to symbol table */
+        nl_symtable_add(jit->named_values, (nl_string_t)param_name, alloca);
+
+        idx++;
+        param = param->next;
+    }
 
     jit_node(jit, node->function.body);
 }
