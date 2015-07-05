@@ -217,7 +217,7 @@ static struct nl_type *expr_get_type_binexpr(struct nl_ast *node,
 static struct nl_type *expr_get_type_call(struct nl_ast *node,
         struct nl_symtable *symbols, struct nl_symtable *types, struct analysis *analysis)
 {
-    assert(NL_AST_CALL == node->tag);
+    assert(NL_AST_CALL == node->tag || NL_AST_CALL_STMT == node->tag);
 
     struct nl_type *tp = expr_set_type(node->call.func, symbols, types, analysis);
     if (NULL == tp || tp->tag != NL_TYPE_FUNC) {

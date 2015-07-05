@@ -13,6 +13,7 @@
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitWriter.h>
 
+#include <string.h>
 #include <assert.h>
 
 #define JIT_DEBUGF(J, fmt, ...) \
@@ -44,6 +45,54 @@ static LLVMValueRef jit_expr(struct jit* jit, struct nl_ast* node);
 /*     } */
 /*     jit_node(jit, node->unit.packages); */
 /* } */
+
+static LLVMTypeRef llvm_typeof(struct jit* jit, struct nl_ast* node, struct nl_type* tp)
+{
+    LLVMTypeRef type = NULL;
+
+    switch (tp->tag) {
+    case NL_TYPE_BOOL:
+        type = LLVMInt1Type();
+        break;
+    case NL_TYPE_INT:
+        type = LLVMInt64Type();
+        break;
+    case NL_TYPE_REAL:
+        type = LLVMDoubleType();
+        break;
+    case NL_TYPE_STR:
+        type = LLVMPointerType(LLVMInt8Type(), 0);
+        break;
+    default:
+        JIT_ERROR(jit, node, "type not yet supported");
+    }
+    return type;
+}
+
+static LLVMValueRef llvm_default_value(struct jit* jit, struct nl_ast* node,
+        struct nl_type* tp)
+{
+    LLVMValueRef value = NULL;
+    LLVMTypeRef type = llvm_typeof(jit, node, tp);
+
+    switch (tp->tag) {
+    case NL_TYPE_BOOL:
+        value = LLVMConstInt(type, 0, false);
+        break;
+    case NL_TYPE_INT:
+        value = LLVMConstInt(type, 0, false);
+        break;
+    case NL_TYPE_REAL:
+        value = LLVMConstReal(type, 0.0);
+        break;
+    case NL_TYPE_STR:
+        value = LLVMBuildGlobalStringPtr(jit->builder, "", "str.empty");
+        break;
+    default:
+        JIT_ERROR(jit, node, "type not yet supported");
+    }
+    return value;
+}
 
 static LLVMValueRef jit_ident(struct jit* jit, struct nl_ast* node)
 {
@@ -150,7 +199,7 @@ static LLVMValueRef jit_bin_expr(struct jit* jit, struct nl_ast* node)
 
 static LLVMValueRef jit_call(struct jit* jit, struct nl_ast* node)
 {
-    assert(node->tag == NL_AST_CALL);
+    assert(NL_AST_CALL == node->tag || NL_AST_CALL_STMT == node->tag);
 
     const char* name = node->call.func->s;
     LLVMValueRef callee = LLVMGetNamedFunction(jit->mod, name);
@@ -189,6 +238,9 @@ static LLVMValueRef jit_expr(struct jit* jit, struct nl_ast* node)
     case NL_AST_REAL_LIT:
         expr = LLVMConstReal(LLVMDoubleType(), node->d);
         break;
+    case NL_AST_STR_LIT:
+        expr = LLVMBuildGlobalStringPtr(jit->builder, node->s, "str");
+        break;
     case NL_AST_IDENT:
         expr = jit_ident(jit, node);
         break;
@@ -225,25 +277,8 @@ static void jit_decl(struct jit* jit, struct nl_ast* node)
         const char *varname = rhs->s;
         struct nl_ast* decl_type = node->decl.type;
 
-        LLVMTypeRef type;
-        LLVMValueRef value;
-        switch (decl_type->type->tag) {
-        case NL_TYPE_BOOL:
-            type = LLVMInt1Type();
-            value = LLVMConstInt(type, 0, false);
-            break;
-        case NL_TYPE_INT:
-            type = LLVMInt64Type();
-            value = LLVMConstInt(type, 0, false);
-            break;
-        case NL_TYPE_REAL:
-            type = LLVMDoubleType();
-            value = LLVMConstReal(type, 0.0);
-            break;
-        default:
-            JIT_ERROR(jit, node, "decl type not yet supported");
-            return;     /* TODO: exit JIT */
-        }
+        LLVMTypeRef type = llvm_typeof(jit, decl_type, decl_type->type);
+        LLVMValueRef value = llvm_default_value(jit, decl_type, decl_type->type);
 
         LLVMValueRef alloca = LLVMBuildAlloca(jit->builder, type, varname);
         LLVMBuildStore(jit->builder, value, alloca);
@@ -262,21 +297,7 @@ static void jit_bind(struct jit* jit, struct nl_ast* node)
     const char *varname = node->bind.ident->s;
     struct nl_type* expr_type = node->bind.expr->type;
 
-    LLVMTypeRef type;
-    switch (expr_type->tag) {
-    case NL_TYPE_BOOL:
-        type = LLVMInt1Type();
-        break;
-    case NL_TYPE_INT:
-        type = LLVMInt64Type();
-        break;
-    case NL_TYPE_REAL:
-        type = LLVMDoubleType();
-        break;
-    default:
-        JIT_ERROR(jit, node, "bind type not yet supported");
-        return;     /* TODO: exit JIT */
-    }
+    LLVMTypeRef type = llvm_typeof(jit, node->bind.expr, expr_type);
 
     LLVMValueRef alloca = LLVMBuildAlloca(jit->builder, type, varname);
     LLVMBuildStore(jit->builder, bind_value, alloca);
@@ -457,21 +478,7 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
     assert(function_type->tag == NL_AST_FUNC_TYPE);
 
     struct nl_type* return_type = function_type->func_type.ret_type->type;
-    LLVMTypeRef ret_type;
-    switch (return_type->tag) {
-    case NL_TYPE_BOOL:
-        ret_type = LLVMInt1Type();
-        break;
-    case NL_TYPE_INT:
-        ret_type = LLVMInt64Type();
-        break;
-    case NL_TYPE_REAL:
-        ret_type = LLVMDoubleType();
-        break;
-    default:
-        JIT_ERROR(jit, function_type, "return type not yet supported");
-        return;
-    }
+    LLVMTypeRef ret_type = llvm_typeof(jit, function_type->func_type.ret_type, return_type);
 
     unsigned int param_count = function_type->func_type.params->list.count;
     LLVMTypeRef* param_types = nl_alloc(jit->ctx, sizeof(*param_types) * param_count);
@@ -481,23 +488,7 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
     while (param) {
         assert(param->tag == NL_AST_DECL);
         struct nl_type* ptp = param->decl.type->type;
-        LLVMTypeRef param_type;
-        switch (ptp->tag) {
-            case NL_TYPE_BOOL:
-                param_type = LLVMInt1Type();
-                break;
-            case NL_TYPE_INT:
-                param_type = LLVMInt64Type();
-                break;
-            case NL_TYPE_REAL:
-                param_type = LLVMDoubleType();
-                break;
-            default:
-                JIT_ERROR(jit, function_type, "argument type not yet supported");
-                /* printf("jit argument %s with type %s: %d\n", param->decl.rhs->s, */
-                /*         param->decl.type->s, param->decl.type->type->tag); */
-                return;
-        }
+        LLVMTypeRef param_type = llvm_typeof(jit, param->decl.type, ptp);
         param_types[idx++] = param_type;
         param = param->next;
     }
@@ -516,23 +507,7 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
     while (param) {
         assert(param->tag == NL_AST_DECL);
         struct nl_type* ptp = param->decl.type->type;
-        LLVMTypeRef param_type;
-        switch (ptp->tag) {
-            case NL_TYPE_BOOL:
-                param_type = LLVMInt1Type();
-                break;
-            case NL_TYPE_INT:
-                param_type = LLVMInt64Type();
-                break;
-            case NL_TYPE_REAL:
-                param_type = LLVMDoubleType();
-                break;
-            default:
-                JIT_ERROR(jit, function_type, "argument type not yet supported");
-                /* printf("jit argument %s with type %s: %d\n", param->decl.rhs->s, */
-                /*         param->decl.type->s, param->decl.type->type->tag); */
-                return;
-        }
+        LLVMTypeRef param_type = llvm_typeof(jit, param->decl.type, ptp);
         param_types[idx] = param_type;
         // TODO: handle initialized arguments
         assert(param->decl.rhs->tag == NL_AST_IDENT);
@@ -671,12 +646,9 @@ int nl_jit(struct nl_context *ctx, struct nl_ast* packages, int* return_code)
     struct LLVMMCJITCompilerOptions options;
     LLVMInitializeMCJITCompilerOptions(&options, sizeof(options));
     LLVMExecutionEngineRef engine;
-    if (LLVMCreateMCJITCompilerForModule(&engine, mod, &options, sizeof(options), &error) != 0) {
-        NL_ERROR(ctx, NL_ERR_JIT, "failed to create execution engine\n");
-        return NL_ERR_JIT;
-    }
-    if (error) {
-        NL_ERRORF(ctx, NL_ERR_JIT, "error: %s\n", error);
+    if (LLVMCreateMCJITCompilerForModule(&engine, mod, &options,
+                sizeof(options), &error)) {
+        NL_ERRORF(ctx, NL_ERR_JIT, "failed to create execution engine: %s", error);
         LLVMDisposeMessage(error);
         return NL_ERR_JIT;
     }
@@ -691,20 +663,33 @@ int nl_jit(struct nl_context *ctx, struct nl_ast* packages, int* return_code)
         .named_values=named_values,
     };
 
+    /* FIXME: add C `printf` prototype */
+    LLVMTypeRef ret_type = LLVMInt32Type();
+    LLVMTypeRef param_types[] = { LLVMPointerType(LLVMInt8Type(), 0) };
+    LLVMTypeRef printf_type = LLVMFunctionType(ret_type, param_types, 1, true);
+    LLVMValueRef func = LLVMAddFunction(jit.mod, "printf", printf_type);
+
+    /* generate code */
     jit_node(&jit, packages);
 
-    /* error = NULL; */
-    /* if (!LLVMVerifyModule(mod, LLVMReturnStatusAction, &error)) { */
-    /*     NL_ERRORF(ctx, NL_ERR_JIT, "LLVM module failed verification: %s", error); */
-    /*     LLVMDisposeMessage(error); */
-    /*     return NL_ERR_JIT; */
-    /* } */
+    /* ensure module is valid */
+    error = NULL;
+    if (LLVMVerifyModule(mod, LLVMReturnStatusAction, &error)) {
+        NL_ERRORF(ctx, NL_ERR_JIT, "LLVM module failed verification: %s", error);
+        LLVMDisposeMessage(error);
+        return NL_ERR_JIT;
+    }
 
-    LLVMDumpModule(mod);
+    /* dump module to a file */
+    error = NULL;
+    if (LLVMPrintModuleToFile(mod, "dump.llc", &error)) {
+        NL_ERRORF(ctx, NL_ERR_JIT, "failed to dump LLVM module: %s", error);
+        LLVMDisposeMessage(error);
+    }
 
+    /* execute code by extracting and calling main function */
     uint64_t addr = LLVMGetFunctionAddress(engine, "main");
     int32_t (*fp)() = (int32_t (*)())addr;
-
     *return_code = fp();
 
     JIT_DEBUGF(&jit, "main evaluated to: %d", *return_code);

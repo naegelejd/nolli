@@ -1,5 +1,9 @@
 #!/usr/bin/env nolli
 
+func str (str s) repeat {
+    return s;
+}
+
 func int (int a, int b) sum {
     return a + b;
 }
@@ -17,6 +21,9 @@ func int () main {
             cond = false
         }
     }
+
+    hello := "hello"
+    printf("%s: %g\n", repeat(hello), prod(3.14, 4.25));
 
     return i / sum(3, 4)
 }
