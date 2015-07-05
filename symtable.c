@@ -20,6 +20,14 @@ struct nl_symtable *nl_symtable_create(const struct nl_symtable *parent)
     return tab;
 }
 
+struct nl_symtable *nl_symtable_destroy(const struct nl_symtable* tab)
+{
+    struct nl_symtable* parent = (struct nl_symtable*)tab->parent;
+    /* TODO: nl_free each symbol in the table! */
+    nl_free(NULL, (void*)tab);
+    return parent;
+}
+
 void *nl_symtable_search(const struct nl_symtable *tab, const nl_string_t name)
 {
     const struct nl_symtable *cur = tab;

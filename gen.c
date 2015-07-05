@@ -373,7 +373,12 @@ static void jit_ifelse(struct jit* jit, struct nl_ast* node)
     }
 
     LLVMPositionBuilderAtEnd(jit->builder, then_block);
+
+    // TODO: maybe a cleaner method of introducing new scope
+    jit->named_values = nl_symtable_create(jit->named_values);
     jit_node(jit, if_body);
+    jit->named_values = nl_symtable_destroy(jit->named_values);
+
     if (!LLVMGetBasicBlockTerminator(then_block)) {
         /* only emit branch if block doesn't already have a terminator (e.g. return) */
         LLVMBuildBr(jit->builder, end_block);
@@ -386,7 +391,12 @@ static void jit_ifelse(struct jit* jit, struct nl_ast* node)
 
     if (else_body != NULL) {
         LLVMPositionBuilderAtEnd(jit->builder, else_block);
+
+        // TODO: maybe a cleaner method of introducing new scope
+        jit->named_values = nl_symtable_create(jit->named_values);
         jit_node(jit, node->ifelse.else_body);
+        jit->named_values = nl_symtable_destroy(jit->named_values);
+
         if (!LLVMGetBasicBlockTerminator(else_block)) {
             /* only emit branch if block doesn't already have a terminator */
             LLVMBuildBr(jit->builder, end_block);
@@ -429,7 +439,11 @@ static void jit_while(struct jit* jit, struct nl_ast* node)
 
     LLVMPositionBuilderAtEnd(jit->builder, body_block);
 
+    // TODO: maybe a cleaner method of introducing new scope
+    jit->named_values = nl_symtable_create(jit->named_values);
     jit_node(jit, node->while_loop.body);
+    jit->named_values = nl_symtable_destroy(jit->named_values);
+
     if (!LLVMGetBasicBlockTerminator(loop_block)) {
         LLVMBuildBr(jit->builder, loop_block);
     }
@@ -501,6 +515,9 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
     LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
     LLVMPositionBuilderAtEnd(jit->builder, entry);
 
+    // TODO: maybe a cleaner method of introducing new scope
+    jit->named_values = nl_symtable_create(jit->named_values);
+
     /* create argument allocas */
     /* struct nl_ast* */ param = function_type->func_type.params->list.head;
     /* unsigned int */ idx = 0;
@@ -528,6 +545,7 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
     }
 
     jit_node(jit, node->function.body);
+    jit->named_values = nl_symtable_destroy(jit->named_values);
 }
 
 static void jit_list(struct jit* jit, struct nl_ast* node)

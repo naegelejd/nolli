@@ -174,3 +174,8 @@ void *nl_realloc(struct nl_context *ctx, void* block, size_t bytes)
 
     return newblock;
 }
+
+void nl_free(struct nl_context* ctx, void* block)
+{
+    free(block);
+}

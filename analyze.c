@@ -409,7 +409,7 @@ static void analyze_bind(struct nl_ast *node, struct nl_symtable *parent_symbols
 
     /* Check if name is in current scope's symbol table.
         If so, it is multiply defined. */
-    struct nl_type *tp = nl_symtable_search(parent_symbols, name->s);
+    struct nl_type *tp = nl_symtable_get(parent_symbols, name->s);
     if (tp != NULL) {
         ANALYSIS_ERRORF(analysis, name, "Re-bound symbol %s", name->s);
     } else {

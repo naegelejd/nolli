@@ -53,6 +53,7 @@ void *nl_get_user_data(struct nl_context *ctx);
 
 void *nl_realloc(struct nl_context *ctx, void* block, size_t bytes);
 #define nl_alloc(ctx, size) nl_realloc((ctx), NULL, (size))
+void nl_free(struct nl_context* ctx, void* block);
 
 extern const char *NL_GLOBAL_PACKAGE_NAME;
 
