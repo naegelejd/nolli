@@ -1,6 +1,8 @@
 #ifndef NOLLI_STRTAB_H
 #define NOLLI_STRTAB_H
 
+#include "nolli.h"
+
 typedef char* nl_string_t;
 
 struct nl_strtab {
@@ -11,12 +13,13 @@ struct nl_strtab {
     unsigned int size;          /**< current count of allocated pairs*/
 };
 
-int nl_strtab_init(struct nl_strtab *tab);
+int nl_strtab_init(struct nl_context* ctx, struct nl_strtab *tab);
 
 /**
  * Creates and stores and returns a string wrapper of the `char*`
  * or returns the existing wrapper in the table */
-nl_string_t nl_strtab_wrap(struct nl_strtab *tab, const char *key);
+nl_string_t nl_strtab_wrap(struct nl_context* ctx,
+        struct nl_strtab *tab, const char *key);
 
 void nl_strtab_dump(struct nl_strtab *tab);
 

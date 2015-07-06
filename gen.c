@@ -284,7 +284,7 @@ static void jit_decl(struct jit* jit, struct nl_ast* node)
         LLVMBuildStore(jit->builder, value, alloca);
 
         /* save this variable binding */
-        nl_symtable_add(jit->named_values, (nl_string_t)varname, alloca);
+        nl_symtable_add(jit->ctx, jit->named_values, (nl_string_t)varname, alloca);
     }
 }
 
@@ -303,7 +303,7 @@ static void jit_bind(struct jit* jit, struct nl_ast* node)
     LLVMBuildStore(jit->builder, bind_value, alloca);
 
     /* save this variable binding */
-    nl_symtable_add(jit->named_values, (nl_string_t)varname, alloca);
+    nl_symtable_add(jit->ctx, jit->named_values, (nl_string_t)varname, alloca);
 }
 
 static void jit_assign(struct jit* jit, struct nl_ast* node)
@@ -375,9 +375,9 @@ static void jit_ifelse(struct jit* jit, struct nl_ast* node)
     LLVMPositionBuilderAtEnd(jit->builder, then_block);
 
     // TODO: maybe a cleaner method of introducing new scope
-    jit->named_values = nl_symtable_create(jit->named_values);
+    jit->named_values = nl_symtable_create(jit->ctx, jit->named_values);
     jit_node(jit, if_body);
-    jit->named_values = nl_symtable_destroy(jit->named_values);
+    jit->named_values = nl_symtable_destroy(jit->ctx, jit->named_values);
 
     if (!LLVMGetBasicBlockTerminator(then_block)) {
         /* only emit branch if block doesn't already have a terminator (e.g. return) */
@@ -393,9 +393,9 @@ static void jit_ifelse(struct jit* jit, struct nl_ast* node)
         LLVMPositionBuilderAtEnd(jit->builder, else_block);
 
         // TODO: maybe a cleaner method of introducing new scope
-        jit->named_values = nl_symtable_create(jit->named_values);
+        jit->named_values = nl_symtable_create(jit->ctx, jit->named_values);
         jit_node(jit, node->ifelse.else_body);
-        jit->named_values = nl_symtable_destroy(jit->named_values);
+        jit->named_values = nl_symtable_destroy(jit->ctx, jit->named_values);
 
         if (!LLVMGetBasicBlockTerminator(else_block)) {
             /* only emit branch if block doesn't already have a terminator */
@@ -440,9 +440,9 @@ static void jit_while(struct jit* jit, struct nl_ast* node)
     LLVMPositionBuilderAtEnd(jit->builder, body_block);
 
     // TODO: maybe a cleaner method of introducing new scope
-    jit->named_values = nl_symtable_create(jit->named_values);
+    jit->named_values = nl_symtable_create(jit->ctx, jit->named_values);
     jit_node(jit, node->while_loop.body);
-    jit->named_values = nl_symtable_destroy(jit->named_values);
+    jit->named_values = nl_symtable_destroy(jit->ctx, jit->named_values);
 
     if (!LLVMGetBasicBlockTerminator(loop_block)) {
         LLVMBuildBr(jit->builder, loop_block);
@@ -516,7 +516,7 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
     LLVMPositionBuilderAtEnd(jit->builder, entry);
 
     // TODO: maybe a cleaner method of introducing new scope
-    jit->named_values = nl_symtable_create(jit->named_values);
+    jit->named_values = nl_symtable_create(jit->ctx, jit->named_values);
 
     /* create argument allocas */
     /* struct nl_ast* */ param = function_type->func_type.params->list.head;
@@ -538,14 +538,14 @@ static void jit_function(struct jit* jit, struct nl_ast* node)
         LLVMBuildStore(jit->builder, arg, alloca);
 
         /* add argument to symbol table */
-        nl_symtable_add(jit->named_values, (nl_string_t)param_name, alloca);
+        nl_symtable_add(jit->ctx, jit->named_values, (nl_string_t)param_name, alloca);
 
         idx++;
         param = param->next;
     }
 
     jit_node(jit, node->function.body);
-    jit->named_values = nl_symtable_destroy(jit->named_values);
+    jit->named_values = nl_symtable_destroy(jit->ctx, jit->named_values);
 }
 
 static void jit_list(struct jit* jit, struct nl_ast* node)
@@ -673,7 +673,7 @@ int nl_jit(struct nl_context *ctx, struct nl_ast* packages, int* return_code)
 
     LLVMBuilderRef builder = LLVMCreateBuilder();
 
-    struct nl_symtable* named_values = nl_symtable_create(NULL);
+    struct nl_symtable* named_values = nl_symtable_create(ctx, NULL);
     struct jit jit = {
         .ctx=ctx,
         .mod=mod,

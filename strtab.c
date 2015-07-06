@@ -14,9 +14,12 @@ enum {
 };
 
 static unsigned int string_hash0(const char*);
-static struct nl_strtab *nl_strtab_grow(struct nl_strtab *tab);
-static nl_string_t nl_strtab_rewrap(struct nl_strtab *tab, nl_string_t key);
-static nl_string_t nl_strtab_do(struct nl_strtab *tab, const char *key, int action);
+static struct nl_strtab *nl_strtab_grow(struct nl_context* ctx,
+        struct nl_strtab *tab);
+static nl_string_t nl_strtab_rewrap(struct nl_context* ctx,
+        struct nl_strtab *tab, nl_string_t key);
+static nl_string_t nl_strtab_do(struct nl_context* ctx,
+        struct nl_strtab *tab, const char *key, int action);
 
 /** total number of possible hash table sizes */
 const unsigned int NL_MAX_STRTABLE_SIZE_OPTIONS = 28;
@@ -35,17 +38,17 @@ static unsigned int NL_STRTAB_SIZES[] = {
     805306457, 1610612741, 0
 };
 
-int nl_strtab_init(struct nl_strtab *tab)
+int nl_strtab_init(struct nl_context* ctx, struct nl_strtab *tab)
 {
     tab->size_idx = 0;
     tab->size = NL_STRTAB_SIZES[tab->size_idx];
 
-    tab->strings = nl_alloc(NULL, tab->size * sizeof(*tab->strings));
+    tab->strings = nl_alloc(ctx, tab->size * sizeof(*tab->strings));
 
     return NL_NO_ERR;
 }
 
-static struct nl_strtab *nl_strtab_grow(struct nl_strtab *tab)
+static struct nl_strtab *nl_strtab_grow(struct nl_context* ctx, struct nl_strtab *tab)
 {
     assert(tab);
     unsigned int old_size = tab->size;
@@ -61,36 +64,39 @@ static struct nl_strtab *nl_strtab_grow(struct nl_strtab *tab)
     tab->count = 0;
     tab->collisions = 0;
 
-    tab->strings = nl_alloc(NULL, tab->size * sizeof(*tab->strings));
+    tab->strings = nl_alloc(ctx, tab->size * sizeof(*tab->strings));
 
     unsigned int i;
     for (i = 0; i < old_size; i++) {
         if (old_keys[i] != NULL) {
-            nl_strtab_rewrap(tab, old_keys[i]);
+            nl_strtab_rewrap(ctx, tab, old_keys[i]);
         }
     }
 
-    free(old_keys);
+    nl_free(ctx, old_keys);
 
     return tab;
 }
 
-nl_string_t nl_strtab_wrap(struct nl_strtab *tab, const char *key)
+nl_string_t nl_strtab_wrap(struct nl_context* ctx,
+        struct nl_strtab *tab, const char *key)
 {
-    return nl_strtab_do(tab, key, NL_STRTAB_WRAP);
+    return nl_strtab_do(ctx, tab, key, NL_STRTAB_WRAP);
 }
 
-static nl_string_t nl_strtab_rewrap(struct nl_strtab *tab, nl_string_t key)
+static nl_string_t nl_strtab_rewrap(struct nl_context* ctx,
+        struct nl_strtab *tab, nl_string_t key)
 {
-    return nl_strtab_do(tab, key, NL_STRTAB_REWRAP);
+    return nl_strtab_do(ctx, tab, key, NL_STRTAB_REWRAP);
 }
 
-static nl_string_t nl_strtab_do(struct nl_strtab *tab, const char *key, int action)
+static nl_string_t nl_strtab_do(struct nl_context* ctx,
+        struct nl_strtab *tab, const char *key, int action)
 {
     assert(tab != NULL);
 
     if (tab->count > (tab->size * 0.60)) {
-        tab = nl_strtab_grow(tab);
+        tab = nl_strtab_grow(ctx, tab);
     }
 
     unsigned int hash0 = string_hash0(key);

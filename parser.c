@@ -137,8 +137,8 @@ static struct nl_ast *unit(struct nl_parser *parser)
 {
     bool err = false;
 
-    struct nl_ast *globals = nl_ast_make_list(NL_AST_LIST_GLOBALS, lineno(parser));
-    struct nl_ast *packages = nl_ast_make_list(NL_AST_LIST_PACKAGES, lineno(parser));
+    struct nl_ast *globals = nl_ast_make_list(parser->ctx, NL_AST_LIST_GLOBALS, lineno(parser));
+    struct nl_ast *packages = nl_ast_make_list(parser->ctx, NL_AST_LIST_PACKAGES, lineno(parser));
     struct nl_ast *def = NULL;
     while (!check(parser, TOK_EOF)) {
         if (check(parser, TOK_PACKAGE)) {
@@ -162,16 +162,17 @@ static struct nl_ast *unit(struct nl_parser *parser)
         }
     }
 
-    nl_string_t gname = nl_strtab_wrap(parser->ctx->strtab, NL_GLOBAL_PACKAGE_NAME);
-    struct nl_ast *id = nl_ast_make_ident(gname, 0);
-    struct nl_ast *gpkg = nl_ast_make_package(id, globals, 0);
+    nl_string_t gname = nl_strtab_wrap(parser->ctx, parser->ctx->strtab,
+            NL_GLOBAL_PACKAGE_NAME);
+    struct nl_ast *id = nl_ast_make_ident(parser->ctx, gname, 0);
+    struct nl_ast *gpkg = nl_ast_make_package(parser->ctx, id, globals, 0);
     packages = nl_ast_list_append(packages, gpkg);
 
     struct nl_ast *prog = NULL;
     if (err) {
         prog = NULL;    /* TODO: destroy packages, globals */
     } else {
-        prog = nl_ast_make_unit(packages, lineno(parser));
+        prog = nl_ast_make_unit(parser->ctx, packages, lineno(parser));
     }
 
     return prog;
@@ -192,7 +193,7 @@ static struct nl_ast *package(struct nl_parser *parser)
     PARSE_DEBUG(parser, "Parsed package declaration");
 
     /* Parse global definitions inside of package */
-    struct nl_ast *defs = nl_ast_make_list(NL_AST_LIST_GLOBALS, lineno(parser));
+    struct nl_ast *defs = nl_ast_make_list(parser->ctx, NL_AST_LIST_GLOBALS, lineno(parser));
     /* parse statements until we see a '}' token or EOF */
     while (!check(parser, TOK_RCURLY)) {
         struct nl_ast *def = global(parser);
@@ -215,7 +216,7 @@ static struct nl_ast *package(struct nl_parser *parser)
     if (err) {
         pkg = NULL;     /* TODO: destroy name, globals */
     } else {
-        pkg = nl_ast_make_package(name, defs, lineno(parser));
+        pkg = nl_ast_make_package(parser->ctx, name, defs, lineno(parser));
     }
     return pkg;
 }
@@ -251,7 +252,7 @@ static struct nl_ast *using(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *list = nl_ast_make_list(NL_AST_LIST_USINGS, lineno(parser));
+    struct nl_ast *list = nl_ast_make_list(parser->ctx, NL_AST_LIST_USINGS, lineno(parser));
     do {
         struct nl_ast *pkg = ident(parser);
         list = nl_ast_list_append(list, pkg);
@@ -263,7 +264,7 @@ static struct nl_ast *using(struct nl_parser *parser)
     if (err) {
         imp = NULL;     /* TODO: destroy from & list */
     } else {
-        imp = nl_ast_make_using(list, lineno(parser));
+        imp = nl_ast_make_using(parser->ctx, list, lineno(parser));
     }
     return imp;
 }
@@ -290,7 +291,7 @@ static struct nl_ast *alias(struct nl_parser *parser)
     if (err) {
         ali = NULL; /* TODO: destroy type & name */
     } else {
-        ali = nl_ast_make_alias(tp, name, lineno(parser));
+        ali = nl_ast_make_alias(parser->ctx, tp, name, lineno(parser));
     }
     return ali;
 }
@@ -320,8 +321,8 @@ static struct nl_ast *classdef(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *members = nl_ast_make_list(NL_AST_LIST_MEMBERS, lineno(parser));
-    struct nl_ast *methods = nl_ast_make_list(NL_AST_LIST_METHODS, lineno(parser));
+    struct nl_ast *members = nl_ast_make_list(parser->ctx, NL_AST_LIST_MEMBERS, lineno(parser));
+    struct nl_ast *methods = nl_ast_make_list(parser->ctx, NL_AST_LIST_METHODS, lineno(parser));
 
     while (!check(parser, TOK_RCURLY)) {
 
@@ -345,12 +346,12 @@ static struct nl_ast *classdef(struct nl_parser *parser)
                 break;
             }
 
-            struct nl_ast *method = nl_ast_make_function(name, tp, blk, lineno(parser));
+            struct nl_ast *method = nl_ast_make_function(parser->ctx, name, tp, blk, lineno(parser));
             PARSE_DEBUG(parser, "Parsed class method");
             methods = nl_ast_list_append(methods, method);
         } else {
             /* Parsing class member(s) */
-            struct nl_ast *names = nl_ast_make_list(NL_AST_LIST_IDENTS, lineno(parser));
+            struct nl_ast *names = nl_ast_make_list(parser->ctx, NL_AST_LIST_IDENTS, lineno(parser));
             names = nl_ast_list_append(names, name);
             while (accept(parser, TOK_COMMA)) {
                 struct nl_ast *name = ident(parser);
@@ -360,7 +361,7 @@ static struct nl_ast *classdef(struct nl_parser *parser)
                 }
                 names = nl_ast_list_append(names, name);
             }
-            struct nl_ast *member = nl_ast_make_decl(NL_DECL_VAR, tp, names, lineno(parser));
+            struct nl_ast *member = nl_ast_make_decl(parser->ctx, NL_DECL_VAR, tp, names, lineno(parser));
             PARSE_DEBUG(parser, "Parsed line of class members");
             members = nl_ast_list_append(members, member);
         }
@@ -380,7 +381,7 @@ static struct nl_ast *classdef(struct nl_parser *parser)
     if (err) {
         c = NULL;   /* TODO: destroy name & members & methods */
     } else {
-        c = nl_ast_make_class(name, tmpl, members, methods, lineno(parser));
+        c = nl_ast_make_class(parser->ctx, name, tmpl, members, methods, lineno(parser));
     }
 
     return c;
@@ -405,7 +406,7 @@ static struct nl_ast *funcdef(struct nl_parser *parser)
     if (err) {
         fn = NULL;   /* TODO: destroy ft, name, blk */
     } else {
-        fn = nl_ast_make_function(name, ft, blk, lineno(parser));
+        fn = nl_ast_make_function(parser->ctx, name, ft, blk, lineno(parser));
     }
     return fn;
 }
@@ -424,7 +425,7 @@ static struct nl_ast *interface(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *decls = nl_ast_make_list(NL_AST_LIST_METHOD_DECLS, lineno(parser));
+    struct nl_ast *decls = nl_ast_make_list(parser->ctx, NL_AST_LIST_METHOD_DECLS, lineno(parser));
     while (!check(parser, TOK_RCURLY)) {
         struct nl_ast *decl = methdecl(parser);
         if (decl == NULL) {
@@ -448,7 +449,7 @@ static struct nl_ast *interface(struct nl_parser *parser)
     if (err) {
         iface = NULL; /* TODO: destroy name & methods */
     } else {
-        iface = nl_ast_make_interface(name, decls, lineno(parser));
+        iface = nl_ast_make_interface(parser->ctx, name, decls, lineno(parser));
     }
     return iface;
 }
@@ -466,7 +467,7 @@ static struct nl_ast *methdecl(struct nl_parser *parser)
     if (err) {
         decl = NULL;   /* TODO: destroy ft, name */
     } else {
-        decl = nl_ast_make_decl(NL_DECL_CONST, ft, name, lineno(parser));
+        decl = nl_ast_make_decl(parser->ctx, NL_DECL_CONST, ft, name, lineno(parser));
     }
     return decl;
 }
@@ -485,9 +486,9 @@ static struct nl_ast *statement(struct nl_parser *parser)
     } else if (check(parser, TOK_RET)) {
         stmt = return_statement(parser);
     } else if (accept(parser, TOK_BREAK)) {
-        stmt = nl_ast_make_break(lineno(parser));
+        stmt = nl_ast_make_break(parser->ctx, lineno(parser));
     } else if (accept(parser, TOK_CONT)) {
-        stmt = nl_ast_make_continue(lineno(parser));
+        stmt = nl_ast_make_continue(parser->ctx, lineno(parser));
     } else if (!check(parser, TOK_RCURLY) && !check(parser, TOK_SEMI)) {
         stmt = ident_statement(parser);
     } else {
@@ -520,7 +521,7 @@ static struct nl_ast *return_statement(struct nl_parser *parser)
     if (err) {
         ret = NULL;     /* TODO: destroy expr */
     } else {
-        ret = nl_ast_make_return(expr, lineno(parser));
+        ret = nl_ast_make_return(parser->ctx, expr, lineno(parser));
     }
     return ret;
 }
@@ -556,7 +557,7 @@ static struct nl_ast *declaration(struct nl_parser *parser)
     struct nl_ast *rhs = NULL;
     /* only make a declaration list if more than one name is declared */
     if (accept(parser, TOK_COMMA)) {
-        struct nl_ast *list = nl_ast_make_list(NL_AST_LIST_DECLS, lineno(parser));
+        struct nl_ast *list = nl_ast_make_list(parser->ctx, NL_AST_LIST_DECLS, lineno(parser));
         list = nl_ast_list_append(list, name);
         do {
             name = declrhs(parser);
@@ -576,7 +577,7 @@ static struct nl_ast *declaration(struct nl_parser *parser)
     if (err) {
         decl = NULL;    /* TODO: destroy type & names */
     } else {
-        decl = nl_ast_make_decl(kind, tp, rhs, lineno(parser));
+        decl = nl_ast_make_decl(parser->ctx, kind, tp, rhs, lineno(parser));
     }
     return decl;
 }
@@ -595,7 +596,7 @@ static struct nl_ast *declrhs(struct nl_parser *parser)
             PARSE_ERROR(parser, "Invalid initializer expression");
         }
         PARSE_DEBUG(parser, "Parsed initialization");
-        rhs = nl_ast_make_initialization(id, expr, lineno(parser));
+        rhs = nl_ast_make_initialization(parser->ctx, id, expr, lineno(parser));
     } else {
         PARSE_DEBUG(parser, "Parsed declaration");
         rhs = id;
@@ -624,7 +625,7 @@ static struct nl_ast *type(struct nl_parser *parser)
         /* parse types defined in specific packages, e.g. std::file */
         if (accept(parser, TOK_PREF)) {
             struct nl_ast *type2 = ident(parser);
-            struct nl_ast *qualified = nl_ast_make_qual_type(type, type2, lineno(parser));
+            struct nl_ast *qualified = nl_ast_make_qual_type(parser->ctx, type, type2, lineno(parser));
             type = qualified;
             PARSE_DEBUG(parser, "Parsed qualified type");
         }
@@ -634,7 +635,7 @@ static struct nl_ast *type(struct nl_parser *parser)
             if (tmpl == NULL) {
                 err = true;
             }
-            type = nl_ast_make_tmpl_type(type, tmpl, lineno(parser));
+            type = nl_ast_make_tmpl_type(parser->ctx, type, tmpl, lineno(parser));
         }
     }
 
@@ -652,7 +653,7 @@ static struct nl_ast *templ(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *tps = nl_ast_make_list(NL_AST_LIST_TYPES, lineno(parser));
+    struct nl_ast *tps = nl_ast_make_list(parser->ctx, NL_AST_LIST_TYPES, lineno(parser));
     do {
         struct nl_ast *tp = type(parser);
         if (tp == NULL) {
@@ -695,7 +696,7 @@ static struct nl_ast *ident_statement(struct nl_parser *parser)
             err = true;
             PARSE_ERROR(parser, "Invalid right-hand-side in assignment");
         }
-        struct nl_ast *assignment = nl_ast_make_assignment(lhs, ass, expr, lineno(parser));
+        struct nl_ast *assignment = nl_ast_make_assignment(parser->ctx, lhs, ass, expr, lineno(parser));
         PARSE_DEBUG(parser, "Parsed assignment");
         stmt = assignment;
     } else if (parser->cur == TOK_BIND) {
@@ -705,7 +706,7 @@ static struct nl_ast *ident_statement(struct nl_parser *parser)
             err = true;
             PARSE_ERROR(parser, "Invalid expression in short-hand declaration");
         }
-        struct nl_ast *bind = nl_ast_make_bind(lhs, expr, lineno(parser));
+        struct nl_ast *bind = nl_ast_make_bind(parser->ctx, lhs, expr, lineno(parser));
         PARSE_DEBUG(parser, "Parsed short_decl");
         stmt = bind;
     } else {
@@ -735,7 +736,7 @@ static struct nl_ast *unary_expr(struct nl_parser *parser)
             err = true;
             /* FIXME: error message? NO */
         }
-        expr = nl_ast_make_unexpr(unop, inner, lineno(parser));
+        expr = nl_ast_make_unexpr(parser->ctx, unop, inner, lineno(parser));
     } else {
         expr = term(parser);
         if (expr == NULL) {
@@ -782,36 +783,37 @@ struct shunter {
     int op_size;
 };
 
-static int shunter_init(struct shunter *shunter)
+static int shunter_init(struct nl_context* ctx, struct shunter *shunter)
 {
     shunter->op_top = 0;
     shunter->op_size = 8;
-    shunter->op_stk = nl_alloc(NULL, shunter->op_size * sizeof(*shunter->op_stk));
+    shunter->op_stk = nl_alloc(ctx, shunter->op_size * sizeof(*shunter->op_stk));
     if (shunter->op_stk == NULL) {
         return NL_ERR_MEM;
     }
     shunter->term_top = 0;
     shunter->term_size = 8;
-    shunter->term_stk = nl_alloc(NULL, shunter->term_size * sizeof(*shunter->term_stk));
+    shunter->term_stk = nl_alloc(ctx, shunter->term_size * sizeof(*shunter->term_stk));
     if (shunter->term_stk == NULL) {
-        free(shunter->op_stk);
+        nl_free(ctx, shunter->op_stk);
         return NL_ERR_MEM;
     }
     return NL_NO_ERR;
 }
 
-static void shunter_deinit(struct shunter *shunter)
+static void shunter_deinit(struct nl_context* ctx, struct shunter *shunter)
 {
-    free(shunter->op_stk);
-    free(shunter->term_stk);
+    nl_free(ctx, shunter->op_stk);
+    nl_free(ctx, shunter->term_stk);
 }
 
-static struct nl_ast *shunter_term_push(struct shunter *shunter, struct nl_ast *term)
+static struct nl_ast *shunter_term_push(struct nl_context* ctx,
+        struct shunter *shunter, struct nl_ast *term)
 {
     shunter->term_stk[shunter->term_top++] = term;
     if (shunter->term_top >= shunter->term_size) {
         shunter->term_size *= 2;
-        shunter->term_stk = nl_realloc(NULL, shunter->term_stk,
+        shunter->term_stk = nl_realloc(ctx, shunter->term_stk,
                 shunter->term_size * sizeof(*shunter->term_stk));
     }
     return term;
@@ -822,12 +824,12 @@ static struct nl_ast *shunter_term_pop(struct shunter *shunter)
     return shunter->term_stk[--shunter->term_top];
 }
 
-static int shunter_op_push(struct shunter *shunter, int op)
+static int shunter_op_push(struct nl_context* ctx, struct shunter *shunter, int op)
 {
     shunter->op_stk[shunter->op_top++] = op;
     if (shunter->op_top >= shunter->op_size) {
         shunter->op_size *= 2;
-        shunter->op_stk = nl_realloc(NULL, shunter->op_stk,
+        shunter->op_stk = nl_realloc(ctx, shunter->op_stk,
                 shunter->op_size * sizeof(*shunter->op_stk));
         if (shunter->op_stk == NULL) {
             return NL_ERR_MEM;
@@ -866,7 +868,7 @@ static struct nl_ast *expression(struct nl_parser *parser)
     /*     err = true; */
     /*     /1* FIXME: clean-up and return *1/ */
     /* } */
-    shunter_init(&shunter);
+    shunter_init(parser->ctx, &shunter);
 
     while (parser->cur == TOK_ADD || parser->cur == TOK_SUB ||
             parser->cur == TOK_MUL || parser->cur == TOK_DIV ||
@@ -877,7 +879,7 @@ static struct nl_ast *expression(struct nl_parser *parser)
             parser->cur == TOK_OR || parser->cur == TOK_AND) {
 
         /* push operand on stack */
-        shunter_term_push(&shunter, cur);
+        shunter_term_push(parser->ctx, &shunter, cur);
 
         int op = parser->cur;
         next(parser);
@@ -892,8 +894,8 @@ static struct nl_ast *expression(struct nl_parser *parser)
                 /* pop RHS off first */
                 struct nl_ast *rhs = shunter_term_pop(&shunter);
                 struct nl_ast *lhs = shunter_term_pop(&shunter);
-                struct nl_ast *binexpr = nl_ast_make_binexpr(lhs, thisop, rhs, lineno(parser));
-                shunter_term_push(&shunter, binexpr);
+                struct nl_ast *binexpr = nl_ast_make_binexpr(parser->ctx, lhs, thisop, rhs, lineno(parser));
+                shunter_term_push(parser->ctx, &shunter, binexpr);
             } else {
                 break;
             }
@@ -902,7 +904,7 @@ static struct nl_ast *expression(struct nl_parser *parser)
         /*     err = true; */
         /*     break; */
         /* } */
-        shunter_op_push(&shunter, op);
+        shunter_op_push(parser->ctx, &shunter, op);
 
         cur = unary_expr(parser);
         if (cur == NULL) {
@@ -914,10 +916,10 @@ static struct nl_ast *expression(struct nl_parser *parser)
     while (!shunter_op_empty(&shunter)) {
         int op = shunter_op_pop(&shunter);
         struct nl_ast *lhs = shunter_term_pop(&shunter);
-        cur = nl_ast_make_binexpr(lhs, op, cur, lineno(parser));
+        cur = nl_ast_make_binexpr(parser->ctx, lhs, op, cur, lineno(parser));
     }
 
-    shunter_deinit(&shunter);
+    shunter_deinit(parser->ctx, &shunter);
 
     if (err) {
         cur = NULL;     /* TODO: destroy cur */
@@ -943,7 +945,7 @@ static struct nl_ast *term(struct nl_parser *parser)
                 err = true;
                 PARSE_ERROR(parser, "Invalid expression index");
             }
-            term = nl_ast_make_lookup(term, idx, lineno(parser));
+            term = nl_ast_make_lookup(parser->ctx, term, idx, lineno(parser));
             if (!expect(parser, TOK_RSQUARE)) {
                 err = true;
             }
@@ -953,12 +955,12 @@ static struct nl_ast *term(struct nl_parser *parser)
                 err = true;
                 PARSE_ERROR(parser, "Invalid func arguments");
             }
-            term = nl_ast_make_call(term, args, lineno(parser));
+            term = nl_ast_make_call(parser->ctx, term, args, lineno(parser));
             PARSE_DEBUG(parser, "Parsed function call");
         } else if (accept(parser, TOK_DOT)) {
             struct nl_ast *child = ident(parser);
             /* TODO: check if child is NULL? */
-            term = nl_ast_make_selector(term, child, lineno(parser));
+            term = nl_ast_make_selector(parser->ctx, term, child, lineno(parser));
         } else {
             break;
         }
@@ -977,11 +979,11 @@ static struct nl_ast *ident(struct nl_parser *parser)
     if (!expect(parser, TOK_IDENT)) {
         PARSE_ERROR(parser, "Invalid identifier");
     } else {
-        nl_string_t s = nl_strtab_wrap(parser->ctx->strtab,
+        nl_string_t s = nl_strtab_wrap(parser->ctx, parser->ctx->strtab,
                 current_buffer(parser));
         assert(s);
         PARSE_DEBUGF(parser, "Parsed identifier: %s", s);
-        id = nl_ast_make_ident(s, lineno(parser));
+        id = nl_ast_make_ident(parser->ctx, s, lineno(parser));
     }
     return id;
 }
@@ -1005,7 +1007,7 @@ static struct nl_ast *intlit(struct nl_parser *parser)
         PARSE_ERRORF(parser, "Invalid integer %s", tmpbuff);
         lit = NULL;
     } else {
-        lit = nl_ast_make_int_lit(l, lineno(parser));
+        lit = nl_ast_make_int_lit(parser->ctx, l, lineno(parser));
     }
     return lit;
 }
@@ -1029,7 +1031,7 @@ static struct nl_ast *reallit(struct nl_parser *parser)
         PARSE_ERRORF(parser, "Invalid real number %s", tmpbuff);
         lit = NULL;
     } else {
-        lit = nl_ast_make_real_lit(d, lineno(parser));
+        lit = nl_ast_make_real_lit(parser->ctx, d, lineno(parser));
     }
     return lit;
 }
@@ -1041,16 +1043,16 @@ static struct nl_ast *operand(struct nl_parser *parser)
         op = ident(parser);
         if (accept(parser, TOK_PREF)) {
             struct nl_ast *child = ident(parser);
-            op = nl_ast_make_package_ref(op, child, lineno(parser));
+            op = nl_ast_make_package_ref(parser->ctx, op, child, lineno(parser));
         }
     } else if (accept(parser, TOK_BOOL)) {
         char *tmpbuff = current_buffer(parser);
         if (strcmp(tmpbuff, "true") == 0) {
             PARSE_DEBUGF(parser, "Parsed bool literal: %s", tmpbuff);
-            op = nl_ast_make_bool_lit(true, lineno(parser));
+            op = nl_ast_make_bool_lit(parser->ctx, true, lineno(parser));
         } else if (strcmp(tmpbuff, "false") == 0) {
             PARSE_DEBUGF(parser, "Parsed bool literal: %s", tmpbuff);
-            op = nl_ast_make_bool_lit(false, lineno(parser));
+            op = nl_ast_make_bool_lit(parser->ctx, false, lineno(parser));
         } else {
             PARSE_ERRORF(parser, "Invalid bool literal: %s", tmpbuff);
             assert(false);  /* stupid but should never happen */
@@ -1059,16 +1061,16 @@ static struct nl_ast *operand(struct nl_parser *parser)
         char *tmpbuff = current_buffer(parser);
         char c = tmpbuff[0];
         PARSE_DEBUGF(parser, "Parsed char literal: %s", tmpbuff);
-        op = nl_ast_make_char_lit(c, lineno(parser));
+        op = nl_ast_make_char_lit(parser->ctx, c, lineno(parser));
     } else if (check(parser, TOK_INT)) {
         op = intlit(parser);
     } else if (check(parser, TOK_REAL)) {
         op = reallit(parser);
     } else if (accept(parser, TOK_STRING)) {
-        nl_string_t s = nl_strtab_wrap(parser->ctx->strtab,
+        nl_string_t s = nl_strtab_wrap(parser->ctx, parser->ctx->strtab,
                 current_buffer(parser));
         PARSE_DEBUGF(parser, "Parsed string literal: %s", s);
-        op = nl_ast_make_str_lit(s, lineno(parser));
+        op = nl_ast_make_str_lit(parser->ctx, s, lineno(parser));
     } else if (accept(parser, TOK_LPAREN)) {
         struct nl_ast *expr = expression(parser);
         if (expr == NULL) {
@@ -1102,7 +1104,7 @@ static struct nl_ast *listlit(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *expr_list = nl_ast_make_list(NL_AST_LIST_LIT, lineno(parser));
+    struct nl_ast *expr_list = nl_ast_make_list(parser->ctx, NL_AST_LIST_LIT, lineno(parser));
     if (!check(parser, TOK_RSQUARE)) {
         do {
             struct nl_ast *expr = expression(parser);
@@ -1132,7 +1134,7 @@ static struct nl_ast *maplit(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *keyval_list = nl_ast_make_list(NL_AST_MAP_LIT, lineno(parser));
+    struct nl_ast *keyval_list = nl_ast_make_list(parser->ctx, NL_AST_MAP_LIT, lineno(parser));
     if (!check(parser, TOK_RCURLY)) {
         do {
             struct nl_ast *key = expression(parser);
@@ -1151,7 +1153,7 @@ static struct nl_ast *maplit(struct nl_parser *parser)
                 PARSE_ERROR(parser, "Invalid value in map literal");
             }
 
-            struct nl_ast *kv = nl_ast_make_keyval(key, val, lineno(parser));
+            struct nl_ast *kv = nl_ast_make_keyval(parser->ctx, key, val, lineno(parser));
             keyval_list = nl_ast_list_append(keyval_list, kv);
         } while (accept(parser, TOK_COMMA));
     }
@@ -1183,7 +1185,7 @@ static struct nl_ast *funclit(struct nl_parser *parser)
     if (err) {
         fnlit = NULL;   /* TODO: destroy ft, blk */
     } else {
-        fnlit = nl_ast_make_function(NULL, ft, blk, lineno(parser));
+        fnlit = nl_ast_make_function(parser->ctx, NULL, ft, blk, lineno(parser));
     }
     return fnlit;
 }
@@ -1213,7 +1215,7 @@ static struct nl_ast *classlit(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *init_list = nl_ast_make_list(NL_AST_LIST_CLASS_INITS, lineno(parser));
+    struct nl_ast *init_list = nl_ast_make_list(parser->ctx, NL_AST_LIST_CLASS_INITS, lineno(parser));
     if (!check(parser, TOK_RCURLY)) {
         do {
             /*  class initializers can be either:
@@ -1252,7 +1254,7 @@ static struct nl_ast *classlit(struct nl_parser *parser)
     if (err) {
         clit = NULL;     /* TODO: destroy keyval_list */
     } else {
-        clit = nl_ast_make_classlit(clss, tmpl, init_list, lineno(parser));
+        clit = nl_ast_make_classlit(parser->ctx, clss, tmpl, init_list, lineno(parser));
     }
     return clit;
 }
@@ -1265,7 +1267,7 @@ static struct nl_ast *arguments(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *arg_list = nl_ast_make_list(NL_AST_LIST_ARGS, lineno(parser));
+    struct nl_ast *arg_list = nl_ast_make_list(parser->ctx, NL_AST_LIST_ARGS, lineno(parser));
     if (!check(parser, TOK_RPAREN)) {
         do {
             struct nl_ast *expr = expression(parser);
@@ -1298,7 +1300,7 @@ static struct nl_ast *block(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *statements = nl_ast_make_list(NL_AST_LIST_STATEMENTS, lineno(parser));
+    struct nl_ast *statements = nl_ast_make_list(parser->ctx, NL_AST_LIST_STATEMENTS, lineno(parser));
     /* parse statements until we see a '}' token */
     while (!check(parser, TOK_RCURLY)) {
         struct nl_ast *stmt = statement(parser);
@@ -1376,7 +1378,7 @@ static struct nl_ast *ifelse(struct nl_parser *parser)
     if (err) {
         if_stmt = NULL;     /* TODO: destroy cond & if_block & else_block */
     } else {
-        if_stmt = nl_ast_make_ifelse(cond, if_block, else_block, lineno(parser));
+        if_stmt = nl_ast_make_ifelse(parser->ctx, cond, if_block, else_block, lineno(parser));
     }
 
     return if_stmt;
@@ -1408,7 +1410,7 @@ static struct nl_ast *whileloop(struct nl_parser *parser)
     if (err) {
         loop = NULL;    /* TODO: destroy cond & blk */
     } else {
-        loop = nl_ast_make_while(cond, blk, lineno(parser));
+        loop = nl_ast_make_while(parser->ctx, cond, blk, lineno(parser));
     }
     return loop;
 }
@@ -1444,7 +1446,7 @@ static struct nl_ast *forloop(struct nl_parser *parser)
     if (err) {
         loop = NULL;    /* TODO: destroy var & range & blk */
     } else {
-        loop = nl_ast_make_for(var, range, blk, lineno(parser));
+        loop = nl_ast_make_for(parser->ctx, var, range, blk, lineno(parser));
     }
     return loop;
 }
@@ -1459,7 +1461,7 @@ static struct nl_ast *parameters(struct nl_parser *parser)
         err = true;
     }
 
-    struct nl_ast *params = nl_ast_make_list(NL_AST_LIST_PARAMS, lineno(parser));
+    struct nl_ast *params = nl_ast_make_list(parser->ctx, NL_AST_LIST_PARAMS, lineno(parser));
     if (!check(parser, TOK_RPAREN)) {
         do {
 
@@ -1486,7 +1488,7 @@ static struct nl_ast *parameters(struct nl_parser *parser)
                 }
             }
 
-            struct nl_ast *decl = nl_ast_make_decl(kind, tp, rhs, lineno(parser));
+            struct nl_ast *decl = nl_ast_make_decl(parser->ctx, kind, tp, rhs, lineno(parser));
             params = nl_ast_list_append(params, decl);
         } while (accept(parser, TOK_COMMA));
     }
@@ -1541,7 +1543,7 @@ static struct nl_ast *functype(struct nl_parser *parser)
     if (err) {
         ft = NULL;  /* TODO: destroy tmpl, ret_type & params */
     } else {
-        ft = nl_ast_make_func_type(tmpl, ret_type, params, lineno(parser));
+        ft = nl_ast_make_func_type(parser->ctx, tmpl, ret_type, params, lineno(parser));
     }
     return ft;
 }

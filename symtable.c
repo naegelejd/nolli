@@ -6,25 +6,28 @@
 #include <assert.h>
 #include <stdio.h> /* for dumping table */
 
-static struct nl_symbol *new_symbol(const nl_string_t name, const void *value)
+static struct nl_symbol *new_symbol(struct nl_context* ctx,
+        const nl_string_t name, const void *value)
 {
-    struct nl_symbol *sym = nl_alloc(NULL, sizeof(*sym));
+    struct nl_symbol *sym = nl_alloc(ctx, sizeof(*sym));
     *sym = (struct nl_symbol){.name=name, .value=value};
     return sym;
 }
 
-struct nl_symtable *nl_symtable_create(const struct nl_symtable *parent)
+struct nl_symtable *nl_symtable_create(struct nl_context* ctx,
+        const struct nl_symtable *parent)
 {
-    struct nl_symtable *tab = nl_alloc(NULL, sizeof(*tab));
+    struct nl_symtable *tab = nl_alloc(ctx, sizeof(*tab));
     tab->parent = parent;
     return tab;
 }
 
-struct nl_symtable *nl_symtable_destroy(const struct nl_symtable* tab)
+struct nl_symtable *nl_symtable_destroy(struct nl_context* ctx,
+        const struct nl_symtable* tab)
 {
     struct nl_symtable* parent = (struct nl_symtable*)tab->parent;
     /* TODO: nl_free each symbol in the table! */
-    nl_free(NULL, (void*)tab);
+    nl_free(ctx, (void*)tab);
     return parent;
 }
 
@@ -53,7 +56,8 @@ void *nl_symtable_get(const struct nl_symtable *tab, const nl_string_t name)
     return NULL;
 }
 
-void *nl_symtable_add(struct nl_symtable *tab, const nl_string_t name, const void *value)
+void *nl_symtable_add(struct nl_context* ctx, struct nl_symtable* tab,
+        const nl_string_t name, const void *value)
 {
     struct nl_symbol **symp = &tab->head;
     while (*symp != NULL) {
@@ -69,7 +73,7 @@ void *nl_symtable_add(struct nl_symtable *tab, const nl_string_t name, const voi
     }
 
     /* append symbol to end of table */
-    (*symp) = new_symbol(name, value);
+    (*symp) = new_symbol(ctx, name, value);
     tab->count++;
 
     return (void*)value;

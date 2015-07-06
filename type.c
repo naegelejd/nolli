@@ -51,9 +51,10 @@ struct nl_type nl_tmpl_placeholder_type = {
     .n = 0
 };
 
-struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param_types_head, unsigned int count)
+struct nl_type* nl_type_new_func(struct nl_context* ctx, struct nl_type *ret_type,
+        struct nl_type *param_types_head, unsigned int count)
 {
-    struct nl_type* func = nl_alloc(NULL, sizeof(*func));
+    struct nl_type* func = nl_alloc(ctx, sizeof(*func));
     func->tag = NL_TYPE_FUNC;
 
     func->func.ret_type = ret_type;
@@ -63,10 +64,11 @@ struct nl_type* nl_type_new_func(struct nl_type *ret_type, struct nl_type *param
     return func;
 }
 
-struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
-        struct nl_symtable *members, struct nl_symtable *methods)
+struct nl_type* nl_type_new_class(struct nl_context* ctx, const char *name,
+        struct nl_symtable *tmpls, struct nl_symtable *members,
+        struct nl_symtable *methods)
 {
-    struct nl_type* user_type = nl_alloc(NULL, sizeof(*user_type));
+    struct nl_type* user_type = nl_alloc(ctx, sizeof(*user_type));
     user_type->tag = NL_TYPE_CLASS;
     user_type->repr = name;
 
@@ -77,9 +79,10 @@ struct nl_type* nl_type_new_class(const char *name, struct nl_symtable *tmpls,
     return user_type;
 }
 
-struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *methods)
+struct nl_type* nl_type_new_interface(struct nl_context* ctx,
+        const char *name, struct nl_symtable *methods)
 {
-    struct nl_type* user_type = nl_alloc(NULL, sizeof(*user_type));
+    struct nl_type* user_type = nl_alloc(ctx, sizeof(*user_type));
     user_type->tag = NL_TYPE_INTERFACE;
     user_type->repr = name;
 
@@ -88,10 +91,10 @@ struct nl_type* nl_type_new_interface(const char *name, struct nl_symtable *meth
     return user_type;
 }
 
-struct nl_type* nl_type_new_reference(nl_string_t package_name,
-        nl_string_t type_name)
+struct nl_type* nl_type_new_reference(struct nl_context* ctx,
+        nl_string_t package_name, nl_string_t type_name)
 {
-    struct nl_type* tp = nl_alloc(NULL, sizeof(*tp));
+    struct nl_type* tp = nl_alloc(ctx, sizeof(*tp));
     tp->tag = NL_TYPE_REFERENCE;
     tp->repr = "reference";  /* FIXME */
 

@@ -238,52 +238,75 @@ struct nl_ast {
     int lineno;
 };
 
-struct nl_ast *nl_ast_make_bool_lit(bool b, int);
-struct nl_ast *nl_ast_make_char_lit(char c, int);
-struct nl_ast *nl_ast_make_int_lit(long l, int);
-struct nl_ast *nl_ast_make_real_lit(double d, int);
-struct nl_ast *nl_ast_make_str_lit(nl_string_t s, int);
+struct nl_ast *nl_ast_make_bool_lit(struct nl_context* ctx, bool b, int);
+struct nl_ast *nl_ast_make_char_lit(struct nl_context* ctx, char c, int);
+struct nl_ast *nl_ast_make_int_lit(struct nl_context* ctx, long l, int);
+struct nl_ast *nl_ast_make_real_lit(struct nl_context* ctx, double d, int);
+struct nl_ast *nl_ast_make_str_lit(struct nl_context* ctx, nl_string_t s, int);
 
-struct nl_ast *nl_ast_make_ident(nl_string_t s, int);
+struct nl_ast *nl_ast_make_ident(struct nl_context* ctx, nl_string_t s, int);
 
-struct nl_ast *nl_ast_make_tmpl_type(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_qual_type(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_func_type(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_tmpl_type(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_qual_type(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_func_type(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, struct nl_ast*, int);
 
-struct nl_ast *nl_ast_make_initialization(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_unexpr(int op, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_binexpr(struct nl_ast*, int op, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_call(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_initialization(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_unexpr(struct nl_context* ctx, int op, struct nl_ast*,
+        int);
+struct nl_ast *nl_ast_make_binexpr(struct nl_context* ctx, struct nl_ast*, int op,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_call(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
 
-struct nl_ast *nl_ast_make_list(int type, int);
+struct nl_ast *nl_ast_make_list(struct nl_context* ctx, int type, int);
 struct nl_ast *nl_ast_list_append(struct nl_ast*, struct nl_ast*);
 
-struct nl_ast *nl_ast_make_keyval(struct nl_ast *key, struct nl_ast *val, int);
-struct nl_ast *nl_ast_make_lookup(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_selector(struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_keyval(struct nl_context* ctx, struct nl_ast *key,
+        struct nl_ast *val, int);
+struct nl_ast *nl_ast_make_lookup(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_selector(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
 
-struct nl_ast *nl_ast_make_package_ref(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_bind(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_assignment(struct nl_ast*, int op, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_package_ref(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_bind(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_assignment(struct nl_context* ctx, struct nl_ast*,
+        int op, struct nl_ast*, int);
 
-struct nl_ast *nl_ast_make_ifelse(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_while(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_for(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_ifelse(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_while(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_for(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, struct nl_ast*, int);
 
-struct nl_ast *nl_ast_make_break(int);
-struct nl_ast *nl_ast_make_continue(int);
-struct nl_ast *nl_ast_make_return(struct nl_ast*, int);
+struct nl_ast *nl_ast_make_break(struct nl_context* ctx, int);
+struct nl_ast *nl_ast_make_continue(struct nl_context* ctx, int);
+struct nl_ast *nl_ast_make_return(struct nl_context* ctx, struct nl_ast*, int);
 
-struct nl_ast *nl_ast_make_classlit(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_classlit(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, struct nl_ast*, int);
 
-struct nl_ast *nl_ast_make_decl(int, struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_function(struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_class(struct nl_ast*, struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_interface(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_alias(struct nl_ast*, struct nl_ast *, int);
-struct nl_ast *nl_ast_make_using(struct nl_ast*, int);
-struct nl_ast *nl_ast_make_package(struct nl_ast*, struct nl_ast*, int);
-struct nl_ast *nl_ast_make_unit(struct nl_ast*, int);
+struct nl_ast *nl_ast_make_decl(struct nl_context* ctx, int, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_function(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_class(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, struct nl_ast*, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_interface(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_alias(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast *, int);
+struct nl_ast *nl_ast_make_using(struct nl_context* ctx, struct nl_ast*, int);
+struct nl_ast *nl_ast_make_package(struct nl_context* ctx, struct nl_ast*,
+        struct nl_ast*, int);
+struct nl_ast *nl_ast_make_unit(struct nl_context* ctx, struct nl_ast*, int);
 
 char *nl_ast_name(const struct nl_ast* node);
 
