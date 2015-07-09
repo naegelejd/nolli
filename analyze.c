@@ -12,7 +12,7 @@
 #include <string.h>
 #include <assert.h>
 
-/**
+/*
  * Semantic Analysis
  *
  * Need:
@@ -39,7 +39,7 @@
  *
  */
 
-/**
+/*
  * While collecting global types and symbols:
  *
  *  - access to nl_context and other package types/symbols
@@ -70,17 +70,17 @@
  *  - access to current scope's symbols
  */
 
-/** Analysis State */
+/* Analysis State */
 struct analysis {
     struct nl_context *ctx;
     struct nl_symtable *packages;
 };
 
-/** Collection of types/symbols for a package */
+/* Collection of types/symbols for a package */
 struct pkgtable {
-    struct nl_symtable *type_names;     /**< Typenames -> types */
-    struct nl_symtable *type_tables;    /**< Typenames -> typetable */
-    struct nl_symtable *symbols;        /**< Symbols -> types */
+    struct nl_symtable *type_names;     /* Typenames -> types */
+    struct nl_symtable *type_tables;    /* Typenames -> typetable */
+    struct nl_symtable *symbols;        /* Symbols -> types */
 };
 
 struct func_info {
